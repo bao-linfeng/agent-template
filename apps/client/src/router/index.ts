@@ -9,6 +9,9 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     /** Sign-in pages; signed-in users are sent to their account. */
     guestOnly?: boolean
+    /** i18n message keys (see `src/i18n/locales`), translated where they are shown. */
+    title?: string
+    description?: string
   }
 }
 
@@ -18,7 +21,7 @@ export const routes: RouteRecordRaw[] = [
     name: 'Home',
     component: () => import('@/pages/Home.vue'),
     meta: {
-      title: 'Home',
+      title: 'routes.home.title',
       icon: 'Home',
     },
   },
@@ -27,8 +30,8 @@ export const routes: RouteRecordRaw[] = [
     name: 'Hero Sections',
     component: () => import('@/pages/Layout.vue'),
     meta: {
-      title: 'Hero Sections',
-      description: 'Beautiful hero section components for your landing pages',
+      title: 'routes.hero.title',
+      description: 'routes.hero.description',
       isGroupParent: true,
     },
     children: [
@@ -38,8 +41,8 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/hero/Hero.vue'),
         meta: {
           icon: 'Layout',
-          title: 'Hero Base',
-          description: 'Standard hero section with image and text',
+          title: 'routes.heroBase.title',
+          description: 'routes.heroBase.description',
         },
       },
       {
@@ -48,8 +51,8 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/hero/Media.vue'),
         meta: {
           icon: 'Layout',
-          title: 'Hero Media',
-          description: 'Hero section with media',
+          title: 'routes.heroMedia.title',
+          description: 'routes.heroMedia.description',
         },
       },
       {
@@ -58,8 +61,8 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/hero/Promo.vue'),
         meta: {
           icon: 'Layout',
-          title: 'Hero Promo',
-          description: 'Hero section with promo',
+          title: 'routes.heroPromo.title',
+          description: 'routes.heroPromo.description',
         },
       },
       {
@@ -68,8 +71,8 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/hero/Split.vue'),
         meta: {
           icon: 'ChevronsRight',
-          title: 'Hero Split',
-          description: 'Split hero section with image and text',
+          title: 'routes.heroSplit.title',
+          description: 'routes.heroSplit.description',
         },
       },
       {
@@ -78,8 +81,8 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/hero/SplitFull.vue'),
         meta: {
           icon: 'ChevronsRight',
-          title: 'Split Full Hero',
-          description: 'Split full hero section with image and text',
+          title: 'routes.heroSplitFull.title',
+          description: 'routes.heroSplitFull.description',
         },
       },
     ],
@@ -89,8 +92,8 @@ export const routes: RouteRecordRaw[] = [
     name: 'Blog Sections',
     component: () => import('@/pages/Layout.vue'),
     meta: {
-      title: 'Blog Sections',
-      description: 'Beautiful blog section components for your landing pages',
+      title: 'routes.blog.title',
+      description: 'routes.blog.description',
       isGroupParent: true,
     },
     children: [
@@ -100,8 +103,8 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/blog/Grid.vue'),
         meta: {
           icon: 'Layout',
-          title: 'Blog Base',
-          description: 'Standard blog section with image and text',
+          title: 'routes.blogBase.title',
+          description: 'routes.blogBase.description',
         },
       },
       {
@@ -110,8 +113,8 @@ export const routes: RouteRecordRaw[] = [
         component: () => import('@/pages/blog/GridLists.vue'),
         meta: {
           icon: 'Layout',
-          title: 'Blog Lists',
-          description: 'Blog section with lists',
+          title: 'routes.blogLists.title',
+          description: 'routes.blogLists.description',
         },
       },
     ],
@@ -120,32 +123,32 @@ export const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'Login',
     component: () => import('@/pages/account/Login.vue'),
-    meta: { title: 'Sign in', guestOnly: true },
+    meta: { title: 'routes.login.title', guestOnly: true },
   },
   {
     path: '/register',
     name: 'Register',
     component: () => import('@/pages/account/Register.vue'),
-    meta: { title: 'Create an account', guestOnly: true },
+    meta: { title: 'routes.register.title', guestOnly: true },
   },
   {
     path: '/forgot-password',
     name: 'Forgot Password',
     component: () => import('@/pages/account/ForgotPassword.vue'),
-    meta: { title: 'Forgot password' },
+    meta: { title: 'routes.forgotPassword.title' },
   },
   {
     // Target of the emailed reset link (`resetUrl` sent by ForgotPassword.vue).
     path: '/reset-password',
     name: 'Reset Password',
     component: () => import('@/pages/account/ResetPassword.vue'),
-    meta: { title: 'Reset password' },
+    meta: { title: 'routes.resetPassword.title' },
   },
   {
     path: '/account',
     name: 'Account',
     component: () => import('@/pages/account/Account.vue'),
-    meta: { title: 'My account', requiresAuth: true },
+    meta: { title: 'routes.account.title', requiresAuth: true },
   },
   {
     path: '/buildy/:pathMatch(.*)*',

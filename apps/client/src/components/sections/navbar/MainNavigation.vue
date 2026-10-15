@@ -28,8 +28,10 @@ import {
   SheetTrigger,
 } from '@repo/ui/components/sheet'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { DarkMode } from '@/components/darkMode'
+import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { ThemingSettings } from '@/components/theming'
 import { useCollecty } from '@/composables/useCollecty'
 import { useSession } from '@/composables/useSession'
@@ -38,6 +40,7 @@ import NavbarBrand from './NavbarBrand.vue'
 import NavbarLayer from './NavbarLayer.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const { collection } = useCollecty()
 const isButtonVisible = computed(() => collection.value.length > 0)
@@ -65,7 +68,7 @@ interface ParentRoute {
   children?: RouteChild[]
 }
 
-// Расширяем структуру маршрутов с правильной типизацией
+// Titles and descriptions in route meta are i18n keys, translated in the template
 const parentRoutes = router.getRoutes()
   .filter(route => route.meta?.isGroupParent)
   .map(route => ({
@@ -92,9 +95,7 @@ function getIcon(iconName?: string) {
   return (iconName && routeIcons[iconName]) || ChevronsRight
 }
 
-// Обновляем идентификаторы для доступности
 const sheetId = 'mobile-navigation'
-const menuDescription = 'Main navigation menu with all available sections and pages'
 </script>
 
 <template>
@@ -111,7 +112,7 @@ const menuDescription = 'Main navigation menu with all available sections and pa
           <NavigationMenu class="hidden md:flex">
             <NavigationMenuList>
               <NavigationMenuItem v-for="parentRoute in parentRoutes" :key="parentRoute.path">
-                <NavigationMenuTrigger>{{ parentRoute.title }}</NavigationMenuTrigger>
+                <NavigationMenuTrigger>{{ t(parentRoute.title) }}</NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <ul class="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                     <li v-for="child in parentRoute.children" :key="child.path">
@@ -121,10 +122,10 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                           class="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-hidden transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
                           <div class="text-sm font-medium leading-none">
-                            {{ child.title }}
+                            {{ t(child.title) }}
                           </div>
                           <p v-if="child.description" class="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            {{ child.description }}
+                            {{ t(child.description) }}
                           </p>
                         </router-link>
                       </NavigationMenuLink>
@@ -145,13 +146,14 @@ const menuDescription = 'Main navigation menu with all available sections and pa
             variant="default"
             size="sm"
             class="bg-primary text-white mr-2"
-            aria-label="Go to builder"
+            :aria-label="t('nav.goToBuilder')"
             @click="router.push('/buildy')"
           >
             <Combine :stroke-width="2.5" class="w-3.5! h-3.5!" />
             <span class="font-base">BuildY</span>
           </Button>
 
+          <LanguageSwitcher />
           <DarkMode data-dark-mode />
           <ThemingSettings />
 
@@ -159,7 +161,7 @@ const menuDescription = 'Main navigation menu with all available sections and pa
             v-if="user"
             to="/account"
             class="ml-1 rounded-full focus-visible:outline-2 focus-visible:outline-primary"
-            :aria-label="`My account (${user.nickname})`"
+            :aria-label="t('nav.myAccountOf', { name: user.nickname })"
             :title="user.nickname"
           >
             <Avatar class="size-8">
@@ -171,7 +173,7 @@ const menuDescription = 'Main navigation menu with all available sections and pa
           </RouterLink>
           <Button v-else variant="outline" size="sm" class="ml-1" @click="router.push({ path: '/login', query: { redirect: $route.fullPath } })">
             <LogIn class="size-4" />
-            <span class="hidden sm:inline">Sign in</span>
+            <span class="hidden sm:inline">{{ t('nav.signIn') }}</span>
           </Button>
 
           <!-- Мобильное меню -->
@@ -182,10 +184,10 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                 size="icon"
                 class="md:hidden"
                 :aria-controls="sheetId"
-                aria-label="Open navigation menu"
+                :aria-label="t('nav.openMenu')"
               >
                 <AlignRight class="w-[1.5rem]! h-[1.5rem]!" />
-                <span class="sr-only">Toggle menu</span>
+                <span class="sr-only">{{ t('nav.toggleMenu') }}</span>
               </Button>
             </SheetTrigger>
 
@@ -201,7 +203,7 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                   </NavbarBrand>
                 </SheetTitle>
                 <SheetDescription class="text-sm text-muted-foreground">
-                  {{ menuDescription }}
+                  {{ t('nav.menuDescription') }}
                 </SheetDescription>
               </SheetHeader>
 
@@ -210,17 +212,17 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                   <router-link
                     to="/"
                     class="flex items-center gap-2 px-2 py-1.5 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground"
-                    aria-label="Go to home page"
+                    :aria-label="t('nav.goHome')"
                   >
                     <Home class="h-4 w-4" />
-                    <span>Home</span>
+                    <span>{{ t('nav.home') }}</span>
                   </router-link>
                   <router-link
                     :to="user ? '/account' : '/login'"
                     class="flex items-center gap-2 px-2 py-1.5 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground"
                   >
                     <CircleUser class="h-4 w-4" />
-                    <span>{{ user ? 'My account' : 'Sign in' }}</span>
+                    <span>{{ user ? t('nav.myAccount') : t('nav.signIn') }}</span>
                   </router-link>
 
                   <Separator class="my-4" />
@@ -237,9 +239,9 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                     >
                       <AccordionTrigger
                         class="text-sm no-underline"
-                        :aria-label="`Toggle ${route.title} section`"
+                        :aria-label="t('nav.toggleSection', { title: t(route.title) })"
                       >
-                        {{ route.title }}
+                        {{ t(route.title) }}
                       </AccordionTrigger>
                       <AccordionContent>
                         <div class="pl-1 py-2 space-y-1">
@@ -251,7 +253,7 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                             :class="[
                               route.path === $route.path ? 'bg-accent text-accent-foreground' : 'text-muted-foreground',
                             ]"
-                            :aria-label="`Go to ${child.title}`"
+                            :aria-label="t('nav.goTo', { title: t(child.title) })"
                             :aria-current="route.path === $route.path ? 'page' : undefined"
                           >
                             <component
@@ -260,12 +262,12 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                               aria-hidden="true"
                             />
                             <div>
-                              <div>{{ child.title }}</div>
+                              <div>{{ t(child.title) }}</div>
                               <p
                                 v-if="child.description"
                                 class="text-xs text-muted-foreground line-clamp-1"
                               >
-                                {{ child.description }}
+                                {{ t(child.description) }}
                               </p>
                             </div>
                           </router-link>

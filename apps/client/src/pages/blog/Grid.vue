@@ -1,38 +1,42 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Container } from '@/components/layout'
 import { BlogCard, BlogGrid } from '@/components/sections/blog'
 import { MainNavigation } from '@/components/sections/navbar'
 
-const posts = [
+const { t } = useI18n()
+
+const posts = computed(() => [
   {
-    title: 'Building Modern Web Applications',
-    description: 'Learn how to create scalable and maintainable web applications using the latest technologies.',
-    category: 'Development',
+    title: t('demo.blog.posts.modernApps.title'),
+    description: t('demo.blog.posts.modernApps.description'),
+    category: t('demo.blog.categories.development'),
     date: '2024-03-15',
     href: '#',
   },
   {
-    title: 'The Future of AI',
-    description: 'Exploring the latest advancements in artificial intelligence and machine learning.',
-    category: 'Technology',
+    title: t('demo.blog.posts.futureAi.title'),
+    description: t('demo.blog.posts.futureAi.description'),
+    category: t('demo.blog.categories.technology'),
     date: '2024-03-14',
     href: '#',
   },
   {
-    title: 'Design Systems Evolution',
-    description: 'How design systems are changing the way we build and maintain user interfaces.',
-    category: 'Design',
+    title: t('demo.blog.posts.designSystems.title'),
+    description: t('demo.blog.posts.designSystems.description'),
+    category: t('demo.blog.categories.design'),
     date: '2024-03-13',
     href: '#',
   },
   {
-    title: 'The Future of Web Development',
-    description: 'Exploring the latest trends in web development and where it is going.',
-    category: 'Development',
+    title: t('demo.blog.posts.futureWeb.title'),
+    description: t('demo.blog.posts.futureWeb.description'),
+    category: t('demo.blog.categories.development'),
     date: '2024-03-12',
     href: '#',
   },
-]
+])
 </script>
 
 <template>
@@ -40,7 +44,7 @@ const posts = [
   <Container>
     <div class="my-16" />
     <h2 class="text-2xl font-bold mb-4">
-      Grid Layout
+      {{ t('demo.blog.grid') }}
     </h2>
     <!-- Grid Layout -->
     <BlogGrid
@@ -55,7 +59,7 @@ const posts = [
 
     <div class="mb-16" />
     <h2 class="text-2xl font-bold mb-4">
-      Featured Layout
+      {{ t('demo.blog.featured') }}
     </h2>
     <!-- Featured Layout -->
     <BlogGrid
@@ -72,7 +76,7 @@ const posts = [
 
     <div class="mb-32">
       <h2 class="text-2xl font-bold mb-4">
-        Single Column Layout
+        {{ t('demo.blog.singleColumn') }}
       </h2>
       <!-- Single Column Layout -->
       <BlogGrid

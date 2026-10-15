@@ -2,6 +2,7 @@
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
 import { reactive, shallowRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AuthShell from '@/components/account/AuthShell.vue'
 import AvatarPicker from '@/components/account/AvatarPicker.vue'
@@ -12,6 +13,7 @@ import { useSession } from '@/composables/useSession'
 import { errorMessage } from '@/lib/api'
 import { checkConfirmation, checkEmail, checkNewPassword, checkNickname, collectErrors, safeRedirect } from '@/lib/validation'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { register } = useSession()
@@ -40,7 +42,7 @@ async function submit() {
       avatar.value,
     )
     if (avatarError)
-      flash({ type: 'warning', text: `Account created, but the avatar was not saved: ${avatarError}` })
+      flash({ type: 'warning', text: t('account.register.avatarNotSaved', { error: avatarError }) })
     await router.replace(safeRedirect(route.query.redirect))
   }
   catch (error) {
@@ -53,7 +55,7 @@ async function submit() {
 </script>
 
 <template>
-  <AuthShell title="Create an account" description="It only takes a minute.">
+  <AuthShell :title="t('account.register.title')" :description="t('account.register.description')">
     <form class="grid gap-4" novalidate @submit.prevent="submit">
       <Alert v-if="failure" variant="destructive">
         <AlertDescription>{{ failure }}</AlertDescription>
@@ -66,25 +68,25 @@ async function submit() {
         @select="avatar = $event"
         @remove="avatar = null"
       />
-      <TextField v-model="form.nickname" label="Nickname" placeholder="Ada Lovelace" autocomplete="nickname" :error="errors.nickname" />
-      <TextField v-model="form.email" label="Email" type="email" placeholder="you@example.com" autocomplete="email" :error="errors.email" />
+      <TextField v-model="form.nickname" :label="t('account.fields.nickname')" :placeholder="t('account.fields.nicknamePlaceholder')" autocomplete="nickname" :error="errors.nickname" />
+      <TextField v-model="form.email" :label="t('account.fields.email')" type="email" placeholder="you@example.com" autocomplete="email" :error="errors.email" />
       <TextField
         v-model="form.password"
-        label="Password"
+        :label="t('account.fields.password')"
         type="password"
         autocomplete="new-password"
-        hint="8-72 characters."
+        :hint="t('account.fields.passwordHint')"
         :error="errors.password"
       />
-      <TextField v-model="form.confirmPassword" label="Confirm password" type="password" autocomplete="new-password" :error="errors.confirmPassword" />
+      <TextField v-model="form.confirmPassword" :label="t('account.fields.confirmPassword')" type="password" autocomplete="new-password" :error="errors.confirmPassword" />
       <Button type="submit" class="w-full" :disabled="submitting">
-        {{ submitting ? 'Creating account...' : 'Create account' }}
+        {{ submitting ? t('account.register.submitting') : t('account.register.submit') }}
       </Button>
     </form>
     <template #footer>
-      Already have an account?
+      {{ t('account.register.hasAccount') }}
       <RouterLink :to="{ path: '/login', query: route.query }" class="font-medium text-primary hover:underline">
-        Sign in
+        {{ t('account.register.signIn') }}
       </RouterLink>
     </template>
   </AuthShell>

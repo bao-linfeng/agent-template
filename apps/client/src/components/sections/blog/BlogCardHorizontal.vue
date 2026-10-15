@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'vue'
 import { Badge } from '@repo/ui/components/badge'
 import { cn } from '@repo/utils'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { placeholderDark, placeholderLight } from './placeholders'
 
@@ -48,6 +49,8 @@ interface Props {
   imageProps?: ImageProps
   badgeProps?: BadgeProps
 }
+
+const { t } = useI18n()
 
 const imageClasses = computed(() => {
   return cn(
@@ -111,7 +114,7 @@ const containerClasses = computed(() => {
       <p class="mt-2 text-muted-foreground line-clamp-2">{{ props.description }}</p>
 
       <div class="mt-4 flex items-center text-primary">
-        Read more
+        {{ t('common.readMore') }}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="ml-1 h-4 w-4"

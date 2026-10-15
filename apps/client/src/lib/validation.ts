@@ -1,35 +1,37 @@
-// Limits mirror the server DTOs (apps/server/src/modules/auth/dto/auth.dto.ts). Each check returns an
-// error message or `undefined`.
+import { t } from '@/i18n'
+
+// Limits mirror the server DTOs (apps/server/src/modules/auth/dto/auth.dto.ts). Each check returns a
+// message in the current UI language or `undefined`.
 
 const EMAIL = /^[^\s@]+@[^\s@][^\s.@]*(?:\.[^\s.@]+)+$/
 
 export function checkEmail(value: string) {
   const email = value.trim()
   if (!email)
-    return 'Please enter your email.'
+    return t('validation.emailRequired')
   if (!EMAIL.test(email) || email.length > 255)
-    return 'Please enter a valid email address.'
+    return t('validation.emailInvalid')
 }
 
 /** 8-72 characters (bcrypt limit). */
 export function checkNewPassword(value: string) {
   if (value.length < 8)
-    return 'Password must be at least 8 characters.'
+    return t('validation.passwordTooShort')
   if (value.length > 72)
-    return 'Password must not be longer than 72 characters.'
+    return t('validation.passwordTooLong')
 }
 
 export function checkConfirmation(password: string, confirmation: string) {
   if (password !== confirmation)
-    return 'Passwords do not match.'
+    return t('validation.passwordMismatch')
 }
 
 export function checkNickname(value: string) {
   const nickname = value.trim()
   if (nickname.length < 2)
-    return 'Nickname must be at least 2 characters.'
+    return t('validation.nicknameTooShort')
   if (nickname.length > 50)
-    return 'Nickname must not be longer than 50 characters.'
+    return t('validation.nicknameTooLong')
 }
 
 /** Formats the server accepts for avatars (it checks the file content). */
@@ -40,9 +42,9 @@ export const AVATAR_MAX_BYTES = 2 * 1024 * 1024
 
 export function checkAvatar(file: Pick<File, 'type' | 'size'>) {
   if (!(AVATAR_TYPES as readonly string[]).includes(file.type))
-    return 'Please choose a PNG, JPEG, GIF or WebP image.'
+    return t('validation.avatarType')
   if (file.size > AVATAR_MAX_BYTES)
-    return 'The image must be smaller than 2 MB.'
+    return t('validation.avatarSize')
 }
 
 /** Keeps only the messages that are set; empty object means valid. */

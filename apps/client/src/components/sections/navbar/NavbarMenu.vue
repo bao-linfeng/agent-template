@@ -11,7 +11,9 @@ import {
   SheetTrigger,
 } from '@repo/ui/components/sheet'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const isOpen = ref(false)
 </script>
 
@@ -20,19 +22,19 @@ const isOpen = ref(false)
     <SheetTrigger as-child>
       <Button variant="ghost" size="icon">
         <Menu class="h-5 w-5" />
-        <span class="sr-only">Toggle menu</span>
+        <span class="sr-only">{{ t('nav.toggleMenu') }}</span>
       </Button>
     </SheetTrigger>
     <SheetContent side="left" class="w-[280px] sm:w-[340px]">
       <SheetHeader>
         <SheetTitle>
           <slot name="title">
-            Menu
+            {{ t('nav.menu') }}
           </slot>
         </SheetTitle>
         <SheetDescription>
           <slot name="description">
-            Navigation menu
+            {{ t('nav.navigationMenu') }}
           </slot>
         </SheetDescription>
       </SheetHeader>

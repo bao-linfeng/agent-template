@@ -2,11 +2,14 @@
 import { Alert, AlertDescription, AlertTitle } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
 import { shallowRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AuthShell from '@/components/account/AuthShell.vue'
 import TextField from '@/components/account/TextField.vue'
 import { accountApi } from '@/lib/account'
 import { errorMessage } from '@/lib/api'
 import { checkEmail } from '@/lib/validation'
+
+const { t } = useI18n()
 
 const email = shallowRef('')
 const error = shallowRef<string>()
@@ -35,26 +38,26 @@ async function submit() {
 </script>
 
 <template>
-  <AuthShell title="Forgot password" description="Enter your email and we will send you a link to reset your password.">
+  <AuthShell :title="t('account.forgot.title')" :description="t('account.forgot.description')">
     <form class="grid gap-4" novalidate @submit.prevent="submit">
       <Alert v-if="sentTo">
-        <AlertTitle>Check your inbox</AlertTitle>
+        <AlertTitle>{{ t('account.forgot.sentTitle') }}</AlertTitle>
         <AlertDescription>
-          If {{ sentTo }} is registered, a reset link is on its way. It is valid for a limited time and only once.
+          {{ t('account.forgot.sentBody', { email: sentTo }) }}
         </AlertDescription>
       </Alert>
       <Alert v-if="failure" variant="destructive">
         <AlertDescription>{{ failure }}</AlertDescription>
       </Alert>
-      <TextField v-model="email" label="Email" type="email" placeholder="you@example.com" autocomplete="email" :error="error" />
+      <TextField v-model="email" :label="t('account.fields.email')" type="email" placeholder="you@example.com" autocomplete="email" :error="error" />
       <Button type="submit" class="w-full" :disabled="submitting">
-        {{ submitting ? 'Sending...' : sentTo ? 'Send again' : 'Send reset link' }}
+        {{ submitting ? t('account.forgot.submitting') : sentTo ? t('account.forgot.resend') : t('account.forgot.submit') }}
       </Button>
     </form>
     <template #footer>
-      Remembered it?
+      {{ t('account.forgot.remembered') }}
       <RouterLink to="/login" class="font-medium text-primary hover:underline">
-        Back to sign in
+        {{ t('account.forgot.backToSignIn') }}
       </RouterLink>
     </template>
   </AuthShell>

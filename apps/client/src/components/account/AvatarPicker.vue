@@ -3,6 +3,7 @@ import { ImageUp, Trash2 } from '@lucide/vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/components/avatar'
 import { Button } from '@repo/ui/components/button'
 import { computed, shallowRef, useTemplateRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { AVATAR_TYPES, checkAvatar } from '@/lib/validation'
 
 const props = defineProps<{
@@ -19,6 +20,7 @@ const emit = defineEmits<{
   remove: []
 }>()
 
+const { t } = useI18n()
 const input = useTemplateRef<HTMLInputElement>('input')
 const error = shallowRef('')
 const initials = computed(() => [...(props.name?.trim() || '?')].slice(0, 2).join('').toUpperCase())
@@ -47,15 +49,15 @@ function onChange(event: Event) {
       <div class="flex flex-wrap gap-2">
         <Button type="button" variant="outline" size="sm" :disabled="busy" @click="input?.click()">
           <ImageUp class="size-4" />
-          {{ src ? 'Change avatar' : 'Choose avatar' }}
+          {{ src ? t('account.avatar.change') : t('account.avatar.choose') }}
         </Button>
         <Button v-if="removable && src" type="button" variant="ghost" size="sm" :disabled="busy" @click="emit('remove')">
           <Trash2 class="size-4" />
-          Remove
+          {{ t('account.avatar.remove') }}
         </Button>
       </div>
       <p class="text-xs text-muted-foreground">
-        PNG, JPEG, GIF or WebP, up to 2 MB.
+        {{ t('account.avatar.hint') }}
       </p>
       <p v-if="error" role="alert" class="text-sm text-destructive">
         {{ error }}

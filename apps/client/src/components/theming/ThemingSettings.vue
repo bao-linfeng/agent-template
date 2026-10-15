@@ -6,55 +6,51 @@ import { ScrollArea } from '@repo/ui/components/scroll-area'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/select'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@repo/ui/components/sheet'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 
 import { applyThemeState, getStoredThemeState } from './themeManager'
 
 const router = useRouter()
+const { t } = useI18n()
 
 const formatRadius = (value: string) => value.replace('rem', '')
 
 const isOpen = ref(false)
 
+// Labels are i18n keys, translated in the template
 const sheetContent = {
-  header: {
-    title: 'UI BuildY',
-    btntitle: 'Go to BuildY',
-    description: 'Manage application appearance and go to Tailwind Page Builder',
-  },
   collections: {
-    title: 'Welcome to UI BuildY',
     items: [
       {
         id: 'getBuildy',
         icon: Puzzle,
-        label: 'Go to BuildY',
+        label: 'theming.goToBuildy',
         action: () => router.push('/buildy'),
         class: 'bg-primary text-white',
       },
       {
         icon: LoaderCircle,
-        label: 'Maintenance',
+        label: 'theming.maintenance',
         action: () => router.push('#'),
         class: 'border-2 border-secondary-foreground/50',
       },
     ],
   },
   theme: {
-    title: 'Theme Settings',
     sections: [
       {
-        label: 'Color Scheme',
+        label: 'theming.colorScheme',
         type: 'colors',
         options: ['red', 'rose', 'orange', 'green', 'blue', 'violet'],
       },
       {
-        label: 'Corner Radius',
+        label: 'theming.radius',
         type: 'radius',
         options: ['0rem', '0.3rem', '0.5rem', '0.75rem', '1rem'],
       },
       {
-        label: 'Font Family',
+        label: 'theming.font',
         type: 'font',
         options: [
           'Nunito',
@@ -117,7 +113,7 @@ function updateTheme() {
 <template>
   <Sheet v-model:open="isOpen">
     <SheetTrigger as-child>
-      <Button variant="ghost" class="items-center justify-center rounded-full transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
+      <Button variant="ghost" :aria-label="t('theming.open')" :title="t('theming.open')" class="items-center justify-center rounded-full transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
         <Palette class="w-[1.1rem]! h-[1.1rem]!" />
       </Button>
     </SheetTrigger>
@@ -126,11 +122,11 @@ function updateTheme() {
       <div class="p-6">
         <SheetHeader>
           <SheetTitle class="text-xl text-start">
-            {{ sheetContent.header.title }}
+            {{ t('theming.title') }}
           </SheetTitle>
           <SheetDescription class="flex items-center gap-4">
             <p class="text-sm text-left">
-              {{ sheetContent.header.description }}
+              {{ t('theming.description') }}
             </p>
           </SheetDescription>
         </SheetHeader>
@@ -150,7 +146,7 @@ function updateTheme() {
             @click="item.action"
           >
             <component :is="item.icon" class="mr-2 h-4 w-4" />
-            <span>{{ item.label }}</span>
+            <span>{{ t(item.label) }}</span>
           </Button>
         </div>
       </div>
@@ -163,12 +159,12 @@ function updateTheme() {
             <!-- Theme Settings Section -->
             <div class="space-y-4">
               <h4 class="text-lg font-bold">
-                {{ sheetContent.theme.title }}
+                {{ t('theming.settings') }}
               </h4>
               <div class="space-y-4">
                 <template v-for="section in sheetContent.theme.sections" :key="section.label">
                   <div class="space-y-2">
-                    <Label>{{ section.label }}</Label>
+                    <Label>{{ t(section.label) }}</Label>
 
                     <div v-if="section.type === 'colors'" class="grid grid-cols-2 gap-2">
                       <Button
@@ -183,7 +179,7 @@ function updateTheme() {
                           class="absolute left-2 h-4 w-4 rounded-full"
                           :class="`bg-${color}-500`"
                         />
-                        <span class="flex-1 text-center capitalize">{{ color }}</span>
+                        <span class="flex-1 text-center">{{ t(`theming.colors.${color}`) }}</span>
                       </Button>
                     </div>
 

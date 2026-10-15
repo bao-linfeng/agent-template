@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@repo/ui/components/button'
+import { useI18n } from 'vue-i18n'
 import {
   Hero,
   HeroActions,
@@ -8,6 +9,8 @@ import {
   HeroTitle,
 } from '@/components/sections/hero'
 import { MainNavigation } from '@/components/sections/navbar'
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -17,19 +20,19 @@ import { MainNavigation } from '@/components/sections/navbar'
     <Hero section-key="build_your_next_landing_page_with_shadcn_vue" layout="centered" height="nav">
       <HeroContent class="container mx-auto" padding="md">
         <HeroTitle as="h1">
-          Build your next <br>
-          <span class="text-primary">Landing Page</span><br>
-          with Shadcn Vue
+          {{ t('demo.home.titleBefore') }} <br>
+          <span class="text-primary">{{ t('demo.home.titleHighlight') }}</span><br>
+          {{ t('demo.home.titleAfter') }}
         </HeroTitle>
         <HeroDescription>
-          Beautiful and accessible components that you can copy and paste into your apps.
+          {{ t('demo.home.description') }}
         </HeroDescription>
         <HeroActions>
           <a href="#">
-            <Button size="lg" class="text-white">Get Started</Button>
+            <Button size="lg" class="text-white">{{ t('demo.actions.getStarted') }}</Button>
           </a>
           <a href="#">
-            <Button size="lg" variant="outline">Get UI Blocks</Button>
+            <Button size="lg" variant="outline">{{ t('demo.home.getUiBlocks') }}</Button>
           </a>
         </HeroActions>
       </HeroContent>

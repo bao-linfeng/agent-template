@@ -4,6 +4,7 @@
  * registered with `onSessionExpired` run.
  */
 import { createApiClient, getErrorMessage } from '@repo/utils'
+import { t } from '@/i18n'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3100/api').replace(/\/+$/, '')
 
@@ -24,6 +25,7 @@ export const { fetch: api, refreshSession } = createApiClient({
   },
 })
 
-export function errorMessage(error: unknown, fallback = 'Something went wrong, please try again.'): string {
+/** Server messages are shown as sent; the fallback follows the UI language. */
+export function errorMessage(error: unknown, fallback = t('errors.generic')): string {
   return getErrorMessage(error, fallback)
 }

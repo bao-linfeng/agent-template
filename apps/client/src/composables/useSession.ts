@@ -1,5 +1,6 @@
 import type { Credentials, Registration, UserProfile } from '@/lib/account'
 import { computed, readonly, shallowRef } from 'vue'
+import { t } from '@/i18n'
 import { accountApi } from '@/lib/account'
 import { errorMessage, onSessionExpired } from '@/lib/api'
 
@@ -47,7 +48,7 @@ export function useSession() {
       setUser(await accountApi.uploadAvatar(avatar, avatar.name))
     }
     catch (error) {
-      return errorMessage(error, 'The avatar could not be saved.')
+      return errorMessage(error, t('account.avatar.saveFailed'))
     }
   }
 

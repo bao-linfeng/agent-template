@@ -2,6 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/components/avatar'
 import { Badge } from '@repo/ui/components/badge'
 import { Card } from '@repo/ui/components/card'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/layers/button'
 import {
   Hero,
@@ -11,6 +12,8 @@ import {
   HeroTitle,
 } from '@/components/sections/hero'
 import { MainNavigation } from '@/components/sections/navbar'
+
+const { t } = useI18n()
 
 // Заглушки изображений
 const placeholderLight = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0iI2Q1ZjRkYyIvPjwvc3ZnPg=='
@@ -29,13 +32,13 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
       class="space-y-8"
     >
       <Badge variant="outline">
-        Dashboard
+        {{ t('demo.splitFull.analytics.badge') }}
       </Badge>
       <HeroTitle size="3xl">
-        Powerful Analytics
+        {{ t('demo.splitFull.analytics.title') }}
       </HeroTitle>
       <HeroDescription>
-        Get real-time insights into your business performance with our advanced analytics dashboard.
+        {{ t('demo.splitFull.analytics.description') }}
       </HeroDescription>
       <div class="grid grid-cols-2 gap-4">
         <Card class="p-4 space-y-2">
@@ -43,7 +46,7 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
             84%
           </div>
           <p class="text-xs text-muted-foreground">
-            Conversion Rate: this is a test
+            {{ t('demo.splitFull.analytics.conversion') }}
           </p>
         </Card>
         <Card class="p-4 space-y-2">
@@ -51,7 +54,7 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
             12.5k
           </div>
           <p class="text-xs text-muted-foreground">
-            Active Users: this is a test
+            {{ t('demo.splitFull.analytics.activeUsers') }}
           </p>
         </Card>
       </div>
@@ -64,12 +67,12 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
       <img
         :src="placeholderLight"
         class="object-cover w-full h-full dark:hidden"
-        alt="Enterprise"
+        :alt="t('demo.split.enterprise.imageAlt')"
       >
       <img
         :src="placeholderDark"
         class="object-cover w-full h-full hidden dark:block"
-        alt="Enterprise"
+        :alt="t('demo.split.enterprise.imageAlt')"
       >
     </HeroMedia>
   </Hero>
@@ -85,31 +88,31 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
         <div class="w-full max-w-2xl mx-auto grid grid-cols-2 gap-4 p-8">
           <Card class="p-6 space-y-4 bg-background/80 backdrop-blur-xs">
             <h3 class="font-semibold">
-              Basic Plan
+              {{ t('demo.splitFull.plans.basic') }}
             </h3>
             <ul class="space-y-2 text-sm">
               <li class="flex items-center gap-2">
                 <div class="h-2 w-2 rounded-full bg-primary" />
-                <span>5 Projects</span>
+                <span>{{ t('demo.splitFull.plans.basicProjects') }}</span>
               </li>
               <li class="flex items-center gap-2">
                 <div class="h-2 w-2 rounded-full bg-primary" />
-                <span>Basic Analytics</span>
+                <span>{{ t('demo.splitFull.plans.basicAnalytics') }}</span>
               </li>
             </ul>
           </Card>
           <Card class="p-6 space-y-4 bg-background/80 backdrop-blur-xs">
             <h3 class="font-semibold">
-              Pro Plan
+              {{ t('demo.splitFull.plans.pro') }}
             </h3>
             <ul class="space-y-2 text-sm">
               <li class="flex items-center gap-2">
                 <div class="h-2 w-2 rounded-full bg-primary" />
-                <span>Unlimited Projects</span>
+                <span>{{ t('demo.splitFull.plans.proProjects') }}</span>
               </li>
               <li class="flex items-center gap-2">
                 <div class="h-2 w-2 rounded-full bg-primary" />
-                <span>Advanced Analytics</span>
+                <span>{{ t('demo.splitFull.plans.proAnalytics') }}</span>
               </li>
             </ul>
           </Card>
@@ -121,16 +124,16 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
       padding="md"
       width="lg"
     >
-      <HeroTitle>Choose Your Plan</HeroTitle>
+      <HeroTitle>{{ t('demo.splitFull.plans.title') }}</HeroTitle>
       <HeroDescription>
-        Select the perfect plan for your needs. Upgrade or downgrade at any time.
+        {{ t('demo.splitFull.plans.description') }}
       </HeroDescription>
       <div class="mt-8 space-y-4">
         <Button class="w-full" size="lg">
-          Start Free Trial
+          {{ t('demo.actions.startFreeTrial') }}
         </Button>
         <p class="text-sm text-center text-muted-foreground">
-          No credit card required
+          {{ t('demo.splitFull.plans.noCard') }}
         </p>
       </div>
     </HeroContent>
@@ -146,10 +149,10 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
     >
       <div class="space-y-4">
         <Badge class="dark:text-secondary-foreground">
-          Success Story
+          {{ t('demo.splitFull.story.badge') }}
         </Badge>
         <blockquote class="text-2xl font-serif italic">
-          "This platform has transformed how we handle our analytics. The insights we've gained are invaluable."
+          {{ t('demo.splitFull.story.quote') }}
         </blockquote>
       </div>
       <div class="flex items-center gap-4">
@@ -159,10 +162,10 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
         </Avatar>
         <div>
           <div class="font-semibold">
-            Jane Cooper
+            {{ t('demo.splitFull.story.name') }}
           </div>
           <div class="text-sm text-muted-foreground">
-            CEO at TechCorp
+            {{ t('demo.splitFull.story.role') }}
           </div>
         </div>
       </div>
@@ -172,7 +175,7 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
             250%
           </div>
           <p class="text-sm text-muted-foreground">
-            ROI Increase
+            {{ t('demo.splitFull.story.roi') }}
           </p>
         </Card>
         <Card class="p-4 text-center">
@@ -180,7 +183,7 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
             10x
           </div>
           <p class="text-sm text-muted-foreground">
-            Faster Analysis
+            {{ t('demo.splitFull.story.faster') }}
           </p>
         </Card>
         <Card class="p-4 text-center">
@@ -188,7 +191,7 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
             24/7
           </div>
           <p class="text-sm text-muted-foreground">
-            Support
+            {{ t('demo.splitFull.story.support') }}
           </p>
         </Card>
       </div>
@@ -204,12 +207,12 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
           <img
             :src="placeholderLight"
             class="relative dark:hidden rounded-2xl shadow-2xl"
-            alt="Product Screenshot"
+            :alt="t('demo.splitFull.story.screenshot')"
           >
           <img
             :src="placeholderDark"
             class="relative hidden dark:block rounded-2xl shadow-2xl"
-            alt="Product Screenshot"
+            :alt="t('demo.splitFull.story.screenshot')"
           >
         </div>
       </div>

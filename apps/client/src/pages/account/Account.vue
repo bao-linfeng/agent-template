@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/card'
 import { reactive, shallowRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import AvatarPicker from '@/components/account/AvatarPicker.vue'
 import TextField from '@/components/account/TextField.vue'
@@ -19,6 +20,7 @@ interface Status {
   text: string
 }
 
+const { t, locale } = useI18n()
 const router = useRouter()
 const session = useSession()
 const { user } = session
@@ -55,15 +57,15 @@ function saveProfile() {
   nicknameError.value = checkNickname(nickname.value)
   if (nicknameError.value)
     return
-  run(profileStatus, savingProfile, () => session.updateProfile({ nickname: nickname.value.trim() }), 'Profile updated.')
+  run(profileStatus, savingProfile, () => session.updateProfile({ nickname: nickname.value.trim() }), t('account.profile.saved'))
 }
 
 function onAvatarSelect(file: File) {
-  run(profileStatus, avatarBusy, () => session.uploadAvatar(file), 'Avatar updated.')
+  run(profileStatus, avatarBusy, () => session.uploadAvatar(file), t('account.profile.avatarUpdated'))
 }
 
 function onAvatarRemove() {
-  run(profileStatus, avatarBusy, () => session.removeAvatar(), 'Avatar removed.')
+  run(profileStatus, avatarBusy, () => session.removeAvatar(), t('account.profile.avatarRemoved'))
 }
 
 // Password
@@ -74,7 +76,7 @@ const savingPassword = shallowRef(false)
 
 function changePassword() {
   passwordErrors.value = collectErrors({
-    current: password.current ? undefined : 'Please enter your current password.',
+    current: password.current ? undefined : t('validation.currentPasswordRequired'),
     next: checkNewPassword(password.next),
     confirm: checkConfirmation(password.next, password.confirm),
   })
@@ -83,7 +85,7 @@ function changePassword() {
   run(passwordStatus, savingPassword, async () => {
     await accountApi.changePassword(password.current, password.next)
     Object.assign(password, { current: '', next: '', confirm: '' })
-  }, 'Password changed. Your other devices have been signed out.')
+  }, t('account.password.changed'))
 }
 
 async function logout() {
@@ -100,15 +102,15 @@ async function logout() {
       <div class="flex items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold">
-            My account
+            {{ t('account.profile.title') }}
           </h1>
           <p class="text-sm text-muted-foreground">
-            {{ user.email }} · joined {{ new Date(user.createdAt).toLocaleDateString() }}
+            {{ t('account.profile.joined', { email: user.email, date: new Date(user.createdAt).toLocaleDateString(locale) }) }}
           </p>
         </div>
         <Button variant="outline" @click="logout">
           <LogOut class="size-4" />
-          Sign out
+          {{ t('account.profile.signOut') }}
         </Button>
       </div>
 
@@ -118,8 +120,8 @@ async function logout() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Profile</CardTitle>
-          <CardDescription>How other people see you.</CardDescription>
+          <CardTitle>{{ t('account.profile.cardTitle') }}</CardTitle>
+          <CardDescription>{{ t('account.profile.cardDescription') }}</CardDescription>
         </CardHeader>
         <CardContent class="grid gap-6">
           <AvatarPicker
@@ -131,13 +133,13 @@ async function logout() {
             @remove="onAvatarRemove"
           />
           <form class="grid gap-4" novalidate @submit.prevent="saveProfile">
-            <TextField v-model="nickname" label="Nickname" autocomplete="nickname" :error="nicknameError" />
+            <TextField v-model="nickname" :label="t('account.fields.nickname')" autocomplete="nickname" :error="nicknameError" />
             <Alert v-if="profileStatus" :variant="profileStatus.type === 'error' ? 'destructive' : 'default'">
               <AlertDescription>{{ profileStatus.text }}</AlertDescription>
             </Alert>
             <div>
               <Button type="submit" :disabled="savingProfile">
-                {{ savingProfile ? 'Saving...' : 'Save profile' }}
+                {{ savingProfile ? t('common.saving') : t('account.profile.save') }}
               </Button>
             </div>
           </form>
@@ -146,29 +148,29 @@ async function logout() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Password</CardTitle>
-          <CardDescription>Changing it signs out every other device.</CardDescription>
+          <CardTitle>{{ t('account.password.cardTitle') }}</CardTitle>
+          <CardDescription>{{ t('account.password.cardDescription') }}</CardDescription>
         </CardHeader>
         <CardContent>
           <form class="grid gap-4" novalidate @submit.prevent="changePassword">
             <TextField
               v-model="password.current"
-              label="Current password"
+              :label="t('account.fields.currentPassword')"
               type="password"
               autocomplete="current-password"
               :error="passwordErrors.current"
             />
             <TextField
               v-model="password.next"
-              label="New password"
+              :label="t('account.fields.newPassword')"
               type="password"
               autocomplete="new-password"
-              hint="8-72 characters."
+              :hint="t('account.fields.passwordHint')"
               :error="passwordErrors.next"
             />
             <TextField
               v-model="password.confirm"
-              label="Confirm new password"
+              :label="t('account.fields.confirmNewPassword')"
               type="password"
               autocomplete="new-password"
               :error="passwordErrors.confirm"
@@ -178,7 +180,7 @@ async function logout() {
             </Alert>
             <div>
               <Button type="submit" :disabled="savingPassword">
-                {{ savingPassword ? 'Saving...' : 'Change password' }}
+                {{ savingPassword ? t('common.saving') : t('account.password.submit') }}
               </Button>
             </div>
           </form>

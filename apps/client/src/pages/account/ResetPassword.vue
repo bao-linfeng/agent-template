@@ -2,6 +2,7 @@
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
 import { computed, reactive, shallowRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AuthShell from '@/components/account/AuthShell.vue'
 import TextField from '@/components/account/TextField.vue'
@@ -12,6 +13,7 @@ import { errorMessage } from '@/lib/api'
 import { checkConfirmation, checkNewPassword, collectErrors } from '@/lib/validation'
 
 // Opened from the email link: /reset-password?token=...
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const session = useSession()
@@ -35,7 +37,7 @@ async function submit() {
     await accountApi.resetPassword(token.value, form.password)
     // Every session of the account is signed out by the server.
     session.clear()
-    flash({ type: 'success', text: 'Your password has been reset. Please sign in with the new password.' })
+    flash({ type: 'success', text: t('account.reset.done') })
     await router.replace('/login')
   }
   catch (error) {
@@ -48,10 +50,10 @@ async function submit() {
 </script>
 
 <template>
-  <AuthShell title="Reset password" description="Choose a new password. You will be signed out on every device.">
+  <AuthShell :title="t('account.reset.title')" :description="t('account.reset.description')">
     <Alert v-if="!token" variant="destructive">
       <AlertDescription>
-        This page needs the link from the reset email.
+        {{ t('account.reset.missingToken') }}
       </AlertDescription>
     </Alert>
     <form v-else class="grid gap-4" novalidate @submit.prevent="submit">
@@ -60,20 +62,20 @@ async function submit() {
       </Alert>
       <TextField
         v-model="form.password"
-        label="New password"
+        :label="t('account.fields.newPassword')"
         type="password"
         autocomplete="new-password"
-        hint="8-72 characters."
+        :hint="t('account.fields.passwordHint')"
         :error="errors.password"
       />
-      <TextField v-model="form.confirmPassword" label="Confirm new password" type="password" autocomplete="new-password" :error="errors.confirmPassword" />
+      <TextField v-model="form.confirmPassword" :label="t('account.fields.confirmNewPassword')" type="password" autocomplete="new-password" :error="errors.confirmPassword" />
       <Button type="submit" class="w-full" :disabled="submitting">
-        {{ submitting ? 'Saving...' : 'Reset password' }}
+        {{ submitting ? t('common.saving') : t('account.reset.submit') }}
       </Button>
     </form>
     <template #footer>
       <RouterLink to="/forgot-password" class="font-medium text-primary hover:underline">
-        Request a new link
+        {{ t('account.reset.requestNew') }}
       </RouterLink>
     </template>
   </AuthShell>

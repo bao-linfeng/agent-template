@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Badge } from '@repo/ui/components/badge'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/layers/button'
 import {
   Hero,
@@ -9,6 +10,8 @@ import {
   HeroTitle,
 } from '@/components/sections/hero'
 import { MainNavigation } from '@/components/sections/navbar'
+
+const { t } = useI18n()
 
 // Заглушки изображений
 const placeholders = {
@@ -25,20 +28,20 @@ const placeholders = {
     <div class="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))]" />
     <HeroContent class="relative z-10" padding="md">
       <Badge variant="outline" class="mb-4">
-        New Release
+        {{ t('demo.promo.ai.badge') }}
       </Badge>
       <HeroTitle class="max-w-4xl">
-        Transform Your Business with AI-Powered Solutions
+        {{ t('demo.promo.ai.title') }}
       </HeroTitle>
       <HeroDescription>
-        Leverage the power of artificial intelligence to streamline operations and boost productivity.
+        {{ t('demo.promo.ai.description') }}
       </HeroDescription>
       <HeroActions>
         <Button size="lg" variant="default">
-          Start Free Trial
+          {{ t('demo.actions.startFreeTrial') }}
         </Button>
         <Button size="lg" variant="outline" class="bg-primary-foreground/50 hover:bg-primary-foreground">
-          Watch Demo
+          {{ t('demo.actions.watchDemo') }}
         </Button>
       </HeroActions>
     </HeroContent>
@@ -52,15 +55,15 @@ const placeholders = {
     />
     <HeroContent class="relative z-10" padding="md">
       <Badge class="dark:text-secondary-foreground">
-        Limited Time Offer
+        {{ t('demo.earlyBird.badge') }}
       </Badge>
-      <HeroTitle>50% Off for Early Birds</HeroTitle>
+      <HeroTitle>{{ t('demo.earlyBird.title') }}</HeroTitle>
       <HeroDescription>
-        Join now and get exclusive access to premium features at half the price.
+        {{ t('demo.earlyBird.description') }}
       </HeroDescription>
       <HeroActions>
         <Button variant="default" class="rounded-full my-8 py-6 px-10">
-          Claim Offer
+          {{ t('demo.actions.claimOffer') }}
         </Button>
       </HeroActions>
     </HeroContent>
@@ -69,20 +72,20 @@ const placeholders = {
   <!-- Full screen Hero with image background -->
   <Hero section-key="build_the_future_today" layout="centered" height="screen" class="relative">
     <div class="absolute inset-0">
-      <img :src="placeholders.abstract" class="object-cover w-full h-full" alt="Background">
+      <img :src="placeholders.abstract" class="object-cover w-full h-full" :alt="t('demo.promo.background')">
       <div class="absolute inset-0 bg-linear-to-t from-background via-background/80 to-background/20" />
     </div>
     <HeroContent class="relative z-10" padding="md">
-      <HeroTitle>Build the Future Today</HeroTitle>
+      <HeroTitle>{{ t('demo.promo.future.title') }}</HeroTitle>
       <HeroDescription>
-        Join thousands of innovative companies already using our platform to grow their business.
+        {{ t('demo.promo.future.description') }}
       </HeroDescription>
       <HeroActions>
         <Button size="lg" variant="default">
-          Get Started
+          {{ t('demo.actions.getStarted') }}
         </Button>
         <Button size="lg" variant="outline" class="bg-background/50 hover:bg-background/20">
-          Schedule Demo
+          {{ t('demo.actions.scheduleDemo') }}
         </Button>
       </HeroActions>
     </HeroContent>
@@ -92,15 +95,15 @@ const placeholders = {
   <Hero section-key="30_off_for_early_birds" layout="centered" height="screen" background="overlay">
     <HeroContent class="relative z-10" padding="md">
       <Badge class="dark:text-secondary-foreground">
-        Limited Time Offer
+        {{ t('demo.earlyBird.badge') }}
       </Badge>
-      <HeroTitle>30% Off for Early Birds 2</HeroTitle>
+      <HeroTitle>{{ t('demo.earlyBird.title30') }}</HeroTitle>
       <HeroDescription>
-        Join now and get exclusive access to premium features at half the price.
+        {{ t('demo.earlyBird.description') }}
       </HeroDescription>
       <HeroActions>
         <Button variant="default" class="rounded-full my-8 py-6 px-10">
-          Claim Offer
+          {{ t('demo.actions.claimOffer') }}
         </Button>
       </HeroActions>
     </HeroContent>

@@ -5,6 +5,7 @@ import type { SectionData } from '@/types/collecty'
 import { Bookmark } from '@lucide/vue'
 import { cn } from '@repo/utils'
 import { computed, inject } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { collectyVariants } from '.'
 
 const props = withDefaults(defineProps<{
@@ -16,6 +17,7 @@ const props = withDefaults(defineProps<{
   size: 'md',
 })
 
+const { t } = useI18n()
 const sectionData = inject<SectionData>('section-data')
 
 // Проверяем состояние в коллекции
@@ -44,7 +46,7 @@ function handleClick() {
         'transition-transform duration-200',
         { 'fill-current text-primary': isActive },
       )"
-      :aria-label="isActive ? 'Remove from collection' : 'Add to collection'"
+      :aria-label="isActive ? t('collecty.remove') : t('collecty.add')"
     />
   </button>
 </template>

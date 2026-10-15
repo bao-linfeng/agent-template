@@ -2,6 +2,7 @@
 import type { HTMLAttributes } from 'vue'
 import { Badge } from '@repo/ui/components/badge'
 import { cn } from '@repo/utils'
+import { useI18n } from 'vue-i18n'
 
 interface Props {
   class?: HTMLAttributes['class']
@@ -17,6 +18,8 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   layout: 'default',
 })
+
+const { t } = useI18n()
 
 const placeholderLight = 'https://images.unsplash.com/photo-1542125387-c71274d94f0a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=560&q=80'
 const placeholderDark = 'https://images.unsplash.com/photo-1542125387-c71274d94f0a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=560&q=80'
@@ -75,7 +78,7 @@ const placeholderDark = 'https://images.unsplash.com/photo-1542125387-c71274d94f
         :href="props.href"
         class="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-white hover:underline"
       >
-        Read more
+        {{ t('common.readMore') }}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           class="ml-1 h-4 w-4"

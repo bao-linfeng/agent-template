@@ -2,6 +2,7 @@
 import { Badge } from '@repo/ui/components/badge'
 import { Button } from '@repo/ui/components/button'
 import { provide } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Hero,
   HeroActions,
@@ -11,6 +12,8 @@ import {
   HeroTitle,
 } from '@/components/sections/hero'
 import { MainNavigation } from '@/components/sections/navbar'
+
+const { t } = useI18n()
 
 provide('heroTitle', {
   defaultTag: 'h2',
@@ -36,14 +39,14 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
       :style="{ backgroundImage: `url(${placeholders.abstract})` }"
     />
     <HeroContent class="relative container mx-auto z-10" padding="md">
-      <Badge>Limited Time Offer</Badge>
-      <HeroTitle>50% Off for Early Birds</HeroTitle>
+      <Badge>{{ t('demo.earlyBird.badge') }}</Badge>
+      <HeroTitle>{{ t('demo.earlyBird.title') }}</HeroTitle>
       <HeroDescription>
-        Join now and get exclusive access to premium features at half the price.
+        {{ t('demo.earlyBird.description') }}
       </HeroDescription>
       <HeroActions>
         <Button class="md:text-lg py-4 md:py-6 px-8 rounded-full my-8">
-          Claim Offer
+          {{ t('demo.actions.claimOffer') }}
         </Button>
       </HeroActions>
     </HeroContent>
@@ -52,13 +55,13 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
   <!-- Hero 2: Split with image -->
   <Hero section-key="transform_your_workflow" layout="split" height="screen">
     <HeroContent align="left" class="relative container mx-auto z-10" padding="md">
-      <HeroTitle>Transform your workflow</HeroTitle>
+      <HeroTitle>{{ t('demo.workflow.title') }}</HeroTitle>
       <HeroDescription>
-        Streamline your development process with our integrated tools and components.
+        {{ t('demo.workflow.description') }}
       </HeroDescription>
       <HeroActions class="justify-start">
         <Button size="lg">
-          Try Now
+          {{ t('demo.actions.tryNow') }}
         </Button>
       </HeroActions>
     </HeroContent>
@@ -67,12 +70,12 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
       <img
         :src="placeholderLight"
         class="object-cover w-full h-full dark:hidden"
-        alt="Placeholder"
+        :alt="t('common.placeholderImage')"
       >
       <img
         :src="placeholderDark"
         class="object-cover w-full h-full hidden dark:block"
-        alt="Placeholder"
+        :alt="t('common.placeholderImage')"
       >
     </HeroMedia>
   </Hero>
@@ -83,22 +86,22 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
       <img
         :src="placeholderLight"
         class="object-cover w-full h-full dark:hidden"
-        alt="Placeholder"
+        :alt="t('common.placeholderImage')"
       >
       <img
         :src="placeholderDark"
         class="object-cover w-full h-full hidden dark:block"
-        alt="Placeholder"
+        :alt="t('common.placeholderImage')"
       >
     </HeroMedia>
     <HeroContent align="left" class="relative container mx-auto z-10" padding="md">
-      <HeroTitle>Transform your workflow 2</HeroTitle>
+      <HeroTitle>{{ t('demo.workflow.title') }}</HeroTitle>
       <HeroDescription>
-        Streamline your development process with our integrated tools and components.
+        {{ t('demo.workflow.description') }}
       </HeroDescription>
       <HeroActions class="justify-start">
         <Button size="lg">
-          Try Now
+          {{ t('demo.actions.tryNow') }}
         </Button>
       </HeroActions>
     </HeroContent>
@@ -112,17 +115,17 @@ const placeholderDark = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlna
     />
     <div class="container mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-center py-12 sm:py-16 lg:py-24 px-6 sm:px-8 lg:px-12">
       <HeroContent align="left" class="relative z-10">
-        <HeroTitle>Designed for Modern Teams</HeroTitle>
+        <HeroTitle>{{ t('demo.media.modernTeams.title') }}</HeroTitle>
         <HeroDescription>
-          Built with the latest technology stack to ensure maximum performance and scalability.
+          {{ t('demo.media.modernTeams.description') }}
         </HeroDescription>
         <HeroActions class="justify-start">
-          <Button>Learn More</Button>
+          <Button>{{ t('demo.actions.learnMore') }}</Button>
         </HeroActions>
       </HeroContent>
       <HeroMedia aspect-ratio="video" class="relative p-0 sm:p-4 lg:p-8">
         <div class="absolute inset-0 bg-linear-to-tr from-primary/20 to-primary/5 rounded-lg m-0 sm:m-4 lg:m-8" />
-        <img :src="placeholders.abstract" class="object-cover rounded-lg" alt="Abstract">
+        <img :src="placeholders.abstract" class="object-cover rounded-lg" :alt="t('demo.media.abstract')">
       </HeroMedia>
     </div>
   </Hero>
