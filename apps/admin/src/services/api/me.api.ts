@@ -14,37 +14,37 @@ export interface IChangePasswordBody {
   newPassword: string
 }
 
-// Transport layer
+// Transport layer (the signed-in admin account)
 export function fetchMe() {
-  return apiFetch<IUserProfile>('/users/me', { method: 'get' })
+  return apiFetch<IUserProfile>('/admin/me', { method: 'get' })
 }
 
 export function updateMe(body: IUpdateProfileBody) {
-  return apiFetch<IUserProfile>('/users/me', { method: 'patch', body })
+  return apiFetch<IUserProfile>('/admin/me', { method: 'patch', body })
 }
 
 /** PNG, JPEG, GIF or WebP; the server checks the file content and the size limit. */
 export function uploadAvatar(file: Blob, filename = 'avatar') {
   const body = new FormData()
   body.append('file', file, filename)
-  return apiFetch<IUserProfile>('/users/me/avatar', { method: 'put', body })
+  return apiFetch<IUserProfile>('/admin/me/avatar', { method: 'put', body })
 }
 
 export function removeAvatar() {
-  return apiFetch<IUserProfile>('/users/me/avatar', { method: 'delete' })
+  return apiFetch<IUserProfile>('/admin/me/avatar', { method: 'delete' })
 }
 
 /** Signs out every other session on success. */
 export function changePassword(body: IChangePasswordBody) {
-  return apiFetch<void>('/users/me/password', { method: 'post', body })
+  return apiFetch<void>('/admin/me/password', { method: 'post', body })
 }
 
 export function fetchSessions() {
-  return apiFetch<ISession[]>('/users/me/sessions', { method: 'get' })
+  return apiFetch<ISession[]>('/admin/me/sessions', { method: 'get' })
 }
 
 export function revokeSession(id: string) {
-  return apiFetch<void>(`/users/me/sessions/${id}`, { method: 'delete' })
+  return apiFetch<void>(`/admin/me/sessions/${id}`, { method: 'delete' })
 }
 
 // Query/mutation hooks. Profile mutations write the result back into the auth store.

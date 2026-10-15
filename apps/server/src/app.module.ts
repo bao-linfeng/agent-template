@@ -13,6 +13,8 @@ import { MailModule } from './infra/mail/mail.module.js';
 import { QueueModule } from './infra/queue/queue.module.js';
 import { REDIS, RedisModule } from './infra/redis/redis.module.js';
 import { StorageModule } from './infra/storage/storage.module.js';
+import { AccountsModule } from './modules/accounts/accounts.module.js';
+import { AdminsModule } from './modules/admins/admins.module.js';
 import { AiModule } from './modules/ai/ai.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AUTH_THROTTLE_KEY } from './modules/auth/decorators.js';
@@ -96,7 +98,9 @@ import { observeImports } from './observe.js';
     MailModule,
     SecurityModule,
     RbacModule,
+    AccountsModule,
     UsersModule,
+    AdminsModule,
     AuthModule,
     AiModule,
     RagModule,

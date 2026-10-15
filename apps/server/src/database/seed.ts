@@ -3,7 +3,12 @@ import { eq } from 'drizzle-orm';
 import { SecretBox } from '../common/crypto/crypto.js';
 import { SYSTEM_ROLES } from '../modules/rbac/permissions.js';
 import type { Database } from './database.js';
-import { embeddingModels, roles, userRoles, users } from './schema/index.js';
+import {
+  adminUserRoles,
+  adminUsers,
+  embeddingModels,
+  roles,
+} from './schema/index.js';
 
 export interface SeedOptions {
   admin?: { email: string; password: string; nickname: string };
@@ -18,7 +23,7 @@ export interface SeedOptions {
   passwordHashRounds: number;
 }
 
-/** Idempotent: creates system roles, the first super admin and the default embedding model when missing. */
+/** Idempotent: creates system roles, the first super admin (an admin console account) and the default embedding model when missing. */
 export async function seedDatabase(
   db: Database,
   options: SeedOptions,
@@ -38,8 +43,8 @@ export async function seedDatabase(
 
   if (options.admin) {
     const email = options.admin.email.trim().toLowerCase();
-    const existing = await db.query.users.findFirst({
-      where: eq(users.email, email),
+    const existing = await db.query.adminUsers.findFirst({
+      where: eq(adminUsers.email, email),
     });
     if (existing) {
       log.push(`admin ${email} already exists`);
@@ -49,7 +54,7 @@ export async function seedDatabase(
       });
       await db.transaction(async (tx) => {
         const [admin] = await tx
-          .insert(users)
+          .insert(adminUsers)
           .values({
             email,
             nickname: options.admin!.nickname,
@@ -58,10 +63,10 @@ export async function seedDatabase(
               options.passwordHashRounds,
             ),
           })
-          .returning({ id: users.id });
+          .returning({ id: adminUsers.id });
         await tx
-          .insert(userRoles)
-          .values({ userId: admin!.id, roleId: superAdmin!.id });
+          .insert(adminUserRoles)
+          .values({ adminUserId: admin!.id, roleId: superAdmin!.id });
       });
       log.push(`admin ${email} created with role super_admin`);
     }

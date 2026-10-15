@@ -4,7 +4,7 @@ import dayjs from 'dayjs'
 import { h } from 'vue'
 
 import type { DataTableColumnDef } from '@/components/data-table'
-import type { IAdminUser } from '@/services/types/user.type'
+import type { IClientUser, IPublicUser } from '@/services/types/user.type'
 
 import { DataTableColumnHeader } from '@/components/data-table'
 import { Copy } from '@/components/prop-ui/copy'
@@ -17,11 +17,12 @@ function formatDate(value: string | null) {
   return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '—'
 }
 
-export function createColumns(options: { canEdit: boolean }): DataTableColumnDef<IAdminUser>[] {
-  const columns: DataTableColumnDef<IAdminUser>[] = [
+/** Columns shared by the client user and admin account tables. */
+export function accountColumns<T extends IPublicUser>(): DataTableColumnDef<T>[] {
+  return [
     {
       accessorKey: 'nickname',
-      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'User' }),
+      header: ({ column }) => h(DataTableColumnHeader<T>, { column, title: 'User' }),
       cell: ({ row }) => h('div', { class: 'flex items-center gap-2' }, [
         h(Avatar, { class: 'size-8' }, () => [
           row.original.avatarUrl && h(AvatarImage, { src: row.original.avatarUrl, alt: row.original.nickname }),
@@ -34,7 +35,7 @@ export function createColumns(options: { canEdit: boolean }): DataTableColumnDef
     },
     {
       accessorKey: 'email',
-      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Email' }),
+      header: ({ column }) => h(DataTableColumnHeader<T>, { column, title: 'Email' }),
       cell: ({ row }) => h('div', {}, [
         h('span', {}, row.original.email),
         h(Copy, { class: 'ml-2', size: 'icon-xs', content: row.original.email }),
@@ -42,16 +43,8 @@ export function createColumns(options: { canEdit: boolean }): DataTableColumnDef
       enableSorting: false,
     },
     {
-      id: 'roles',
-      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Roles' }),
-      cell: ({ row }) => h('div', { class: 'flex flex-wrap gap-1' }, row.original.roles.map(role =>
-        h(Badge, { key: role.id, variant: 'secondary', title: role.code }, () => role.name),
-      )),
-      enableSorting: false,
-    },
-    {
       accessorKey: 'status',
-      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Status' }),
+      header: ({ column }) => h(DataTableColumnHeader<T>, { column, title: 'Status' }),
       cell: ({ row }) => {
         const status = userStatuses.find(item => item.value === row.original.status)
         return status ? h(Badge, { class: status.style, variant: 'outline' }, () => status.label) : null
@@ -60,18 +53,21 @@ export function createColumns(options: { canEdit: boolean }): DataTableColumnDef
     },
     {
       accessorKey: 'lastLoginAt',
-      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Last sign-in' }),
+      header: ({ column }) => h(DataTableColumnHeader<T>, { column, title: 'Last sign-in' }),
       cell: ({ row }) => h('span', { class: 'text-muted-foreground' }, formatDate(row.original.lastLoginAt)),
       enableSorting: false,
     },
     {
       accessorKey: 'createdAt',
-      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Registered' }),
+      header: ({ column }) => h(DataTableColumnHeader<T>, { column, title: 'Created' }),
       cell: ({ row }) => h('span', { class: 'text-muted-foreground' }, formatDate(row.original.createdAt)),
       enableSorting: false,
     },
   ]
+}
 
+export function createColumns(options: { canEdit: boolean }): DataTableColumnDef<IClientUser>[] {
+  const columns = accountColumns<IClientUser>()
   if (options.canEdit) {
     columns.push({
       id: 'actions',

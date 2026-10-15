@@ -4,20 +4,17 @@ import { Button } from '@repo/ui/components/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 
 import type { DataTableRow } from '@/components/data-table'
-import type { IAdminUser } from '@/services/types/user.type'
+import type { IClientUser } from '@/services/types/user.type'
 
 import { useUpdateAdminUserMutation } from '@/services/api/admin-users.api'
-import { useAuthStore } from '@/stores/auth'
 
 import UserEditDialog from './user-edit-dialog.vue'
 
 const props = defineProps<{
-  row: DataTableRow<IAdminUser>
+  row: DataTableRow<IClientUser>
 }>()
 
 const user = computed(() => props.row.original)
-const authStore = useAuthStore()
-const isSelf = computed(() => user.value.id === authStore.user?.id)
 const isOpen = shallowRef(false)
 // Mounted on first use so a page of rows does not create a form per row.
 const dialogMounted = shallowRef(false)
@@ -46,7 +43,7 @@ function toggleStatus() {
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
-        :disabled="isSelf || update.isPending.value"
+        :disabled="update.isPending.value"
         :class="user.status === 'active' ? 'text-destructive' : ''"
         @click="toggleStatus"
       >

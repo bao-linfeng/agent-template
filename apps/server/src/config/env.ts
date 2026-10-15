@@ -32,9 +32,9 @@ export const envSchema = z
     /** Public base URL of this API, used to build absolute links such as avatar URLs. */
     PUBLIC_URL: z.url().default('http://localhost:3100'),
     /** Public URL of the web app that renders links sent by email (e.g. reset-password page). */
-    APP_WEB_URL: z.url().default('http://localhost:5173'),
+    APP_WEB_URL: z.url().default('http://localhost:5175'),
     CORS_ORIGINS: csv.default([
-      'http://localhost:5173',
+      'http://localhost:5175',
       'http://localhost:5174',
     ]),
     TRUST_PROXY: booleanString.default(false),

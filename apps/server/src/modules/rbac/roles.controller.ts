@@ -1,6 +1,5 @@
 import {
   Body,
-  Controller,
   Delete,
   Get,
   HttpCode,
@@ -10,13 +9,14 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { AdminController } from '../auth/decorators.js';
 import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto.js';
 import { PERMISSIONS } from './permissions.js';
 import { RequirePermissions } from './policies.js';
 import { RolesService } from './roles.service.js';
 
 @ApiTags('admin / roles')
-@Controller('admin')
+@AdminController()
 export class RolesController {
   constructor(private readonly roles: RolesService) {}
 

@@ -1,6 +1,5 @@
 import {
   Body,
-  Controller,
   Delete,
   Get,
   HttpCode,
@@ -10,6 +9,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { AdminController } from '../auth/decorators.js';
 import { RequirePermissions } from '../rbac/policies.js';
 import {
   CreateEmbeddingModelDto,
@@ -20,7 +20,7 @@ import { EmbeddingModelsService } from './embedding-models.service.js';
 
 /** Admin console configuration of embedding providers. API keys are write-only (`hasApiKey` in responses). */
 @ApiTags('admin / ai')
-@Controller('admin/ai/embedding-models')
+@AdminController('ai/embedding-models')
 export class EmbeddingModelsController {
   constructor(private readonly models: EmbeddingModelsService) {}
 

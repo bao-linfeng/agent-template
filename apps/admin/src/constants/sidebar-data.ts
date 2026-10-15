@@ -1,4 +1,4 @@
-import { BadgeHelpIcon, BellDotIcon, BirdIcon, BoxesIcon, BrainCircuitIcon, BugIcon, ComponentIcon, CreditCardIcon, KeyRoundIcon, LayoutDashboardIcon, ListTodoIcon, PaletteIcon, PictureInPicture2Icon, PodcastIcon, SettingsIcon, ShieldCheckIcon, SquareUserRoundIcon, UserIcon, UsersIcon } from '@lucide/vue'
+import { BadgeHelpIcon, BellDotIcon, BirdIcon, BoxesIcon, BrainCircuitIcon, BugIcon, ComponentIcon, CreditCardIcon, KeyRoundIcon, LayoutDashboardIcon, ListTodoIcon, PaletteIcon, PictureInPicture2Icon, PodcastIcon, SettingsIcon, ShieldCheckIcon, SquareUserRoundIcon, UserCogIcon, UserIcon, UsersIcon } from '@lucide/vue'
 
 import type { NavGroup, NavItem } from '@/components/app-sidebar/types'
 
@@ -26,6 +26,7 @@ export const navData: NavGroup[] = [
     title: 'System',
     items: [
       { title: 'Users', url: '/users', icon: UsersIcon, permission: 'user:read' },
+      { title: 'Admins', url: '/admins', icon: UserCogIcon, permission: 'admin:read' },
       { title: 'Roles', url: '/roles', icon: ShieldCheckIcon, permission: 'role:read' },
       { title: 'Embedding Models', url: '/ai/embedding-models', icon: BrainCircuitIcon, permission: 'embedding-model:read' },
     ],
@@ -39,7 +40,6 @@ export const navData: NavGroup[] = [
         items: [
           { title: 'Sign In', url: '/auth/sign-in' },
           { title: 'Sign In(2 Col)', url: '/auth/sign-in-2' },
-          { title: 'Sign Up', url: '/auth/sign-up' },
           { title: 'Forgot Password', url: '/auth/forgot-password' },
           { title: 'Reset Password', url: '/auth/reset-password' },
           { title: 'OTP', url: '/auth/otp' },

@@ -119,6 +119,13 @@ describe('createApiClient', () => {
     },
   )
 
+  it('does not treat routes that merely start like credential endpoints as credential errors', async () => {
+    route((path, call) => (path === '/auth/refresh' || call > 0 ? respond(204) : respond(401)))
+
+    await client.fetch('/auth/login-history')
+    expect(callsTo('/auth/refresh')).toBe(1)
+  })
+
   it('does not retry other errors', async () => {
     route(() => respond(403, { message: 'Forbidden' }))
 
@@ -126,6 +133,36 @@ describe('createApiClient', () => {
     expect(isUnauthorized(error)).toBe(false)
     expect(getErrorMessage(error)).toBe('Forbidden')
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('createApiClient with a custom authPath', () => {
+  const onUnauthorized = vi.fn()
+  const client = createApiClient({ baseURL: BASE_URL, authPath: '/admin/auth', onUnauthorized })
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    onUnauthorized.mockReset()
+  })
+
+  it('refreshes through the realm\'s auth routes', async () => {
+    route((path, call) => {
+      if (path === '/admin/auth/refresh')
+        return respond(204)
+      return call === 0 ? respond(401, { message: 'Unauthorized' }) : respond(200, { path })
+    })
+
+    await expect(client.fetch('/admin/me')).resolves.toEqual({ path: '/admin/me' })
+    expect(callsTo('/admin/auth/refresh')).toBe(1)
+    expect(fetchMock.mock.calls.some(([request]) => new URL(String(request)).pathname === '/api/auth/refresh')).toBe(false)
+  })
+
+  it('passes credential errors of its own auth routes through without refreshing', async () => {
+    route(() => respond(401, { message: 'Email or password is incorrect' }))
+
+    await expect(client.fetch('/admin/auth/login', { method: 'POST', body: {} })).rejects.toMatchObject({ status: 401 })
+    expect(callsTo('/admin/auth/refresh')).toBe(0)
+    expect(onUnauthorized).not.toHaveBeenCalled()
   })
 })
 

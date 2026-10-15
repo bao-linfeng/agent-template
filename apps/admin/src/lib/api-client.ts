@@ -1,7 +1,8 @@
 /**
  * Admin instance of the shared cookie-session client from `@repo/utils` (ofetch, one shared
- * `POST /auth/refresh` + retry on 401). When the session cannot be refreshed, it is cleared and the
- * user is sent to sign-in.
+ * `POST /admin/auth/refresh` + retry on 401). The admin console signs in with admin accounts, which are
+ * separate from client app users. When the session cannot be refreshed, it is cleared and the user is
+ * sent to sign-in.
  */
 import { createApiClient } from '@repo/utils'
 import { toast } from 'vue-sonner'
@@ -33,6 +34,7 @@ async function handleUnauthorized() {
 
 export const { fetch: apiFetch, refreshSession } = createApiClient({
   baseURL: API_BASE_URL,
+  authPath: '/admin/auth',
   timeout: API_TIMEOUT ?? 5000,
   onUnauthorized: handleUnauthorized,
 })

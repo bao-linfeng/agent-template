@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
+import { AccountsModule } from '../accounts/accounts.module.js';
 import { AdminUsersController } from './admin-users.controller.js';
-import { AvatarsController, MeController } from './users.controller.js';
-import { UsersService } from './users.service.js';
+import { MeController } from './users.controller.js';
 
+/** Client app accounts: `/users/me` for the user, `/admin/users` for administrators. */
 @Module({
-  controllers: [MeController, AvatarsController, AdminUsersController],
-  providers: [UsersService],
-  exports: [UsersService],
+  imports: [AccountsModule],
+  controllers: [MeController, AdminUsersController],
 })
 export class UsersModule {}

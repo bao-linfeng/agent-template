@@ -18,8 +18,6 @@ import { readSingleFile } from '../../common/http/multipart.js';
 import type { AuthUser, HttpRequest } from '../../common/http/request.js';
 import type { Env } from '../../config/env.js';
 import { CurrentUser } from '../auth/decorators.js';
-import type { AppAbility } from '../rbac/ability.js';
-import { CurrentAbility, RequirePermissions } from '../rbac/policies.js';
 import { SUPPORTED_EXTENSIONS } from './document-parsers.js';
 import { DocumentsService } from './documents.service.js';
 import {
@@ -32,8 +30,8 @@ import { KnowledgeBasesService } from './knowledge-bases.service.js';
 import { RetrievalService } from './retrieval.service.js';
 
 /**
- * Knowledge bases are owned by their creator. Owners can read/update/delete their own; the
- * `knowledge-base:read` / `knowledge-base:manage` permissions extend that to every knowledge base.
+ * Knowledge bases of the signed-in client user. Every route only sees the user's own knowledge
+ * bases; others answer 404. Administrators use `/admin/rag/knowledge-bases`.
  */
 @ApiTags('rag')
 @Controller('rag/knowledge-bases')
@@ -45,37 +43,30 @@ export class RagController {
     private readonly config: ConfigService<Env, true>,
   ) {}
 
+  /** `keyword` matches the name. */
   @Get()
-  list(
-    @CurrentUser() user: AuthUser,
-    @CurrentAbility() ability: AppAbility,
-    @Query() query: PaginationQueryDto,
-  ) {
-    return this.knowledgeBases.list(user.id, ability, query);
+  list(@CurrentUser() user: AuthUser, @Query() query: PaginationQueryDto) {
+    return this.knowledgeBases.list(query, user.id);
   }
 
   @Post()
-  @RequirePermissions('knowledge-base:create')
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateKnowledgeBaseDto) {
     return this.knowledgeBases.create(user.id, dto);
   }
 
   @Get(':id')
-  get(
-    @CurrentAbility() ability: AppAbility,
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
-    return this.knowledgeBases.getAuthorized(id, ability);
+  get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.knowledgeBases.getOwned(id, user.id);
   }
 
   @Patch(':id')
   async update(
-    @CurrentAbility() ability: AppAbility,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateKnowledgeBaseDto,
   ) {
     return this.knowledgeBases.update(
-      await this.knowledgeBases.getAuthorized(id, ability, 'update'),
+      await this.knowledgeBases.getOwned(id, user.id),
       dto,
     );
   }
@@ -83,11 +74,11 @@ export class RagController {
   @Delete(':id')
   @HttpCode(204)
   async remove(
-    @CurrentAbility() ability: AppAbility,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     await this.knowledgeBases.remove(
-      await this.knowledgeBases.getAuthorized(id, ability, 'delete'),
+      await this.knowledgeBases.getOwned(id, user.id),
     );
   }
 
@@ -95,11 +86,11 @@ export class RagController {
   @Post(':id/search')
   @HttpCode(200)
   async search(
-    @CurrentAbility() ability: AppAbility,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SearchKnowledgeBaseDto,
   ) {
-    const kb = await this.knowledgeBases.getAuthorized(id, ability);
+    const kb = await this.knowledgeBases.getOwned(id, user.id);
     return this.retrieval.retrieve(kb, dto.query, {
       topK: dto.topK,
       minScore: dto.minScore,
@@ -108,12 +99,12 @@ export class RagController {
 
   @Get(':id/documents')
   async listDocuments(
-    @CurrentAbility() ability: AppAbility,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: PaginationQueryDto,
   ) {
     return this.documents.list(
-      await this.knowledgeBases.getAuthorized(id, ability),
+      await this.knowledgeBases.getOwned(id, user.id),
       query,
     );
   }
@@ -134,11 +125,10 @@ export class RagController {
   })
   async upload(
     @CurrentUser() user: AuthUser,
-    @CurrentAbility() ability: AppAbility,
     @Param('id', ParseUUIDPipe) id: string,
     @Req() request: HttpRequest,
   ) {
-    const kb = await this.knowledgeBases.getAuthorized(id, ability, 'update');
+    const kb = await this.knowledgeBases.getOwned(id, user.id);
     const file = await readSingleFile(
       request,
       this.config.get('UPLOAD_MAX_BYTES', { infer: true }),
@@ -149,22 +139,21 @@ export class RagController {
   @Post(':id/documents/text')
   async addText(
     @CurrentUser() user: AuthUser,
-    @CurrentAbility() ability: AppAbility,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateTextDocumentDto,
   ) {
-    const kb = await this.knowledgeBases.getAuthorized(id, ability, 'update');
+    const kb = await this.knowledgeBases.getOwned(id, user.id);
     return this.documents.addText(kb, user.id, dto.title, dto.content);
   }
 
   @Get(':id/documents/:documentId')
   async getDocument(
-    @CurrentAbility() ability: AppAbility,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('documentId', ParseUUIDPipe) documentId: string,
   ) {
     return this.documents.get(
-      await this.knowledgeBases.getAuthorized(id, ability),
+      await this.knowledgeBases.getOwned(id, user.id),
       documentId,
     );
   }
@@ -172,12 +161,12 @@ export class RagController {
   @Post(':id/documents/:documentId/reindex')
   @HttpCode(202)
   async reindex(
-    @CurrentAbility() ability: AppAbility,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('documentId', ParseUUIDPipe) documentId: string,
   ) {
     return this.documents.reindex(
-      await this.knowledgeBases.getAuthorized(id, ability, 'update'),
+      await this.knowledgeBases.getOwned(id, user.id),
       documentId,
     );
   }
@@ -185,12 +174,12 @@ export class RagController {
   @Delete(':id/documents/:documentId')
   @HttpCode(204)
   async removeDocument(
-    @CurrentAbility() ability: AppAbility,
+    @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('documentId', ParseUUIDPipe) documentId: string,
   ) {
     await this.documents.remove(
-      await this.knowledgeBases.getAuthorized(id, ability, 'update'),
+      await this.knowledgeBases.getOwned(id, user.id),
       documentId,
     );
   }

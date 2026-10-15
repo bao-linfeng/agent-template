@@ -9,7 +9,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 import { timestamps } from './columns.js';
-import { users } from './users.js';
+import { adminUsers } from './users.js';
 
 export const roles = pgTable('roles', {
   id: uuid().primaryKey().defaultRandom(),
@@ -24,19 +24,20 @@ export const roles = pgTable('roles', {
   ...timestamps,
 });
 
-export const userRoles = pgTable(
-  'user_roles',
+/** Roles of admin console accounts. Client users have no roles. */
+export const adminUserRoles = pgTable(
+  'admin_user_roles',
   {
-    userId: uuid()
+    adminUserId: uuid()
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => adminUsers.id, { onDelete: 'cascade' }),
     roleId: uuid()
       .notNull()
       .references(() => roles.id, { onDelete: 'cascade' }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.userId, table.roleId] }),
+    primaryKey({ columns: [table.adminUserId, table.roleId] }),
     index().on(table.roleId),
   ],
 );

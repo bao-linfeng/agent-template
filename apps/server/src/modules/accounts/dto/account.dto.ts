@@ -1,10 +1,8 @@
 import {
-  ArrayUnique,
-  IsArray,
+  IsEmail,
   IsIn,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -31,28 +29,39 @@ export class ChangePasswordDto {
   newPassword!: string;
 }
 
-export class ListUsersQueryDto extends PaginationQueryDto {
+export class ListAccountsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn(userStatus.enumValues)
   status?: UserStatus;
 }
 
-export class AdminUpdateUserDto {
+/** Fields an administrator may change on an account of either realm. */
+export class AdminUpdateAccountDto {
   @IsOptional()
   @IsString()
   @MinLength(2)
   @MaxLength(50)
   nickname?: string;
 
-  /** Disabling a user signs them out everywhere. */
+  /** Disabling an account signs it out everywhere. */
   @IsOptional()
   @IsIn(userStatus.enumValues)
   status?: UserStatus;
 }
 
-export class SetUserRolesDto {
-  @IsArray()
-  @ArrayUnique()
-  @IsUUID('all', { each: true })
-  roleIds!: string[];
+export class CreateAccountDto {
+  @IsEmail()
+  @MaxLength(255)
+  email!: string;
+
+  /** 8-72 characters (bcrypt limit). */
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
+  password!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(50)
+  nickname!: string;
 }

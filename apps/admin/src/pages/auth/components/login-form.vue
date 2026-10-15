@@ -44,14 +44,8 @@ const form = useForm({
         Login
       </CardTitle>
       <CardDescription>
-        Enter your email and password below to log into your account.
-        Not have an account?
-        <Button
-          variant="link" class="px-0 text-muted-foreground"
-          @click="$router.push({ path: '/auth/sign-up', query: $route.query })"
-        >
-          Sign Up
-        </Button>
+        Enter your admin account email and password.
+        Accounts are created by an administrator.
       </CardDescription>
     </CardHeader>
     <CardContent>

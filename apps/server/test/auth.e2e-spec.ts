@@ -1,6 +1,7 @@
 import {
   API,
   cookieValue,
+  createAdmin,
   createTestApp,
   E2E_ADMIN,
   loginAdmin,
@@ -9,6 +10,8 @@ import {
   waitFor,
   type TestApp,
 } from './support/test-app.js';
+
+const ADMIN_LOGIN = { email: E2E_ADMIN.email, password: E2E_ADMIN.password };
 
 const PNG = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -26,7 +29,7 @@ describe('auth & account (e2e)', () => {
     await t.close();
   });
 
-  it('registers with the default role, sets HttpOnly cookies and rejects duplicates', async () => {
+  it('registers a client user without roles, sets HttpOnly cookies and rejects duplicates', async () => {
     const email = uniqueEmail('Reg');
     const response = await t
       .http()
@@ -41,13 +44,14 @@ describe('auth & account (e2e)', () => {
     expect(response.body).toMatchObject({
       email: email.toLowerCase(),
       nickname: 'Reg',
-      roles: ['user'],
       avatarUrl: null,
     });
     expect(response.body).not.toHaveProperty('passwordHash');
+    expect(response.body).not.toHaveProperty('roles');
+    expect(response.body).not.toHaveProperty('permissions');
     const cookies = response.headers['set-cookie'] as unknown as string[];
     expect(cookies.find((c) => c.startsWith('access_token='))).toMatch(
-      /HttpOnly/,
+      /Path=\/;.*HttpOnly/,
     );
     expect(cookies.find((c) => c.startsWith('refresh_token='))).toMatch(
       /Path=\/api\/auth/,
@@ -83,10 +87,8 @@ describe('auth & account (e2e)', () => {
     const { agent, credentials } = await registerUser(t);
 
     const me = await agent.get(`${API}/users/me`).expect(200);
-    expect(me.body).toMatchObject({
-      email: credentials.email,
-      permissions: ['knowledge-base:create'],
-    });
+    expect(me.body).toMatchObject({ email: credentials.email });
+    expect(me.body).not.toHaveProperty('permissions');
 
     await agent
       .patch(`${API}/users/me`)
@@ -340,22 +342,145 @@ describe('auth & account (e2e)', () => {
     await t.http().get(avatarUrl.pathname).expect(404);
   });
 
-  it('signs out and blocks a user disabled by an administrator', async () => {
-    const { agent, credentials, user } = await registerUser(t);
-    const admin = await loginAdmin(t, E2E_ADMIN);
+  it('keeps client users and admin accounts apart, even with the same email', async () => {
+    const { agent: user, credentials } = await registerUser(t);
+    const superAdmin = await loginAdmin(t, E2E_ADMIN);
 
-    await admin
-      .patch(`${API}/admin/users/${user.id}`)
-      .send({ status: 'disabled' })
-      .expect(200);
-    await agent.get(`${API}/users/me`).expect(401);
-    await t.http().post(`${API}/auth/login`).send(credentials).expect(403);
+    // Client credentials do not work in the admin console and vice versa.
+    await t
+      .http()
+      .post(`${API}/admin/auth/login`)
+      .send(credentials)
+      .expect(401);
+    await t.http().post(`${API}/auth/login`).send(ADMIN_LOGIN).expect(401);
+    await t
+      .http()
+      .post(`${API}/admin/auth/register`)
+      .send({ ...credentials, nickname: 'Nope' })
+      .expect(404);
 
-    await admin
-      .patch(`${API}/admin/users/${user.id}`)
-      .send({ status: 'active' })
-      .expect(200);
+    // The same email can own an independent admin account with its own password.
+    const { agent: admin, admin: adminAccount } = await createAdmin(
+      t,
+      superAdmin,
+      { email: credentials.email },
+    );
+    const userMe = (await user.get(`${API}/users/me`).expect(200)).body;
+    const adminMe = (await admin.get(`${API}/admin/me`).expect(200)).body;
+    expect(adminMe).toMatchObject({
+      id: adminAccount.id,
+      email: credentials.email,
+      roles: [],
+      permissions: [],
+    });
+    expect(adminMe.id).not.toBe(userMe.id);
     await t.http().post(`${API}/auth/login`).send(credentials).expect(200);
+    await t
+      .http()
+      .post(`${API}/admin/auth/login`)
+      .send({ email: credentials.email, password: 'admin-password-1' })
+      .expect(200);
+
+    // Each session only opens the routes of its own realm.
+    await user.get(`${API}/admin/me`).expect(401);
+    await admin.get(`${API}/users/me`).expect(401);
+    await admin.get(`${API}/rag/knowledge-bases`).expect(401);
+  });
+
+  it('uses realm-specific cookies so both sessions live side by side', async () => {
+    const { credentials } = await registerUser(t);
+    const browser = t.agent();
+    await browser.post(`${API}/auth/login`).send(credentials).expect(200);
+    const adminLogin = await browser
+      .post(`${API}/admin/auth/login`)
+      .send(ADMIN_LOGIN)
+      .expect(200);
+    const cookies = adminLogin.headers['set-cookie'] as unknown as string[];
+    expect(cookies.find((c) => c.startsWith('admin_access_token='))).toMatch(
+      /Path=\/api\/admin;.*HttpOnly/,
+    );
+    expect(cookies.find((c) => c.startsWith('admin_refresh_token='))).toMatch(
+      /Path=\/api\/admin\/auth/,
+    );
+    expect(adminLogin.body).toMatchObject({
+      email: E2E_ADMIN.email,
+      roles: ['super_admin'],
+      permissions: ['all:manage'],
+    });
+
+    await browser.get(`${API}/users/me`).expect(200);
+    await browser.get(`${API}/admin/me`).expect(200);
+    await browser.post(`${API}/admin/auth/refresh`).expect(204);
+    await browser.post(`${API}/admin/auth/logout`).expect(204);
+    await browser.get(`${API}/admin/me`).expect(401);
+    await browser.get(`${API}/users/me`).expect(200);
+
+    // A token presented under the other realm's cookie name is rejected.
+    const userAccess = cookieValue(
+      (await t.http().post(`${API}/auth/login`).send(credentials).expect(200))
+        .headers['set-cookie'],
+      'access_token',
+    )!;
+    const adminAccess = cookieValue(
+      (await t.http().post(`${API}/admin/auth/login`).send(ADMIN_LOGIN))
+        .headers['set-cookie'],
+      'admin_access_token',
+    )!;
+    await t
+      .http()
+      .get(`${API}/admin/me`)
+      .set('Cookie', `admin_access_token=${userAccess}`)
+      .expect(401);
+    await t
+      .http()
+      .get(`${API}/users/me`)
+      .set('Cookie', `access_token=${adminAccess}`)
+      .expect(401);
+  });
+
+  it('resets admin passwords through the admin auth routes only', async () => {
+    const superAdmin = await loginAdmin(t, E2E_ADMIN);
+    const { agent, credentials } = await createAdmin(t, superAdmin);
+
+    // The client flow does not know admin emails.
+    await t
+      .http()
+      .post(`${API}/auth/forgot-password`)
+      .send({ email: credentials.email })
+      .expect(202);
+    await t
+      .http()
+      .post(`${API}/admin/auth/forgot-password`)
+      .send({
+        email: credentials.email,
+        resetUrl: 'http://localhost:5175/auth/reset-password',
+      })
+      .expect(202);
+    const mails = await waitFor(() => {
+      const sent = t.mailbox.to(credentials.email);
+      return sent.length > 0 ? sent : undefined;
+    });
+    expect(mails).toHaveLength(1);
+    const token = new URL(
+      mails[0]!.text.match(/https?:\/\/\S+/)![0],
+    ).searchParams.get('token')!;
+
+    await t
+      .http()
+      .post(`${API}/auth/reset-password`)
+      .send({ token, password: 'brand-new-pass' })
+      .expect(400);
+    await t
+      .http()
+      .post(`${API}/admin/auth/reset-password`)
+      .send({ token, password: 'brand-new-pass' })
+      .expect(204);
+    await agent.get(`${API}/admin/me`).expect(401);
+    await t
+      .http()
+      .post(`${API}/admin/auth/login`)
+      .send({ email: credentials.email, password: 'brand-new-pass' })
+      .expect(200);
   });
 
   it('exposes health and OpenAPI docs', async () => {

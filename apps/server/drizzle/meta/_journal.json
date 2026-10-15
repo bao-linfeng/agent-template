@@ -22,6 +22,20 @@
       "when": 1792044256071,
       "tag": "0002_rag_vector_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792050795270,
+      "tag": "0003_admin_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792050815402,
+      "tag": "0004_drop_user_roles",
+      "breakpoints": true
     }
   ]
 }

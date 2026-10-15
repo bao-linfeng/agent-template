@@ -4,12 +4,12 @@ import type { Redis } from 'ioredis';
 import type { AuthUser, HttpRequest } from '../../common/http/request.js';
 import type { Database } from '../../database/database.js';
 import { InjectDb } from '../../database/database.module.js';
-import { roles, userRoles } from '../../database/schema/index.js';
+import { adminUserRoles, roles } from '../../database/schema/index.js';
 import { InjectRedis } from '../../infra/redis/redis.module.js';
 import { defineAbilityFor, type AppAbility } from './ability.js';
 import { SYSTEM_ROLES } from './permissions.js';
 
-export interface UserAccess {
+export interface AdminAccess {
   roles: string[];
   permissions: string[];
 }
@@ -17,6 +17,7 @@ export interface UserAccess {
 const VERSION_KEY = 'rbac:version';
 const CACHE_TTL_SECONDS = 10 * 60;
 
+/** Roles and permissions of admin console accounts (client users have none). */
 @Injectable()
 export class RbacService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RbacService.name);
@@ -46,18 +47,18 @@ export class RbacService implements OnApplicationBootstrap {
   }
 
   /** Role codes and the union of their permissions, cached in Redis. */
-  async getUserAccess(userId: string): Promise<UserAccess> {
-    const key = await this.cacheKey(userId);
+  async getAdminAccess(adminUserId: string): Promise<AdminAccess> {
+    const key = await this.cacheKey(adminUserId);
     const cached = await this.redis.get(key);
     if (cached) {
-      return JSON.parse(cached) as UserAccess;
+      return JSON.parse(cached) as AdminAccess;
     }
     const rows = await this.db
       .select({ code: roles.code, permissions: roles.permissions })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(eq(userRoles.userId, userId));
-    const access: UserAccess = {
+      .from(adminUserRoles)
+      .innerJoin(roles, eq(adminUserRoles.roleId, roles.id))
+      .where(eq(adminUserRoles.adminUserId, adminUserId));
+    const access: AdminAccess = {
       roles: rows.map((row) => row.code).sort(),
       permissions: [...new Set(rows.flatMap((row) => row.permissions))].sort(),
     };
@@ -65,22 +66,22 @@ export class RbacService implements OnApplicationBootstrap {
     return access;
   }
 
-  async abilityFor(user: AuthUser): Promise<AppAbility> {
-    const { permissions } = await this.getUserAccess(user.id);
-    return defineAbilityFor({ id: user.id, permissions });
+  async abilityFor(adminUserId: string): Promise<AppAbility> {
+    const { permissions } = await this.getAdminAccess(adminUserId);
+    return defineAbilityFor({ id: adminUserId, permissions });
   }
 
-  /** Request-scoped memoized ability. */
+  /** Request-scoped memoized ability of the signed-in admin. */
   async abilityForRequest(
     request: HttpRequest & { user: AuthUser },
   ): Promise<AppAbility> {
-    request.ability ??= await this.abilityFor(request.user);
+    request.ability ??= await this.abilityFor(request.user.id);
     return request.ability;
   }
 
-  /** Call after changing a user's roles. */
-  async invalidateUser(userId: string): Promise<void> {
-    await this.redis.del(await this.cacheKey(userId));
+  /** Call after changing an admin's roles. */
+  async invalidateAdmin(adminUserId: string): Promise<void> {
+    await this.redis.del(await this.cacheKey(adminUserId));
   }
 
   /** Call after changing a role's permissions or deleting a role. */
@@ -89,15 +90,17 @@ export class RbacService implements OnApplicationBootstrap {
   }
 
   async assignRoles(
-    userId: string,
+    adminUserId: string,
     roleIds: string[],
     executor: Pick<Database, 'insert' | 'delete'> = this.db,
   ) {
-    await executor.delete(userRoles).where(eq(userRoles.userId, userId));
+    await executor
+      .delete(adminUserRoles)
+      .where(eq(adminUserRoles.adminUserId, adminUserId));
     if (roleIds.length > 0) {
       await executor
-        .insert(userRoles)
-        .values(roleIds.map((roleId) => ({ userId, roleId })))
+        .insert(adminUserRoles)
+        .values(roleIds.map((roleId) => ({ adminUserId, roleId })))
         .onConflictDoNothing();
     }
   }
@@ -111,8 +114,8 @@ export class RbacService implements OnApplicationBootstrap {
     return role?.id;
   }
 
-  private async cacheKey(userId: string): Promise<string> {
+  private async cacheKey(adminUserId: string): Promise<string> {
     const version = (await this.redis.get(VERSION_KEY)) ?? '0';
-    return `rbac:v${version}:user:${userId}`;
+    return `rbac:v${version}:admin:${adminUserId}`;
   }
 }

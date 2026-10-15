@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Ripple from '@/components/inspira-ui/ripple/index.vue'
 import SignInButton from '@/components/sign-in-button.vue'
-import SignUpButton from '@/components/sign-up-button.vue'
 </script>
 
 <template>
@@ -17,7 +16,6 @@ import SignUpButton from '@/components/sign-up-button.vue'
 
     <div class="flex items-center gap-3 my-2 z-100">
       <SignInButton />
-      <SignUpButton />
     </div>
 
     <Ripple

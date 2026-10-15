@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -10,32 +9,19 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Redis } from 'ioredis';
-import {
-  randomToken,
-  safeEqualHex,
-  sha256,
-} from '../../common/crypto/crypto.js';
+import { randomToken, sha256 } from '../../common/crypto/crypto.js';
 import type { RequestMeta } from '../../common/http/request.js';
 import type { Env } from '../../config/env.js';
 import type { Database } from '../../database/database.js';
 import { InjectDb } from '../../database/database.module.js';
-import { isUniqueViolation } from '../../database/errors.js';
-import {
-  authSessions,
-  passwordResetTokens,
-  users,
-  type UserRow,
-} from '../../database/schema/index.js';
 import { mailTemplates } from '../../infra/mail/mail.templates.js';
 import { MailService } from '../../infra/mail/mail.service.js';
 import { InjectRedis } from '../../infra/redis/redis.module.js';
-import { DEFAULT_ROLE_CODE } from '../rbac/permissions.js';
-import { RbacService } from '../rbac/rbac.service.js';
 import {
+  AccountsService,
   normalizeEmail,
-  UsersService,
-  type UserProfile,
-} from '../users/users.service.js';
+  type AccountRow,
+} from '../accounts/accounts.service.js';
 import type { AccessTokenPayload } from './auth.constants.js';
 import type {
   ForgotPasswordDto,
@@ -44,15 +30,20 @@ import type {
   ResetPasswordDto,
 } from './dto/auth.dto.js';
 import { PasswordHasher } from './password-hasher.service.js';
+import { REALM_TABLES, type Realm } from './realms.js';
 import { SessionsService, type IssuedTokens } from './sessions.service.js';
 
 export interface AuthResult {
   tokens: IssuedTokens;
-  user: UserProfile;
+  account: AccountRow;
 }
 
 const RESET_REQUEST_COOLDOWN_SECONDS = 60;
 
+/**
+ * Credential flows for both realms. An email only exists within its realm: signing in to the admin
+ * console with a client account (or the other way round) fails like any unknown email.
+ */
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -60,86 +51,60 @@ export class AuthService {
   constructor(
     @InjectDb() private readonly db: Database,
     @InjectRedis() private readonly redis: Redis,
-    private readonly users: UsersService,
+    private readonly accounts: AccountsService,
     private readonly sessions: SessionsService,
     private readonly hasher: PasswordHasher,
-    private readonly rbac: RbacService,
     private readonly mail: MailService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  /** Creates the account with the default role and signs the user in. */
+  /** Client self-registration; signs the new user in. Admin accounts are created by administrators. */
   async register(dto: RegisterDto, meta: RequestMeta): Promise<AuthResult> {
-    const email = normalizeEmail(dto.email);
-    if (await this.users.findByEmail(email)) {
-      throw new ConflictException('Email is already registered');
-    }
-    const passwordHash = await this.hasher.hash(dto.password);
-    const defaultRoleId = await this.rbac.findRoleIdByCode(DEFAULT_ROLE_CODE);
-
-    let user: UserRow;
-    try {
-      user = await this.db.transaction(async (tx) => {
-        const [created] = await tx
-          .insert(users)
-          .values({
-            email,
-            passwordHash,
-            nickname: dto.nickname.trim(),
-            lastLoginAt: new Date(),
-          })
-          .returning();
-        if (defaultRoleId) {
-          await this.rbac.assignRoles(created!.id, [defaultRoleId], tx);
-        }
-        return created!;
-      });
-    } catch (error) {
-      if (isUniqueViolation(error)) {
-        throw new ConflictException('Email is already registered');
-      }
-      throw error;
-    }
-
-    const tokens = await this.sessions.create(user, meta);
-    return { tokens, user: await this.users.getProfile(user.id) };
+    const account = await this.accounts.create('user', dto, undefined, {
+      lastLoginAt: new Date(),
+    });
+    const tokens = await this.sessions.create('user', account, meta);
+    return { tokens, account };
   }
 
-  async login(dto: LoginDto, meta: RequestMeta): Promise<AuthResult> {
-    const user = await this.users.findByEmail(dto.email);
-    const valid = user
-      ? await this.hasher.verify(dto.password, user.passwordHash)
+  async login(
+    realm: Realm,
+    dto: LoginDto,
+    meta: RequestMeta,
+  ): Promise<AuthResult> {
+    const account = await this.accounts.findByEmail(realm, dto.email);
+    const valid = account
+      ? await this.hasher.verify(dto.password, account.passwordHash)
       : await this.hasher.verifyAgainstDummy(dto.password);
-    if (!user || !valid) {
+    if (!account || !valid) {
       throw new UnauthorizedException('Email or password is incorrect');
     }
-    if (user.status !== 'active') {
+    if (account.status !== 'active') {
       throw new ForbiddenException('This account has been disabled');
     }
-    const tokens = await this.sessions.create(user, meta);
-    await this.db
-      .update(users)
-      .set({ lastLoginAt: new Date() })
-      .where(eq(users.id, user.id));
-    return { tokens, user: await this.users.getProfile(user.id) };
+    const tokens = await this.sessions.create(realm, account, meta);
+    await this.accounts.touchLastLogin(realm, account.id);
+    return { tokens, account };
   }
 
   refresh(
+    realm: Realm,
     refreshToken: string | undefined,
     meta: RequestMeta,
   ): Promise<IssuedTokens> {
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token missing');
     }
-    return this.sessions.rotate(refreshToken, meta, async (userId) => {
-      const user = await this.users.findById(userId);
-      return user?.status === 'active' ? user : undefined;
+    return this.sessions.rotate(realm, refreshToken, meta, async (id) => {
+      const account = await this.accounts.findById(realm, id);
+      return account?.status === 'active' ? account : undefined;
     });
   }
 
   /** Revokes the session identified by either cookie; never fails so the client can always sign out. */
   async logout(
+    realm: Realm,
     accessToken: string | undefined,
     refreshToken: string | undefined,
   ): Promise<void> {
@@ -147,22 +112,15 @@ export class AuthService {
       try {
         const payload =
           await this.jwt.verifyAsync<AccessTokenPayload>(accessToken);
-        await this.sessions.revoke(payload.sid);
-        return;
+        if (payload.realm === realm) {
+          await this.sessions.revoke(realm, payload.sid);
+          return;
+        }
       } catch {
         // Expired or invalid: fall back to the refresh token.
       }
     }
-    const [sessionId, secret] = refreshToken?.split('.') ?? [];
-    if (!sessionId || !secret || !/^[0-9a-f-]{36}$/.test(sessionId)) {
-      return;
-    }
-    const session = await this.db.query.authSessions.findFirst({
-      where: eq(authSessions.id, sessionId),
-    });
-    if (session && safeEqualHex(sha256(secret), session.refreshTokenHash)) {
-      await this.sessions.revoke(session.id);
-    }
+    await this.sessions.revokeByRefreshToken(realm, refreshToken);
   }
 
   /**
@@ -170,13 +128,14 @@ export class AuthService {
    * Repeated requests for one address are rate limited.
    */
   async forgotPassword(
+    realm: Realm,
     dto: ForgotPasswordDto,
     meta: RequestMeta,
   ): Promise<void> {
     const resetUrl = this.resolveResetUrl(dto.resetUrl);
     const email = normalizeEmail(dto.email);
     const cooldown = await this.redis.set(
-      `auth:password-reset:cooldown:${sha256(email)}`,
+      `auth:password-reset:cooldown:${realm}:${sha256(email)}`,
       '1',
       'EX',
       RESET_REQUEST_COOLDOWN_SECONDS,
@@ -185,11 +144,12 @@ export class AuthService {
     if (cooldown !== 'OK') {
       return;
     }
-    const user = await this.users.findByEmail(email);
-    if (!user || user.status !== 'active') {
+    const account = await this.accounts.findByEmail(realm, email);
+    if (!account || account.status !== 'active') {
       return;
     }
 
+    const { resetTokens } = REALM_TABLES[realm];
     const token = randomToken();
     const ttlSeconds = this.config.get('PASSWORD_RESET_TTL_SECONDS', {
       infer: true,
@@ -197,16 +157,13 @@ export class AuthService {
     await this.db.transaction(async (tx) => {
       // Only the latest link stays valid.
       await tx
-        .update(passwordResetTokens)
+        .update(resetTokens)
         .set({ usedAt: new Date() })
         .where(
-          and(
-            eq(passwordResetTokens.userId, user.id),
-            isNull(passwordResetTokens.usedAt),
-          ),
+          and(eq(resetTokens.userId, account.id), isNull(resetTokens.usedAt)),
         );
-      await tx.insert(passwordResetTokens).values({
-        userId: user.id,
+      await tx.insert(resetTokens).values({
+        userId: account.id,
         tokenHash: sha256(token),
         expiresAt: new Date(Date.now() + ttlSeconds * 1000),
         requestIp: meta.ip,
@@ -215,14 +172,14 @@ export class AuthService {
 
     resetUrl.searchParams.set('token', token);
     await this.mail.send(
-      user.email,
+      account.email,
       mailTemplates.passwordReset({
-        nickname: user.nickname,
+        nickname: account.nickname,
         resetUrl: resetUrl.toString(),
         expiresInMinutes: Math.round(ttlSeconds / 60),
       }),
     );
-    this.logger.log(`Password reset requested for user ${user.id}`);
+    this.logger.log(`Password reset requested for ${realm} ${account.id}`);
   }
 
   /** Reset links may only point at the configured web apps, so the email cannot be turned into a phishing link. */
@@ -245,24 +202,25 @@ export class AuthService {
   }
 
   /** Consumes a reset token, sets the new password and signs out every session. */
-  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+  async resetPassword(realm: Realm, dto: ResetPasswordDto): Promise<void> {
+    const { resetTokens } = REALM_TABLES[realm];
     const [consumed] = await this.db
-      .update(passwordResetTokens)
+      .update(resetTokens)
       .set({ usedAt: new Date() })
       .where(
         and(
-          eq(passwordResetTokens.tokenHash, sha256(dto.token)),
-          isNull(passwordResetTokens.usedAt),
-          gt(passwordResetTokens.expiresAt, new Date()),
+          eq(resetTokens.tokenHash, sha256(dto.token)),
+          isNull(resetTokens.usedAt),
+          gt(resetTokens.expiresAt, new Date()),
         ),
       )
-      .returning({ userId: passwordResetTokens.userId });
-    const user = consumed
-      ? await this.users.findById(consumed.userId)
+      .returning({ userId: resetTokens.userId });
+    const account = consumed
+      ? await this.accounts.findById(realm, consumed.userId)
       : undefined;
-    if (!user || user.status !== 'active') {
+    if (!account || account.status !== 'active') {
       throw new BadRequestException('Reset link is invalid or has expired');
     }
-    await this.users.setPassword(user, dto.password);
+    await this.accounts.setPassword(realm, account, dto.password);
   }
 }

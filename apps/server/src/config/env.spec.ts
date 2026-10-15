@@ -6,7 +6,7 @@ describe('validateEnv', () => {
     expect(env.PORT).toBe(3100);
     expect(env.API_PREFIX).toBe('api');
     expect(env.CORS_ORIGINS).toEqual([
-      'http://localhost:5173',
+      'http://localhost:5175',
       'http://localhost:5174',
     ]);
     expect(env.COOKIE_SECURE).toBe(false);

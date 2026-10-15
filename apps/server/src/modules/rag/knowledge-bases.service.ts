@@ -20,9 +20,6 @@ import {
 } from '../../database/schema/index.js';
 import { StorageService } from '../../infra/storage/storage.service.js';
 import { EmbeddingModelsService } from '../ai/embedding-models.service.js';
-import { asSubject, canAny, type AppAbility } from '../rbac/ability.js';
-import { assertCan } from '../rbac/policies.js';
-import type { Action } from '../rbac/permissions.js';
 import type {
   CreateKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
@@ -47,15 +44,14 @@ export class KnowledgeBasesService {
     private readonly storage: StorageService,
   ) {}
 
-  /** Owners see their own knowledge bases; `knowledge-base:read` sees all. `keyword` matches the name. */
+  /** `keyword` matches the name; `ownerId` limits the list to one client user's knowledge bases. */
   async list(
-    userId: string,
-    ability: AppAbility,
     query: PaginationQueryDto,
+    ownerId?: string,
   ): Promise<Paginated<KnowledgeBaseView>> {
     const filters: SQL[] = [];
-    if (!canAny(ability, 'read', 'KnowledgeBase')) {
-      filters.push(eq(knowledgeBases.ownerId, userId));
+    if (ownerId) {
+      filters.push(eq(knowledgeBases.ownerId, ownerId));
     }
     if (query.keyword) {
       filters.push(ilike(knowledgeBases.name, likePattern(query.keyword)));
@@ -77,19 +73,27 @@ export class KnowledgeBasesService {
     };
   }
 
-  /** Loads a knowledge base and checks `action` against it (ownership or global permission). */
-  async getAuthorized(
-    id: string,
-    ability: AppAbility,
-    action: Action = 'read',
-  ): Promise<KnowledgeBaseView> {
+  /** Any knowledge base (admin routes, after their permission check). */
+  async get(id: string): Promise<KnowledgeBaseView> {
     const [kb] = await this.selectViews()
       .where(eq(knowledgeBases.id, id))
       .limit(1);
     if (!kb) {
       throw new NotFoundException('Knowledge base not found');
     }
-    assertCan(ability, action, asSubject('KnowledgeBase', kb));
+    return kb;
+  }
+
+  /** A knowledge base of the given client user; other users' knowledge bases look like missing ones. */
+  async getOwned(id: string, ownerId: string): Promise<KnowledgeBaseView> {
+    const [kb] = await this.selectViews()
+      .where(
+        and(eq(knowledgeBases.id, id), eq(knowledgeBases.ownerId, ownerId)),
+      )
+      .limit(1);
+    if (!kb) {
+      throw new NotFoundException('Knowledge base not found');
+    }
     return kb;
   }
 

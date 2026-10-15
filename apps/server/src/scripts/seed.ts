@@ -1,4 +1,4 @@
-// Seeds system roles, the first super admin (SEED_ADMIN_*) and the default embedding model (SEED_EMBEDDING_*).
+// Seeds system roles, the first admin console super admin (SEED_ADMIN_*) and the default embedding model (SEED_EMBEDDING_*).
 import '../config/load-env.js';
 import { validateEnv } from '../config/env.js';
 import { createDatabase, createPool } from '../database/database.js';

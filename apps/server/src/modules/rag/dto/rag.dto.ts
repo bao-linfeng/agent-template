@@ -1,4 +1,5 @@
 import { Type } from 'class-transformer';
+import { PaginationQueryDto } from '../../../common/dto/pagination.dto.js';
 import {
   IsInt,
   IsNumber,
@@ -100,4 +101,11 @@ export class SearchKnowledgeBaseDto {
   @Min(0)
   @Max(1)
   minScore?: number;
+}
+
+export class AdminListKnowledgeBasesQueryDto extends PaginationQueryDto {
+  /** Only knowledge bases of this client user. */
+  @IsOptional()
+  @IsUUID()
+  ownerId?: string;
 }

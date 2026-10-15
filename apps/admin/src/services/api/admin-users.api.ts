@@ -6,7 +6,7 @@ import { computed, toValue } from 'vue'
 import { apiFetch } from '@/lib/api-client'
 
 import type { IPaginated } from '../types/response.type'
-import type { IAdminUser, UserStatus } from '../types/user.type'
+import type { IClientUser, UserStatus } from '../types/user.type'
 
 export interface IListUsersQuery {
   page?: number
@@ -18,7 +18,7 @@ export interface IListUsersQuery {
 
 export interface IAdminUpdateUserBody {
   nickname?: string
-  /** Disabling a user signs them out everywhere. */
+  /** Disabling an account signs it out everywhere. */
   status?: UserStatus
 }
 
@@ -29,22 +29,13 @@ export function compactQuery<T extends object>(query: T): Partial<T> {
   ) as Partial<T>
 }
 
-// Transport layer (permissions: `user:read`, `user:update`)
+// Transport layer for client app users (permissions: `user:read`, `user:update`)
 export function fetchAdminUsers(query: IListUsersQuery = {}) {
-  return apiFetch<IPaginated<IAdminUser>>('/admin/users', { method: 'get', query: compactQuery(query) })
-}
-
-export function fetchAdminUser(id: string) {
-  return apiFetch<IAdminUser>(`/admin/users/${id}`, { method: 'get' })
+  return apiFetch<IPaginated<IClientUser>>('/admin/users', { method: 'get', query: compactQuery(query) })
 }
 
 export function updateAdminUser(id: string, body: IAdminUpdateUserBody) {
-  return apiFetch<IAdminUser>(`/admin/users/${id}`, { method: 'patch', body })
-}
-
-/** Replaces the user's roles. */
-export function setAdminUserRoles(id: string, roleIds: string[]) {
-  return apiFetch<IAdminUser>(`/admin/users/${id}/roles`, { method: 'put', body: { roleIds } })
+  return apiFetch<IClientUser>(`/admin/users/${id}`, { method: 'patch', body })
 }
 
 // Query/mutation hooks
@@ -58,22 +49,11 @@ export function useAdminUsersQuery(query: MaybeRefOrGetter<IListUsersQuery>) {
   })
 }
 
-export interface IAdminUserChanges extends IAdminUpdateUserBody {
-  id: string
-  /** Sent only when the role selection changed. */
-  roleIds?: string[]
-}
-
 export function useUpdateAdminUserMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationKey: ['updateAdminUser'],
-    mutationFn: async ({ id, roleIds, ...body }: IAdminUserChanges) => {
-      let user = Object.keys(body).length ? await updateAdminUser(id, body) : undefined
-      if (roleIds)
-        user = await setAdminUserRoles(id, roleIds)
-      return user ?? await fetchAdminUser(id)
-    },
+    mutationFn: ({ id, ...body }: IAdminUpdateUserBody & { id: string }) => updateAdminUser(id, body),
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['adminUsers'] }),
   })
 }

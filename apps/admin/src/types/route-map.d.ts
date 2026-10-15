@@ -45,6 +45,13 @@ declare module 'vue-router/auto-routes' {
       { path: ParamValue<false> },
       | never
     >,
+    '/admins/': RouteRecordInfo<
+      '/admins/',
+      '/admins',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/ai/embedding-models/': RouteRecordInfo<
       '/ai/embedding-models/',
       '/ai/embedding-models',
@@ -77,7 +84,6 @@ declare module 'vue-router/auto-routes' {
       | '/auth/reset-password'
       | '/auth/sign-in'
       | '/auth/sign-in-2'
-      | '/auth/sign-up'
     >,
     '/auth/': RouteRecordInfo<
       '/auth/',
@@ -117,13 +123,6 @@ declare module 'vue-router/auto-routes' {
     '/auth/sign-in-2': RouteRecordInfo<
       '/auth/sign-in-2',
       '/auth/sign-in-2',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/auth/sign-up': RouteRecordInfo<
-      '/auth/sign-up',
-      '/auth/sign-up',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -277,6 +276,14 @@ declare module 'vue-router/auto-routes' {
       pathParamNames:
         | 'path'
     }
+    'src/pages/admins/index.vue': {
+      routes:
+        | '/admins/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
     'src/pages/ai/embedding-models/index.vue': {
       routes:
         | '/ai/embedding-models/'
@@ -310,7 +317,6 @@ declare module 'vue-router/auto-routes' {
         | '/auth/reset-password'
         | '/auth/sign-in'
         | '/auth/sign-in-2'
-        | '/auth/sign-up'
       views:
         | 'default'
       pathParamNames:
@@ -359,14 +365,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/auth/sign-in-2.vue': {
       routes:
         | '/auth/sign-in-2'
-      views:
-        | never
-      pathParamNames:
-        | never
-    }
-    'src/pages/auth/sign-up.vue': {
-      routes:
-        | '/auth/sign-up'
       views:
         | never
       pathParamNames:

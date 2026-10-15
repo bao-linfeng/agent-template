@@ -31,11 +31,11 @@
 | ----------------------- | ------------------------------------------------ | -------- |
 | `/`                     | 首页（仪表板）                                   | 真实接口 |
 | `/auth/login`           | 登录                                             | 真实接口 |
-| `/auth/register`        | 注册（可上传头像）                               | 真实接口 |
 | `/auth/forgot-password` | 忘记密码                                         | 真实接口 |
 | `/auth/reset-password`  | 重置密码                                         | 真实接口 |
 | `/settings/*`           | 个人资料、头像、修改密码、外观、通知、展示       | 真实接口 |
-| `/users`                | 用户管理（搜索、分页、编辑、禁用、分配角色）     | 真实接口 |
+| `/users`                | 客户端用户管理（搜索、分页、编辑、禁用）         | 真实接口 |
+| `/admins`               | 管理员账号（新建、编辑、禁用、分配角色）         | 真实接口 |
 | `/roles`                | 角色管理                                         | 真实接口 |
 | `/ai/embedding-models`  | Embedding 模型配置（新增/编辑/测试/设默认/删除） | 真实接口 |
 | `/ai-talk`              | AI 对话界面（演示）                              | 演示数据 |
@@ -51,17 +51,19 @@
 管理端通过 `src/lib/api-client.ts` 与后端通信，底层是 `@repo/utils` 的 `createApiClient`（ofetch，Cookie 认证，`credentials: 'include'`）。
 
 - **接口基地址**：`VITE_SERVER_API_URL`（默认 `http://localhost:3100`）+ `VITE_SERVER_API_PREFIX`（默认 `/api`）
-- **自动刷新**：401 时调用 `POST /api/auth/refresh` 并重试一次，并发请求共享同一次刷新；刷新失败则清空登录态并跳转登录页
-- **权限过滤**：`GET /api/users/me` 返回 `roles` 和 `permissions`，用于控制侧边栏和命令面板的可见性；页面在 `<route>` 中声明 `meta.permission`
-- **找回密码**：发送 `resetUrl: http://localhost:5173/auth/reset-password`，后端校验来源必须在 `APP_WEB_URL` 或 `CORS_ORIGINS` 中
+- **账号体系**：管理端使用独立的管理员账号（`/api/admin/auth/*`，不开放注册），与客户端用户互不相通；首个超级管理员由服务端 `pnpm db:seed` 创建，其他管理员在 `/admins` 页面新建
+- **自动刷新**：401 时调用 `POST /api/admin/auth/refresh` 并重试一次，并发请求共享同一次刷新；刷新失败则清空登录态并跳转登录页
+- **权限过滤**：`GET /api/admin/me` 返回 `roles` 和 `permissions`，用于控制侧边栏和命令面板的可见性；页面在 `<route>` 中声明 `meta.permission`
+- **找回密码**：发送 `resetUrl: http://localhost:5175/auth/reset-password`，后端校验来源必须在 `APP_WEB_URL` 或 `CORS_ORIGINS` 中
 
 已对接的 API 模块（`src/services/api/`）：
 
 | 模块                      | 接口                                              |
 | ------------------------- | ------------------------------------------------- |
-| `auth.api.ts`             | 注册、登录、退出、忘记密码、重置密码              |
+| `auth.api.ts`             | 登录、退出、忘记密码、重置密码（`/admin/auth`）   |
 | `me.api.ts`               | 个人资料、头像上传/删除、修改密码、会话列表与下线 |
-| `admin-users.api.ts`      | 用户列表、编辑、禁用、分配角色                    |
+| `admin-users.api.ts`      | 客户端用户列表、编辑、禁用                        |
+| `admins.api.ts`           | 管理员账号列表、新建、编辑、禁用、分配角色        |
 | `roles.api.ts`            | 角色列表、创建、编辑、删除                        |
 | `embedding-models.api.ts` | Embedding 模型 CRUD 与连通性测试                  |
 
@@ -97,13 +99,13 @@ pnpm install --frozen-lockfile
 
 ```bash
 cp .env.example .env
-pnpm -C apps/admin dev   # http://localhost:5173
+pnpm -C apps/admin dev   # http://localhost:5175
 ```
 
 ### 可用脚本
 
 ```bash
-pnpm dev             # 启动开发服务器（端口 5173，固定）
+pnpm dev             # 启动开发服务器（端口 5175，固定）
 pnpm build           # 类型检查（vue-tsc）+ 构建
 pnpm build:analyze   # 带 Bundle 分析的构建
 pnpm preview         # 预览生产构建

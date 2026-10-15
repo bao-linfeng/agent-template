@@ -52,15 +52,16 @@ meta:
 
 - ofetch client: `src/lib/api-client.ts`, an instance of `createApiClient` from `@repo/utils` (`apiFetch`: cookies via `credentials: 'include'`, shared `POST /auth/refresh` + one retry on 401, sign-out on failure; `getErrorMessage` for Nest errors)
 - Vue Query plugin: `src/plugins/tanstack-vue-query/setup.ts` (global error toasts for queries and mutations, 401 excluded)
-- API modules: `src/services/api/*.api.ts` — transport functions + query/mutation hooks. Real server APIs: `auth`, `me`, `admin-users`, `roles`, `embedding-models`; `example-*` are mocks.
+- API modules: `src/services/api/*.api.ts` — transport functions + query/mutation hooks. Real server APIs: `auth`, `me`, `admin-users` (client users), `admins` (admin accounts), `roles`, `embedding-models`; `example-*` are mocks.
 - Shared types: `src/services/types/response.type.ts` (`IPaginated`), `src/services/types/user.type.ts`
 
 ## Auth & Permissions
 
-- The server session is HttpOnly cookies; `src/stores/auth.ts` only mirrors the profile (`user`, `isLogin`, `can()`), restored once per page load by the router guard via `GET /users/me`.
+- The admin console signs in with admin accounts, a realm separate from client app users (`/admin/auth/*`, cookies `admin_access_token`/`admin_refresh_token`; `src/lib/api-client.ts` passes `authPath: '/admin/auth'`). There is no sign-up: admins are created on the Admins page.
+- The server session is HttpOnly cookies; `src/stores/auth.ts` only mirrors the profile (`user`, `isLogin`, `can()`), restored once per page load by the router guard via `GET /admin/me`.
 - `src/router/guard/auth-guard.ts`: dashboard-layout pages require login unless `meta.auth: false`; `meta.permission: <code>` sends users without it to `/errors/403`.
 - `src/lib/permissions.ts`: `hasPermission` mirrors server CASL (`<subject>:manage`, `all:<action>`, `all:manage`); nav items with `permission` are filtered in the sidebar and command menu.
-- Auth pages: `src/pages/auth/*` (sign-in, sign-up with optional avatar, forgot-password, reset-password); account pages: `src/pages/settings/index.vue` (profile + avatar) and `account.vue` (password + sessions).
+- Auth pages: `src/pages/auth/*` (sign-in, forgot-password, reset-password); account pages: `src/pages/settings/index.vue` (profile + avatar) and `account.vue` (password + sessions). Account management: `src/pages/users` (client users) and `src/pages/admins` (admin accounts + roles).
 
 ## Environment Variables
 

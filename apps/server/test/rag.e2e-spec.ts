@@ -5,6 +5,7 @@ import {
   loginAdmin,
   registerUser,
   waitFor,
+  type Agent,
   type TestApp,
 } from './support/test-app.js';
 
@@ -16,7 +17,7 @@ const DOCS = {
 
 describe('embedding models & RAG (e2e)', () => {
   let t: TestApp;
-  let admin: Awaited<ReturnType<typeof loginAdmin>>;
+  let admin: Agent;
   const fakeUrl = () => process.env.FAKE_EMBEDDINGS_URL!;
 
   beforeAll(async () => {
@@ -29,7 +30,7 @@ describe('embedding models & RAG (e2e)', () => {
   });
 
   async function waitForDocument(
-    agent: Awaited<ReturnType<typeof loginAdmin>>,
+    agent: Agent,
     kbId: string,
     documentId: string,
     status = 'ready',
@@ -213,6 +214,7 @@ describe('embedding models & RAG (e2e)', () => {
   });
 
   it('marks documents as failed when the embedding provider rejects them permanently', async () => {
+    const { agent } = await registerUser(t);
     const broken = await admin
       .post(`${API}/admin/ai/embedding-models`)
       .send({
@@ -222,7 +224,7 @@ describe('embedding models & RAG (e2e)', () => {
         dimensions: 1024,
       })
       .expect(201);
-    const kb = await admin
+    const kb = await agent
       .post(`${API}/rag/knowledge-bases`)
       .send({ name: 'Broken', embeddingModelId: broken.body.id })
       .expect(201);
@@ -232,12 +234,12 @@ describe('embedding models & RAG (e2e)', () => {
       .patch(`${API}/admin/ai/embedding-models/${broken.body.id}`)
       .send({ enabled: false })
       .expect(200);
-    const document = await admin
+    const document = await agent
       .post(`${API}/rag/knowledge-bases/${kb.body.id}/documents/text`)
       .send({ title: 'x', content: 'hello' })
       .expect(201);
     const failed = await waitForDocument(
-      admin,
+      agent,
       kb.body.id,
       document.body.id,
       'failed',
@@ -247,48 +249,60 @@ describe('embedding models & RAG (e2e)', () => {
     await admin
       .delete(`${API}/admin/ai/embedding-models/${broken.body.id}`)
       .expect(409);
-    await admin.delete(`${API}/rag/knowledge-bases/${kb.body.id}`).expect(204);
+    await agent.delete(`${API}/rag/knowledge-bases/${kb.body.id}`).expect(204);
     await admin
       .delete(`${API}/admin/ai/embedding-models/${broken.body.id}`)
       .expect(204);
   });
 
-  it('scopes knowledge bases to their owners unless granted globally', async () => {
+  it('scopes knowledge bases to their owners; administrators use the admin routes', async () => {
     const owner = await registerUser(t);
     const stranger = await registerUser(t);
     const kb = await owner.agent
       .post(`${API}/rag/knowledge-bases`)
       .send({ name: 'Private' })
       .expect(201);
+    expect(kb.body.ownerId).toBe(owner.user.id);
 
+    // Other users' knowledge bases look like missing ones.
     await stranger.agent
       .get(`${API}/rag/knowledge-bases/${kb.body.id}`)
-      .expect(403);
+      .expect(404);
     await stranger.agent
       .post(`${API}/rag/knowledge-bases/${kb.body.id}/search`)
       .send({ query: 'x' })
-      .expect(403);
+      .expect(404);
+    await stranger.agent
+      .delete(`${API}/rag/knowledge-bases/${kb.body.id}`)
+      .expect(404);
     expect(
       (await stranger.agent.get(`${API}/rag/knowledge-bases`).expect(200)).body
         .items,
     ).toEqual([]);
 
-    // super_admin (all:manage) sees and manages everything.
-    await admin.get(`${API}/rag/knowledge-bases/${kb.body.id}`).expect(200);
-    const all = await admin
-      .get(`${API}/rag/knowledge-bases`)
-      .query({ pageSize: 100 })
+    // Admin sessions do not open client routes; the admin routes list every user's knowledge bases.
+    await admin.get(`${API}/rag/knowledge-bases`).expect(401);
+    await owner.agent.get(`${API}/admin/rag/knowledge-bases`).expect(401);
+    await admin
+      .get(`${API}/admin/rag/knowledge-bases/${kb.body.id}`)
       .expect(200);
-    expect(all.body.items.map((item: { id: string }) => item.id)).toContain(
+    const mine = await admin
+      .get(`${API}/admin/rag/knowledge-bases`)
+      .query({ ownerId: owner.user.id })
+      .expect(200);
+    expect(mine.body.items.map((item: { id: string }) => item.id)).toEqual([
       kb.body.id,
-    );
+    ]);
+    await admin
+      .get(`${API}/admin/rag/knowledge-bases/${kb.body.id}/documents`)
+      .expect(200);
 
     await owner.agent
       .patch(`${API}/rag/knowledge-bases/${kb.body.id}`)
       .send({ chunkSize: 400, chunkOverlap: 300 })
       .expect(400);
-    await owner.agent
-      .delete(`${API}/rag/knowledge-bases/${kb.body.id}`)
+    await admin
+      .delete(`${API}/admin/rag/knowledge-bases/${kb.body.id}`)
       .expect(204);
     await owner.agent
       .get(`${API}/rag/knowledge-bases/${kb.body.id}`)

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { compactQuery, fetchAdminUsers, setAdminUserRoles, updateAdminUser } from '../admin-users.api'
-import { forgotPassword, login, logout, register, resetPassword, resetPasswordPageUrl } from '../auth.api'
+import { compactQuery, fetchAdminUsers, updateAdminUser } from '../admin-users.api'
+import { createAdmin, fetchAdmin, fetchAdmins, setAdminRoles, updateAdmin } from '../admins.api'
+import { forgotPassword, login, logout, resetPassword, resetPasswordPageUrl } from '../auth.api'
 import {
   createEmbeddingModel,
   deleteEmbeddingModel,
@@ -24,47 +25,41 @@ describe('auth transport', () => {
     apiFetch.mockResolvedValue(undefined)
   })
 
-  it('posts credentials', async () => {
+  it('posts credentials to the admin auth routes', async () => {
     await login({ email: 'a@b.test', password: 'secret' })
-    expect(apiFetch).toHaveBeenCalledWith('/auth/login', { method: 'post', body: { email: 'a@b.test', password: 'secret' } })
-
-    await register({ email: 'a@b.test', password: 'password1', nickname: 'Ada' })
-    expect(apiFetch).toHaveBeenLastCalledWith('/auth/register', {
-      method: 'post',
-      body: { email: 'a@b.test', password: 'password1', nickname: 'Ada' },
-    })
+    expect(apiFetch).toHaveBeenCalledWith('/admin/auth/login', { method: 'post', body: { email: 'a@b.test', password: 'secret' } })
 
     await logout()
-    expect(apiFetch).toHaveBeenLastCalledWith('/auth/logout', { method: 'post' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/auth/logout', { method: 'post' })
   })
 
   it('asks for a reset link that opens this app', async () => {
     expect(resetPasswordPageUrl('https://admin.example.com')).toBe('https://admin.example.com/auth/reset-password')
 
     await forgotPassword('a@b.test', 'https://admin.example.com/auth/reset-password')
-    expect(apiFetch).toHaveBeenCalledWith('/auth/forgot-password', {
+    expect(apiFetch).toHaveBeenCalledWith('/admin/auth/forgot-password', {
       method: 'post',
       body: { email: 'a@b.test', resetUrl: 'https://admin.example.com/auth/reset-password' },
     })
 
     await resetPassword({ token: 't'.repeat(43), password: 'password1' })
-    expect(apiFetch).toHaveBeenLastCalledWith('/auth/reset-password', {
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/auth/reset-password', {
       method: 'post',
       body: { token: 't'.repeat(43), password: 'password1' },
     })
   })
 })
 
-describe('current user transport', () => {
+describe('current admin transport', () => {
   beforeEach(() => {
     apiFetch.mockReset()
   })
 
   it('reads and updates the profile', async () => {
     await fetchMe()
-    expect(apiFetch).toHaveBeenCalledWith('/users/me', { method: 'get' })
+    expect(apiFetch).toHaveBeenCalledWith('/admin/me', { method: 'get' })
     await updateMe({ nickname: 'Grace' })
-    expect(apiFetch).toHaveBeenLastCalledWith('/users/me', { method: 'patch', body: { nickname: 'Grace' } })
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/me', { method: 'patch', body: { nickname: 'Grace' } })
   })
 
   it('uploads the avatar as multipart field "file"', async () => {
@@ -72,25 +67,25 @@ describe('current user transport', () => {
     await uploadAvatar(file, file.name)
 
     const [path, options] = apiFetch.mock.calls[0]!
-    expect(path).toBe('/users/me/avatar')
+    expect(path).toBe('/admin/me/avatar')
     expect(options.method).toBe('put')
     expect(options.body).toBeInstanceOf(FormData)
     expect((options.body as FormData).get('file')).toBeInstanceOf(Blob)
 
     await removeAvatar()
-    expect(apiFetch).toHaveBeenLastCalledWith('/users/me/avatar', { method: 'delete' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/me/avatar', { method: 'delete' })
   })
 
   it('changes the password and manages sessions', async () => {
     await changePassword({ currentPassword: 'old-pass', newPassword: 'new-pass-1' })
-    expect(apiFetch).toHaveBeenCalledWith('/users/me/password', {
+    expect(apiFetch).toHaveBeenCalledWith('/admin/me/password', {
       method: 'post',
       body: { currentPassword: 'old-pass', newPassword: 'new-pass-1' },
     })
     await fetchSessions()
-    expect(apiFetch).toHaveBeenLastCalledWith('/users/me/sessions', { method: 'get' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/me/sessions', { method: 'get' })
     await revokeSession('s1')
-    expect(apiFetch).toHaveBeenLastCalledWith('/users/me/sessions/s1', { method: 'delete' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/me/sessions/s1', { method: 'delete' })
   })
 })
 
@@ -99,18 +94,30 @@ describe('admin transport', () => {
     apiFetch.mockReset()
   })
 
-  it('lists users without empty filters', async () => {
+  it('lists client users without empty filters', async () => {
     expect(compactQuery({ page: 1, keyword: '', status: undefined, pageSize: 10 })).toEqual({ page: 1, pageSize: 10 })
 
     await fetchAdminUsers({ page: 2, pageSize: 20, keyword: 'ada', status: undefined })
     expect(apiFetch).toHaveBeenCalledWith('/admin/users', { method: 'get', query: { page: 2, pageSize: 20, keyword: 'ada' } })
   })
 
-  it('updates users and their roles', async () => {
+  it('updates client users', async () => {
     await updateAdminUser('u1', { status: 'disabled' })
     expect(apiFetch).toHaveBeenCalledWith('/admin/users/u1', { method: 'patch', body: { status: 'disabled' } })
-    await setAdminUserRoles('u1', ['r1', 'r2'])
-    expect(apiFetch).toHaveBeenLastCalledWith('/admin/users/u1/roles', { method: 'put', body: { roleIds: ['r1', 'r2'] } })
+  })
+
+  it('manages admin accounts and their roles', async () => {
+    await fetchAdmins({ page: 1, keyword: '' })
+    expect(apiFetch).toHaveBeenCalledWith('/admin/admins', { method: 'get', query: { page: 1 } })
+    await fetchAdmin('a1')
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/admins/a1', { method: 'get' })
+    const body = { email: 'ops@b.test', password: 'password1', nickname: 'Ops', roleIds: ['r1'] }
+    await createAdmin(body)
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/admins', { method: 'post', body })
+    await updateAdmin('a1', { status: 'disabled' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/admins/a1', { method: 'patch', body: { status: 'disabled' } })
+    await setAdminRoles('a1', ['r1', 'r2'])
+    expect(apiFetch).toHaveBeenLastCalledWith('/admin/admins/a1/roles', { method: 'put', body: { roleIds: ['r1', 'r2'] } })
   })
 
   it('manages roles', async () => {

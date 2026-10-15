@@ -13,6 +13,7 @@ export interface IRole {
   /** System roles cannot be deleted; `super_admin` always keeps `all:manage`. */
   isSystem: boolean
   permissions: string[]
+  /** Number of admin accounts holding the role. */
   userCount: number
   createdAt: string
 }
@@ -68,7 +69,7 @@ function useRoleMutation<V, R>(key: string, mutationFn: (variables: V) => Promis
     mutationFn,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['roles'] })
-      queryClient.invalidateQueries({ queryKey: ['adminUsers'] })
+      queryClient.invalidateQueries({ queryKey: ['admins'] })
     },
   })
 }

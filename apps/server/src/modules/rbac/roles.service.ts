@@ -7,12 +7,17 @@ import {
 import { asc, count, eq } from 'drizzle-orm';
 import type { Database } from '../../database/database.js';
 import { InjectDb } from '../../database/database.module.js';
-import { roles, userRoles, type RoleRow } from '../../database/schema/index.js';
+import {
+  adminUserRoles,
+  roles,
+  type RoleRow,
+} from '../../database/schema/index.js';
 import type { CreateRoleDto, UpdateRoleDto } from './dto/role.dto.js';
 import { SYSTEM_ROLES } from './permissions.js';
 import { RbacService } from './rbac.service.js';
 
 export type RoleView = Omit<RoleRow, 'createdAt' | 'updatedAt'> & {
+  /** Number of admin accounts holding the role. */
   userCount: number;
   createdAt: Date;
 };
@@ -34,10 +39,10 @@ export class RolesService {
         isSystem: roles.isSystem,
         permissions: roles.permissions,
         createdAt: roles.createdAt,
-        userCount: count(userRoles.userId),
+        userCount: count(adminUserRoles.adminUserId),
       })
       .from(roles)
-      .leftJoin(userRoles, eq(userRoles.roleId, roles.id))
+      .leftJoin(adminUserRoles, eq(adminUserRoles.roleId, roles.id))
       .groupBy(roles.id)
       .orderBy(asc(roles.createdAt));
     return rows;

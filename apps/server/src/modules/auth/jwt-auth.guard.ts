@@ -10,15 +10,16 @@ import type { Redis } from 'ioredis';
 import type { HttpRequest } from '../../common/http/request.js';
 import { InjectRedis } from '../../infra/redis/redis.module.js';
 import {
-  ACCESS_TOKEN_COOKIE,
   revokedSessionKey,
   type AccessTokenPayload,
 } from './auth.constants.js';
-import { IS_PUBLIC_KEY } from './decorators.js';
+import { IS_PUBLIC_KEY, REALM_KEY } from './decorators.js';
+import { REALM_COOKIES, type Realm } from './realms.js';
 
 /**
- * Global guard: every route requires a valid `access_token` cookie unless marked `@Public()`.
- * Revoked sessions (logout, password change, disabled account) are rejected via Redis.
+ * Global guard: every route requires a valid access token of its realm unless marked `@Public()`.
+ * Admin routes (`@AdminController`) read `admin_access_token`, every other route `access_token`; a
+ * token issued for the other realm is rejected. Revoked sessions are rejected via Redis.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -29,16 +30,21 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isPublic = this.reflector.getAllAndOverride<boolean | undefined>(
-      IS_PUBLIC_KEY,
-      [context.getHandler(), context.getClass()],
-    );
-    if (isPublic) {
+    const targets = [context.getHandler(), context.getClass()];
+    if (
+      this.reflector.getAllAndOverride<boolean | undefined>(
+        IS_PUBLIC_KEY,
+        targets,
+      )
+    ) {
       return true;
     }
+    const realm =
+      this.reflector.getAllAndOverride<Realm | undefined>(REALM_KEY, targets) ??
+      'user';
 
     const request = context.switchToHttp().getRequest<HttpRequest>();
-    const token = request.cookies?.[ACCESS_TOKEN_COOKIE];
+    const token = request.cookies?.[REALM_COOKIES[realm].access];
     if (!token) {
       throw new UnauthorizedException('Authentication required');
     }
@@ -54,11 +60,12 @@ export class JwtAuthGuard implements CanActivate {
     if (
       typeof payload.sub !== 'string' ||
       typeof payload.sid !== 'string' ||
-      typeof payload.email !== 'string'
+      typeof payload.email !== 'string' ||
+      payload.realm !== realm
     ) {
       throw new UnauthorizedException('Invalid authentication token');
     }
-    if (await this.redis.exists(revokedSessionKey(payload.sid))) {
+    if (await this.redis.exists(revokedSessionKey(realm, payload.sid))) {
       throw new UnauthorizedException('Session has been revoked');
     }
 
@@ -66,6 +73,7 @@ export class JwtAuthGuard implements CanActivate {
       id: payload.sub,
       email: payload.email,
       sessionId: payload.sid,
+      realm,
     };
     return true;
   }

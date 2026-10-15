@@ -1,6 +1,9 @@
 import { api } from './api'
 
-/** `GET /users/me`: the signed-in user with role and permission codes. Dates are ISO strings. */
+/**
+ * `GET /users/me`: the signed-in client user. Dates are ISO strings. Client users have no roles or
+ * permissions (those belong to the separate admin console accounts); they can only act on their own data.
+ */
 export interface UserProfile {
   id: string
   email: string
@@ -9,8 +12,6 @@ export interface UserProfile {
   status: 'active' | 'disabled'
   lastLoginAt: string | null
   createdAt: string
-  roles: string[]
-  permissions: string[]
 }
 
 export interface Credentials {

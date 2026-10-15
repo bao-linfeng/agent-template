@@ -26,15 +26,6 @@ export const loginValidator = z.object({
   password: z.string().min(1, { error: 'Please enter your password.' }).max(72),
 })
 
-export const registerValidator = z
-  .object({
-    nickname: nicknameField,
-    email: emailField,
-    password: newPasswordField,
-    confirmPassword: z.string(),
-  })
-  .refine(confirmMatches, confirmError)
-
 export const forgotPasswordValidator = z.object({
   email: emailField,
 })
@@ -47,5 +38,4 @@ export const resetPasswordValidator = z
   .refine(confirmMatches, confirmError)
 
 export type LoginValidator = z.infer<typeof loginValidator>
-export type RegisterValidator = z.infer<typeof registerValidator>
 export type ResetPasswordValidator = z.infer<typeof resetPasswordValidator>

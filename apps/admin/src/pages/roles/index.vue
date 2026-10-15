@@ -42,7 +42,7 @@ function confirmDelete() {
 </script>
 
 <template>
-  <BasicPage title="Roles" description="Bundle permissions into roles and assign them to users." sticky>
+  <BasicPage title="Roles" description="Bundle permissions into roles and assign them to admin accounts." sticky>
     <template #actions>
       <Button v-if="authStore.can('role:create')" @click="openDialog()">
         <PlusIcon />
@@ -57,7 +57,7 @@ function confirmDelete() {
             <TableHead>Role</TableHead>
             <TableHead>Permissions</TableHead>
             <TableHead class="w-[80px] text-right">
-              Users
+              Admins
             </TableHead>
             <TableHead class="w-[100px]" />
           </TableRow>
@@ -128,7 +128,7 @@ function confirmDelete() {
         Delete role {{ deleting?.name }}?
       </template>
       <template #description>
-        <p>{{ deleting?.userCount ? `${deleting.userCount} user(s) will lose its permissions.` : 'No user has this role.' }}</p>
+        <p>{{ deleting?.userCount ? `${deleting.userCount} admin(s) will lose its permissions.` : 'No admin has this role.' }}</p>
       </template>
     </ConfirmDialog>
   </BasicPage>

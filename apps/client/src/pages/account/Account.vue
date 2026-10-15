@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { LogOut } from '@lucide/vue'
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
-import { Badge } from '@repo/ui/components/badge'
 import { Button } from '@repo/ui/components/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/card'
 import { reactive, shallowRef, watch } from 'vue'
@@ -133,12 +132,6 @@ async function logout() {
           />
           <form class="grid gap-4" novalidate @submit.prevent="saveProfile">
             <TextField v-model="nickname" label="Nickname" autocomplete="nickname" :error="nicknameError" />
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="text-sm text-muted-foreground">Roles:</span>
-              <Badge v-for="role in user.roles" :key="role" variant="secondary">
-                {{ role }}
-              </Badge>
-            </div>
             <Alert v-if="profileStatus" :variant="profileStatus.type === 'error' ? 'destructive' : 'default'">
               <AlertDescription>{{ profileStatus.text }}</AlertDescription>
             </Alert>

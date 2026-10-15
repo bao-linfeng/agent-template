@@ -63,7 +63,7 @@ pnpm install --frozen-lockfile
 pnpm -C apps/admin dev
 ```
 
-开发端口固定为 5173，端口占用时直接报错。环境变量和后端联调说明见[根 README](../../README.md)。修改实际应用 `src/`，不要修改嵌套的 `shadcn-vue-admin-main/` 上游副本。
+开发端口固定为 5175，端口占用时直接报错。环境变量和后端联调说明见[根 README](../../README.md)。修改实际应用 `src/`，不要修改嵌套的 `shadcn-vue-admin-main/` 上游副本。
 
 ### 可用脚本
 

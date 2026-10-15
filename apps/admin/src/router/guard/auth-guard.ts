@@ -5,7 +5,7 @@ import pinia from '@/plugins/pinia/setup'
 import { useAuthStore } from '@/stores/auth'
 
 /** Pages for signed-out users; signed-in users are sent away from them. */
-const GUEST_ONLY_PATHS = new Set([LOGIN_PATH, '/auth/sign-in-2', '/auth/sign-up'])
+const GUEST_ONLY_PATHS = new Set([LOGIN_PATH, '/auth/sign-in-2'])
 
 /**
  * Pages rendered in the dashboard layout require a session unless they opt out with `meta.auth: false`;

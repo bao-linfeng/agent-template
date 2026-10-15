@@ -5,45 +5,37 @@ import {
   type HttpReply,
   type HttpRequest,
 } from '../../common/http/request.js';
-import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth.constants.js';
+import {
+  AccountsService,
+  type AccountRow,
+  type PublicAccount,
+} from '../accounts/accounts.service.js';
+import { AdminsService, type AdminProfile } from '../admins/admins.service.js';
 import { AuthCookies } from './auth-cookies.service.js';
 import { AuthService } from './auth.service.js';
-import { AuthThrottle, Public } from './decorators.js';
+import { AdminController, AuthThrottle, Public } from './decorators.js';
 import {
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
   ResetPasswordDto,
 } from './dto/auth.dto.js';
+import type { Realm } from './realms.js';
 
 /**
- * Cookie-based auth: successful register/login/refresh set HttpOnly `access_token` (path `/`) and
- * `refresh_token` (path `/<prefix>/auth`). Clients call `POST /auth/refresh` when an API call returns 401.
+ * Cookie-based credential flows shared by both realms. Successful login/refresh set the realm's
+ * HttpOnly access and refresh cookies (see `REALM_COOKIES`); clients call `POST <auth>/refresh` when
+ * an API call returns 401.
  */
-@ApiTags('auth')
-@Public()
-@Controller('auth')
-export class AuthController {
+abstract class CredentialsController<Profile> {
+  protected abstract readonly realm: Realm;
+
   constructor(
-    private readonly auth: AuthService,
-    private readonly cookies: AuthCookies,
+    protected readonly auth: AuthService,
+    protected readonly cookies: AuthCookies,
   ) {}
 
-  /** Registers and signs in; returns the profile. Upload an avatar afterwards via `PUT /users/me/avatar`. */
-  @Post('register')
-  @AuthThrottle()
-  async register(
-    @Body() dto: RegisterDto,
-    @Req() request: HttpRequest,
-    @Res({ passthrough: true }) reply: HttpReply,
-  ) {
-    const { tokens, user } = await this.auth.register(
-      dto,
-      requestMeta(request),
-    );
-    this.cookies.set(reply, tokens);
-    return user;
-  }
+  protected abstract profile(account: AccountRow): Promise<Profile>;
 
   @Post('login')
   @HttpCode(200)
@@ -52,10 +44,14 @@ export class AuthController {
     @Body() dto: LoginDto,
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) reply: HttpReply,
-  ) {
-    const { tokens, user } = await this.auth.login(dto, requestMeta(request));
-    this.cookies.set(reply, tokens);
-    return user;
+  ): Promise<Profile> {
+    const { tokens, account } = await this.auth.login(
+      this.realm,
+      dto,
+      requestMeta(request),
+    );
+    this.cookies.set(reply, this.realm, tokens);
+    return this.profile(account);
   }
 
   @Post('refresh')
@@ -63,15 +59,16 @@ export class AuthController {
   async refresh(
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) reply: HttpReply,
-  ) {
+  ): Promise<void> {
     try {
       const tokens = await this.auth.refresh(
-        request.cookies[REFRESH_TOKEN_COOKIE],
+        this.realm,
+        this.cookies.read(request, this.realm).refreshToken,
         requestMeta(request),
       );
-      this.cookies.set(reply, tokens);
+      this.cookies.set(reply, this.realm, tokens);
     } catch (error) {
-      this.cookies.clear(reply);
+      this.cookies.clear(reply, this.realm);
       throw error;
     }
   }
@@ -81,17 +78,18 @@ export class AuthController {
   async logout(
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) reply: HttpReply,
-  ) {
-    await this.auth.logout(
-      request.cookies[ACCESS_TOKEN_COOKIE],
-      request.cookies[REFRESH_TOKEN_COOKIE],
+  ): Promise<void> {
+    const { accessToken, refreshToken } = this.cookies.read(
+      request,
+      this.realm,
     );
-    this.cookies.clear(reply);
+    await this.auth.logout(this.realm, accessToken, refreshToken);
+    this.cookies.clear(reply, this.realm);
   }
 
   /**
    * Always 202 whether or not the email exists. Emails `<resetUrl>?token=...` (default `APP_WEB_URL/reset-password`);
-   * `resetUrl` must be on `APP_WEB_URL` or a `CORS_ORIGINS` origin, so the admin console and the client can each use their own page.
+   * `resetUrl` must be on `APP_WEB_URL` or a `CORS_ORIGINS` origin, so each web app can use its own page.
    */
   @Post('forgot-password')
   @HttpCode(202)
@@ -100,7 +98,7 @@ export class AuthController {
     @Body() dto: ForgotPasswordDto,
     @Req() request: HttpRequest,
   ) {
-    await this.auth.forgotPassword(dto, requestMeta(request));
+    await this.auth.forgotPassword(this.realm, dto, requestMeta(request));
     return {
       message: 'If the email is registered, a reset link has been sent',
     };
@@ -110,7 +108,66 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(204)
   @AuthThrottle()
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    await this.auth.resetPassword(dto);
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    await this.auth.resetPassword(this.realm, dto);
+  }
+}
+
+/** Client app accounts. Cookies: `access_token` (path `/`), `refresh_token` (path `/<prefix>/auth`). */
+@ApiTags('auth')
+@Public()
+@Controller('auth')
+export class AuthController extends CredentialsController<PublicAccount> {
+  protected readonly realm = 'user';
+
+  constructor(
+    auth: AuthService,
+    cookies: AuthCookies,
+    private readonly accounts: AccountsService,
+  ) {
+    super(auth, cookies);
+  }
+
+  protected profile(account: AccountRow): Promise<PublicAccount> {
+    return Promise.resolve(this.accounts.toPublic(account));
+  }
+
+  /** Registers a client account and signs in; returns the profile. Upload an avatar afterwards via `PUT /users/me/avatar`. */
+  @Post('register')
+  @AuthThrottle()
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() request: HttpRequest,
+    @Res({ passthrough: true }) reply: HttpReply,
+  ): Promise<PublicAccount> {
+    const { tokens, account } = await this.auth.register(
+      dto,
+      requestMeta(request),
+    );
+    this.cookies.set(reply, this.realm, tokens);
+    return this.accounts.toPublic(account);
+  }
+}
+
+/**
+ * Admin console accounts (no registration). Cookies: `admin_access_token` (path `/<prefix>/admin`),
+ * `admin_refresh_token` (path `/<prefix>/admin/auth`).
+ */
+@ApiTags('admin / auth')
+@Public()
+@AdminController('auth')
+export class AdminAuthController extends CredentialsController<AdminProfile> {
+  protected readonly realm = 'admin';
+
+  constructor(
+    auth: AuthService,
+    cookies: AuthCookies,
+    private readonly admins: AdminsService,
+  ) {
+    super(auth, cookies);
+  }
+
+  protected profile(account: AccountRow): Promise<AdminProfile> {
+    return this.admins.getProfile(account.id);
   }
 }

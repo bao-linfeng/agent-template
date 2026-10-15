@@ -1,17 +1,19 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { Realm } from '../../modules/auth/realms.js';
 import type { AppAbility } from '../../modules/rbac/ability.js';
 
-/** Identity attached to the request by `JwtAuthGuard`. */
+/** Identity attached to the request by `JwtAuthGuard`. `id` is a `users` id or an `admin_users` id depending on `realm`. */
 export interface AuthUser {
   id: string;
   email: string;
   sessionId: string;
+  realm: Realm;
 }
 
 declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthUser;
-    /** Set lazily by `PoliciesGuard` / `RbacService.abilityFor`. */
+    /** Admin routes only; set lazily by `PoliciesGuard` / `RbacService.abilityForRequest`. */
     ability?: AppAbility;
   }
 }

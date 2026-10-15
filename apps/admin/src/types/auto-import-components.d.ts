@@ -79,7 +79,6 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SignInButton: typeof import('./../components/sign-in-button.vue')['default']
-    SignUpButton: typeof import('./../components/sign-up-button.vue')['default']
     SortSelect: typeof import('./../components/sort-select/sort-select.vue')['default']
     ToggleTheme: typeof import('./../components/toggle-theme.vue')['default']
   }

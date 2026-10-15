@@ -10,7 +10,7 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import type { Env } from './config/env.js';
-import { ACCESS_TOKEN_COOKIE } from './modules/auth/auth.constants.js';
+import { REALM_COOKIES } from './modules/auth/realms.js';
 
 export function createFastifyAdapter(): FastifyAdapter {
   return new FastifyAdapter({
@@ -66,10 +66,12 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
       new DocumentBuilder()
         .setTitle('Agent Template API')
         .setDescription(
-          'Cookie-authenticated API. Sign in via POST /auth/login; the browser keeps the HttpOnly cookies.',
+          'Cookie-authenticated API with two separate account realms: client users sign in via POST /auth/login, ' +
+            'admin console accounts via POST /admin/auth/login (all /admin routes). The browser keeps the HttpOnly cookies.',
         )
         .setVersion('1.0')
-        .addCookieAuth(ACCESS_TOKEN_COOKIE)
+        .addCookieAuth(REALM_COOKIES.user.access, undefined, 'user')
+        .addCookieAuth(REALM_COOKIES.admin.access, undefined, 'admin')
         .build(),
     );
     SwaggerModule.setup(`${prefix}/docs`, app, document, {

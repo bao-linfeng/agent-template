@@ -6,8 +6,8 @@ import { hasPermission } from '@/lib/permissions'
 import { fetchMe } from '@/services/api/me.api'
 
 /**
- * The session itself lives in HttpOnly cookies; this store only mirrors the signed-in profile.
- * It is not persisted: `restore()` asks the server (`GET /users/me`) once per page load.
+ * The admin session itself lives in HttpOnly cookies; this store only mirrors the signed-in admin.
+ * It is not persisted: `restore()` asks the server (`GET /admin/me`) once per page load.
  */
 export const useAuthStore = defineStore('user', () => {
   const user = shallowRef<IUserProfile | null>(null)

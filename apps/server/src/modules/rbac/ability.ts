@@ -12,36 +12,24 @@ import {
   type SubjectName,
 } from './permissions.js';
 
-/** Instance shapes used in conditions; tag rows with `asSubject()` before checking them. */
-interface UserSubject extends ForcedSubject<'User'> {
-  id: string;
-}
-interface KnowledgeBaseSubject extends ForcedSubject<'KnowledgeBase'> {
-  ownerId: string;
-}
-
+/** Subject types, or rows tagged with `asSubject()` when a rule needs conditions. */
 export type AppSubject =
-  | SubjectName
-  | UserSubject
-  | KnowledgeBaseSubject
-  | ForcedSubject<'Role'>
-  | ForcedSubject<'EmbeddingModel'>;
+  SubjectName | ForcedSubject<Exclude<SubjectName, 'all'>>;
 export type AppAbility = MongoAbility<[Action, AppSubject]>;
 
-export interface AbilityUser {
+export interface AbilityAdmin {
   id: string;
   permissions: readonly string[];
 }
 
-/** Builds the CASL ability for a user from role permissions plus built-in ownership rules. */
-export function defineAbilityFor(user: AbilityUser): AppAbility {
+/**
+ * Builds the CASL ability of an admin account from its role permissions. Record-level rules (e.g.
+ * "only records the admin created") can be added here with conditions and checked with
+ * `assertCan(ability, action, asSubject(type, row))`.
+ */
+export function defineAbilityFor(admin: AbilityAdmin): AppAbility {
   const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
-
-  // Ownership rules: every signed-in user may view/edit their own profile and own knowledge bases.
-  can(['read', 'update'], 'User', { id: user.id });
-  can(['read', 'update', 'delete'], 'KnowledgeBase', { ownerId: user.id });
-
-  for (const permission of user.permissions) {
+  for (const permission of admin.permissions) {
     if (isPermission(permission)) {
       const { action, subject: subjectType } = parsePermission(permission);
       can(action, subjectType);
@@ -51,9 +39,9 @@ export function defineAbilityFor(user: AbilityUser): AppAbility {
 }
 
 /**
- * True when the user holds the permission for *every* record of the subject type (a rule without
- * conditions). Plain `ability.can('read', 'User')` is also true for conditional rules such as
- * "own profile", which is not what type-level route guards want.
+ * True when the admin holds the permission for *every* record of the subject type (a rule without
+ * conditions). Plain `ability.can(action, type)` is also true for conditional rules, which is not
+ * what type-level route guards want.
  */
 export function canAny(
   ability: AppAbility,

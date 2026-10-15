@@ -38,10 +38,10 @@ describe('resolveAuthRedirect', () => {
     expect(resolveAuthRedirect(to('/auth/reset-password', { layout: false }), to('/'), guest)).toBeUndefined()
   })
 
-  it('keeps signed-in users away from sign-in and sign-up', () => {
+  it('keeps signed-in users away from the sign-in pages', () => {
     expect(resolveAuthRedirect(to('/auth/sign-in', { layout: false }), to('/users'), admin)).toBe('/users')
-    expect(resolveAuthRedirect(to('/auth/sign-up', { layout: false }), to('/'), admin)).toBe('/dashboard')
-    expect(resolveAuthRedirect(to('/auth/sign-in', { layout: false }), to('/auth/sign-up'), admin)).toBe('/dashboard')
+    expect(resolveAuthRedirect(to('/auth/sign-in-2', { layout: false }), to('/'), admin)).toBe('/dashboard')
+    expect(resolveAuthRedirect(to('/auth/sign-in', { layout: false }), to('/auth/sign-in-2'), admin)).toBe('/dashboard')
   })
 
   it('checks page permissions', () => {

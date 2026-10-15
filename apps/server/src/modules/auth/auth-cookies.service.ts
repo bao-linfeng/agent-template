@@ -1,20 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { CookieSerializeOptions } from '@fastify/cookie';
-import type { HttpReply } from '../../common/http/request.js';
+import type { HttpReply, HttpRequest } from '../../common/http/request.js';
 import type { Env } from '../../config/env.js';
-import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from './auth.constants.js';
+import { REALM_COOKIES, type Realm } from './realms.js';
 import type { IssuedTokens } from './sessions.service.js';
 import { SessionsService } from './sessions.service.js';
 
 /**
- * Auth cookies are HttpOnly + SameSite=Lax. The refresh token is scoped to the auth routes so it is
- * not sent with ordinary API calls.
+ * Auth cookies are HttpOnly + SameSite=Lax. Each realm has its own cookie names, so signing in to the
+ * client app and the admin console in one browser never overwrites the other session. The refresh
+ * token is scoped to the realm's auth routes so it is not sent with ordinary API calls.
  */
 @Injectable()
 export class AuthCookies {
   private readonly base: CookieSerializeOptions;
-  readonly refreshPath: string;
+  private readonly prefix: string;
 
   constructor(
     config: ConfigService<Env, true>,
@@ -26,27 +27,48 @@ export class AuthCookies {
       sameSite: 'lax',
       domain: config.get('COOKIE_DOMAIN', { infer: true }),
     };
-    this.refreshPath = `/${config.get('API_PREFIX', { infer: true })}/auth`;
+    this.prefix = `/${config.get('API_PREFIX', { infer: true })}`;
   }
 
-  set(reply: HttpReply, tokens: IssuedTokens): void {
-    reply.setCookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, {
+  /** Absolute cookie paths of a realm, e.g. `/api/admin/auth`. */
+  paths(realm: Realm): { access: string; refresh: string } {
+    const { accessPath, refreshPath } = REALM_COOKIES[realm];
+    return {
+      access: accessPath ? `${this.prefix}${accessPath}` : '/',
+      refresh: `${this.prefix}${refreshPath}`,
+    };
+  }
+
+  read(
+    request: HttpRequest,
+    realm: Realm,
+  ): { accessToken?: string; refreshToken?: string } {
+    const names = REALM_COOKIES[realm];
+    return {
+      accessToken: request.cookies?.[names.access],
+      refreshToken: request.cookies?.[names.refresh],
+    };
+  }
+
+  set(reply: HttpReply, realm: Realm, tokens: IssuedTokens): void {
+    const names = REALM_COOKIES[realm];
+    const paths = this.paths(realm);
+    reply.setCookie(names.access, tokens.accessToken, {
       ...this.base,
-      path: '/',
+      path: paths.access,
       maxAge: this.sessions.accessTtlSeconds,
     });
-    reply.setCookie(REFRESH_TOKEN_COOKIE, tokens.refreshToken, {
+    reply.setCookie(names.refresh, tokens.refreshToken, {
       ...this.base,
-      path: this.refreshPath,
+      path: paths.refresh,
       maxAge: this.sessions.refreshTtlSeconds,
     });
   }
 
-  clear(reply: HttpReply): void {
-    reply.clearCookie(ACCESS_TOKEN_COOKIE, { ...this.base, path: '/' });
-    reply.clearCookie(REFRESH_TOKEN_COOKIE, {
-      ...this.base,
-      path: this.refreshPath,
-    });
+  clear(reply: HttpReply, realm: Realm): void {
+    const names = REALM_COOKIES[realm];
+    const paths = this.paths(realm);
+    reply.clearCookie(names.access, { ...this.base, path: paths.access });
+    reply.clearCookie(names.refresh, { ...this.base, path: paths.refresh });
   }
 }

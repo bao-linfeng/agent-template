@@ -72,7 +72,7 @@ export function uniqueEmail(prefix = 'user'): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}@e2e.test`;
 }
 
-/** Registers a user through the API and returns a cookie-carrying agent. */
+/** Registers a client user through `/auth/register` and returns a cookie-carrying agent. */
 export async function registerUser(
   testApp: TestApp,
   overrides: { email?: string; password?: string; nickname?: string } = {},
@@ -96,16 +96,44 @@ export async function registerUser(
   };
 }
 
+/** Signs in to the admin console (`/admin/auth/login`) and returns a cookie-carrying agent. */
 export async function loginAdmin(
   testApp: TestApp,
   admin: { email: string; password: string },
 ) {
   const agent = testApp.agent();
   await agent
-    .post(`${API}/auth/login`)
+    .post(`${API}/admin/auth/login`)
     .send({ email: admin.email, password: admin.password })
     .expect(200);
   return agent;
+}
+
+export type Agent = Awaited<ReturnType<typeof loginAdmin>>;
+
+/** Creates an admin console account through `POST /admin/admins` (as `creator`) and signs it in. */
+export async function createAdmin(
+  testApp: TestApp,
+  creator: Agent,
+  overrides: { email?: string; roleIds?: string[]; nickname?: string } = {},
+) {
+  const credentials = {
+    email: overrides.email ?? uniqueEmail('admin'),
+    password: 'admin-password-1',
+  };
+  const response = await creator
+    .post(`${API}/admin/admins`)
+    .send({
+      ...credentials,
+      nickname: overrides.nickname ?? 'Operator',
+      roleIds: overrides.roleIds,
+    })
+    .expect(201);
+  return {
+    agent: await loginAdmin(testApp, credentials),
+    credentials,
+    admin: response.body as { id: string; email: string },
+  };
 }
 
 export function cookieValue(

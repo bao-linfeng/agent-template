@@ -41,7 +41,7 @@ export class ForgotPasswordDto {
   email!: string;
 
   /**
-   * Page that renders the reset form, e.g. `http://localhost:5173/auth/reset-password`; `?token=` is appended.
+   * Page that renders the reset form, e.g. `http://localhost:5175/auth/reset-password`; `?token=` is appended.
    * Its origin must be `APP_WEB_URL` or one of `CORS_ORIGINS`. Defaults to `APP_WEB_URL/reset-password`.
    */
   @IsOptional()

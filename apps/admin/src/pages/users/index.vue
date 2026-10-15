@@ -48,7 +48,7 @@ const serverPagination = computed(() => ({
 </script>
 
 <template>
-  <BasicPage title="Users" description="Accounts registered on the platform, their roles and status." sticky>
+  <BasicPage title="Users" description="Accounts registered in the client app and their status. Admin console accounts are managed under Admins." sticky>
     <template #actions>
       <Button variant="outline" :disabled="isFetching" @click="refetch()">
         <RefreshCwIcon :class="{ 'animate-spin': isFetching }" />

@@ -17,13 +17,13 @@ export type PolicyHandler = (ability: AppAbility) => boolean;
 
 const POLICIES_KEY = 'rbac:policies';
 
-/** Route-level checks, e.g. `@CheckPolicies((ability) => ability.can('read', 'User'))`. */
+/** Route-level checks on `@AdminController` routes, e.g. `@CheckPolicies((ability) => ability.can('read', 'User'))`. */
 export const CheckPolicies = (...handlers: PolicyHandler[]) =>
   SetMetadata(POLICIES_KEY, handlers);
 
 /**
- * Requires unconditional permissions (all records), e.g. `@RequirePermissions('user:read')`.
- * Ownership-scoped access is checked in services with `assertCan(ability, action, asSubject(...))`.
+ * Requires unconditional permissions (all records) on an `@AdminController` route, e.g.
+ * `@RequirePermissions('user:read')`. Record-level checks use `assertCan(ability, action, asSubject(...))`.
  */
 export const RequirePermissions = (...permissions: Permission[]) =>
   CheckPolicies(
@@ -33,13 +33,13 @@ export const RequirePermissions = (...permissions: Permission[]) =>
     }),
   );
 
-/** Injects the current user's CASL ability (requires an authenticated route). */
+/** Injects the signed-in admin's CASL ability (admin routes only; client users have no ability). */
 export const CurrentAbility = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AppAbility => {
     const ability = context.switchToHttp().getRequest<HttpRequest>().ability;
     if (!ability) {
       throw new Error(
-        'Ability not resolved; is PoliciesGuard registered globally?',
+        'Ability not resolved; is this an @AdminController route and PoliciesGuard registered globally?',
       );
     }
     return ability;
@@ -57,7 +57,10 @@ export function assertCan(
   }
 }
 
-/** Global guard (after JwtAuthGuard): resolves the ability for authenticated requests and runs policies. */
+/**
+ * Global guard (after JwtAuthGuard): resolves the ability of signed-in admins and runs policies.
+ * Client sessions never get an ability, so policies on a client route always deny.
+ */
 @Injectable()
 export class PoliciesGuard implements CanActivate {
   constructor(
@@ -75,6 +78,14 @@ export class PoliciesGuard implements CanActivate {
     if (!request.user) {
       if (handlers.length > 0) {
         throw new UnauthorizedException('Authentication required');
+      }
+      return true;
+    }
+    if (request.user.realm !== 'admin') {
+      if (handlers.length > 0) {
+        throw new ForbiddenException(
+          'You do not have permission to perform this action',
+        );
       }
       return true;
     }
