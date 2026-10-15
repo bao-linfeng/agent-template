@@ -12,6 +12,7 @@ import { z } from 'zod'
 import type { IEmbeddingModel, IEmbeddingTestResult } from '@/services/api/embedding-models.api'
 
 import FormTextField from '@/components/form-text-field.vue'
+import { t } from '@/plugins/i18n'
 import {
   useSaveEmbeddingModelMutation,
   useTestEmbeddingConfigMutation,
@@ -33,11 +34,11 @@ const testResult = shallowRef<IEmbeddingTestResult>()
 
 // Limits mirror apps/server/src/modules/ai/dto/embedding-model.dto.ts.
 const validator = z.object({
-  name: z.string().trim().min(1, { error: 'Please enter a name.' }).max(100),
-  baseUrl: z.url({ protocol: /^https?$/, error: 'Enter the API root, e.g. http://localhost:11434/v1' }),
-  model: z.string().trim().min(1, { error: 'Please enter the provider model id.' }).max(200),
-  dimensions: z.number({ error: 'Required.' }).int().min(1).max(2000, { error: 'pgvector indexes support at most 2000 dimensions.' }),
-  batchSize: z.number({ error: 'Required.' }).int().min(1).max(512),
+  name: z.string().trim().min(1, { error: () => t('validation.nameRequired') }).max(100),
+  baseUrl: z.url({ protocol: /^https?$/, error: () => t('validation.baseUrl') }),
+  model: z.string().trim().min(1, { error: () => t('validation.modelIdRequired') }).max(200),
+  dimensions: z.number({ error: () => t('validation.required') }).int().min(1).max(2000, { error: () => t('validation.maxDimensions') }),
+  batchSize: z.number({ error: () => t('validation.required') }).int().min(1).max(512),
   apiKey: z.string().max(500),
   clearApiKey: z.boolean(),
   enabled: z.boolean(),
@@ -84,7 +85,7 @@ const form = useForm({
     catch {
       return // Toasted by the global mutation handler (e.g. 409 when the model is in use).
     }
-    toast.success(props.model ? 'Model updated.' : 'Model created.')
+    toast.success(props.model ? t('embeddingModels.updated') : t('embeddingModels.created'))
     open.value = false
   },
 })
@@ -125,53 +126,53 @@ async function runTest() {
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{{ model ? 'Edit embedding model' : 'New embedding model' }}</DialogTitle>
+        <DialogTitle>{{ model ? $t('embeddingModels.editTitle') : $t('embeddingModels.newTitle') }}</DialogTitle>
         <DialogDescription>
-          Any OpenAI-compatible <code>/embeddings</code> API: Ollama, vLLM, Xinference, TEI, SiliconFlow, OpenAI...
+          {{ $t('embeddingModels.dialogDescription') }}
         </DialogDescription>
       </DialogHeader>
 
       <form id="embedding-model-form" class="grid gap-4" novalidate @submit.prevent="form.handleSubmit">
         <form.Field name="name">
           <template #default="{ field }">
-            <FormTextField :field="field" label="Name" placeholder="bge-m3 (Ollama)" />
+            <FormTextField :field="field" :label="$t('fields.name')" placeholder="bge-m3 (Ollama)" />
           </template>
         </form.Field>
         <form.Field name="baseUrl">
           <template #default="{ field }">
             <FormTextField
               :field="field"
-              label="Base URL"
+              :label="$t('embeddingModels.baseUrl')"
               :placeholder="OLLAMA_BASE_URL"
-              description="API root that serves POST /embeddings."
+              :description="$t('embeddingModels.baseUrlHint')"
             />
           </template>
         </form.Field>
         <div class="grid grid-cols-2 gap-4">
           <form.Field name="model">
             <template #default="{ field }">
-              <FormTextField :field="field" label="Model" placeholder="bge-m3" />
+              <FormTextField :field="field" :label="$t('embeddingModels.model')" placeholder="bge-m3" />
             </template>
           </form.Field>
           <form.Field name="dimensions">
             <template #default="{ field }">
-              <FormTextField :field="field" label="Dimensions" type="number" placeholder="1024" />
+              <FormTextField :field="field" :label="$t('embeddingModels.dimensions')" type="number" placeholder="1024" />
             </template>
           </form.Field>
         </div>
         <p v-if="model" class="-mt-2 text-xs text-muted-foreground">
-          Model and dimensions are locked once a knowledge base uses this model; create a new model instead.
+          {{ $t('embeddingModels.lockedHint') }}
         </p>
         <form.Field name="apiKey">
           <template #default="{ field }">
             <FormTextField
               :field="field"
-              label="API key"
+              :label="$t('embeddingModels.apiKey')"
               type="password"
               autocomplete="off"
               :disabled="values.clearApiKey"
-              :placeholder="model?.hasApiKey ? 'Stored - leave blank to keep it' : 'Optional'"
-              description="Stored encrypted and never shown again."
+              :placeholder="model?.hasApiKey ? $t('embeddingModels.apiKeyKeepPlaceholder') : $t('common.optional')"
+              :description="$t('embeddingModels.apiKeyHint')"
             />
           </template>
         </form.Field>
@@ -179,13 +180,13 @@ async function runTest() {
           <template #default="{ field }">
             <Label class="flex items-center gap-2 font-normal">
               <Checkbox :model-value="field.state.value" @update:model-value="field.handleChange($event === true)" />
-              Remove the stored API key
+              {{ $t('embeddingModels.removeApiKey') }}
             </Label>
           </template>
         </form.Field>
         <form.Field name="batchSize">
           <template #default="{ field }">
-            <FormTextField :field="field" label="Batch size" type="number" description="Texts per request (1-512)." />
+            <FormTextField :field="field" :label="$t('embeddingModels.batchSize')" type="number" :description="$t('embeddingModels.batchSizeHint')" />
           </template>
         </form.Field>
         <div class="flex flex-wrap gap-6">
@@ -197,7 +198,7 @@ async function runTest() {
                   :disabled="model?.isDefault"
                   @update:model-value="field.handleChange($event === true)"
                 />
-                Enabled
+                {{ $t('common.enabled') }}
               </Label>
             </template>
           </form.Field>
@@ -205,7 +206,7 @@ async function runTest() {
             <template #default="{ field }">
               <Label class="flex items-center gap-2 font-normal">
                 <Checkbox :model-value="field.state.value" @update:model-value="field.handleChange($event === true)" />
-                Use as default for new knowledge bases
+                {{ $t('embeddingModels.useAsDefault') }}
               </Label>
             </template>
           </form.Field>
@@ -214,10 +215,10 @@ async function runTest() {
         <Alert v-if="testResult" :variant="testResult.ok ? 'default' : 'destructive'">
           <AlertDescription>
             <template v-if="testResult.ok">
-              Connected: {{ testResult.dimensions }} dimensions in {{ testResult.latencyMs }} ms.
+              {{ $t('embeddingModels.connected', { dimensions: testResult.dimensions, latency: testResult.latencyMs }) }}
             </template>
             <template v-else>
-              {{ testResult.error ?? 'The provider did not return a valid embedding.' }}
+              {{ testResult.error ?? $t('embeddingModels.noValidEmbedding') }}
             </template>
           </AlertDescription>
         </Alert>
@@ -226,15 +227,15 @@ async function runTest() {
       <DialogFooter class="gap-2 sm:justify-between">
         <Button type="button" variant="outline" :disabled="testing" @click="runTest">
           <Spinner v-if="testing" class="mr-2" />
-          Test connection
+          {{ $t('embeddingModels.testConnection') }}
         </Button>
         <div class="flex gap-2">
           <Button type="button" variant="outline" @click="open = false">
-            Cancel
+            {{ $t('common.cancel') }}
           </Button>
           <Button type="submit" form="embedding-model-form" :disabled="save.isPending.value">
             <Spinner v-if="save.isPending.value" class="mr-2" />
-            Save
+            {{ $t('common.save') }}
           </Button>
         </div>
       </DialogFooter>

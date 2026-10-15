@@ -1,8 +1,7 @@
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/zh-cn'
 
+// The locale follows the app language, see `setLocale` in `@/plugins/i18n`.
 export function setupDayjs() {
-  dayjs.locale('zh-cn')
   dayjs.extend(relativeTime)
 }

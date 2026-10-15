@@ -1,31 +1,12 @@
 <script setup lang="ts">
-import type { AcceptableValue } from 'reka-ui'
-
 import { Icon } from '@iconify/vue'
 import { Button } from '@repo/ui/components/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 import { useI18n } from 'vue-i18n'
 
-import type { Language } from '@/plugins/i18n'
-
-import { appLocale, DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/plugins/i18n'
+import { setLocale } from '@/plugins/i18n'
 
 const { locale } = useI18n()
-
-function setDefaultLanguage() {
-  locale.value = DEFAULT_LOCALE
-  appLocale.value = DEFAULT_LOCALE
-}
-
-function handleLocaleChange(val: AcceptableValue) {
-  if (typeof val !== 'string' || !SUPPORTED_LOCALES.has(val as Language)) {
-    setDefaultLanguage()
-    return
-  }
-
-  locale.value = val as Language
-  appLocale.value = val as Language
-}
 </script>
 
 <template>
@@ -34,17 +15,17 @@ function handleLocaleChange(val: AcceptableValue) {
       <Button
         variant="outline"
         size="icon-sm"
-        aria-label="Change language"
-        title="Change language"
+        :aria-label="$t('header.changeLanguage')"
+        :title="$t('header.changeLanguage')"
       >
         <Icon icon="mdi:translate" />
-        <span class="sr-only">Change language</span>
+        <span class="sr-only">{{ $t('header.changeLanguage') }}</span>
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end">
       <DropdownMenuRadioGroup
-        v-model="locale"
-        @update:model-value="handleLocaleChange"
+        :model-value="locale"
+        @update:model-value="setLocale"
       >
         <DropdownMenuRadioItem value="en">
           <Icon icon="flag:us-4x3" />

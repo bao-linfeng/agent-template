@@ -33,11 +33,11 @@ function resetColumnVisible() {
         class="hidden h-8 ml-auto lg:flex"
       >
         <Settings2Icon class="size-4 mr-2" />
-        Columns View
+        {{ $t('dataTable.columnsView') }}
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-[150px]">
-      <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+      <DropdownMenuLabel>{{ $t('dataTable.toggleColumns') }}</DropdownMenuLabel>
       <DropdownMenuSeparator />
 
       <DropdownMenuCheckboxItem
@@ -56,7 +56,7 @@ function resetColumnVisible() {
         @click="resetColumnVisible"
       >
         <RefreshCcwIcon />
-        Reset
+        {{ $t('common.reset') }}
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

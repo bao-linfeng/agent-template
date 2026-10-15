@@ -11,11 +11,12 @@ const mode = useColorMode()
 
 const colorModes: {
   colorMode: BasicColorSchema
+  label: string
   icon: Component
 }[] = [
-  { colorMode: 'light', icon: SunIcon },
-  { colorMode: 'dark', icon: MoonIcon },
-  { colorMode: 'auto', icon: SunMoonIcon },
+  { colorMode: 'light', label: 'theme.light', icon: SunIcon },
+  { colorMode: 'dark', label: 'theme.dark', icon: MoonIcon },
+  { colorMode: 'auto', label: 'theme.system', icon: SunMoonIcon },
 ]
 
 function setColorMode(colorMode: BasicColorSchema) {
@@ -26,7 +27,7 @@ function setColorMode(colorMode: BasicColorSchema) {
 <template>
   <div class="space-y-1.5 pt-6">
     <Label for="radius" class="text-xs">
-      Color Mode
+      {{ $t('customTheme.colorMode') }}
     </Label>
     <div class="grid grid-cols-3 gap-2 py-1.5">
       <Button
@@ -37,7 +38,7 @@ function setColorMode(colorMode: BasicColorSchema) {
         @click="setColorMode(item.colorMode)"
       >
         <component :is="item.icon" />
-        <span class="text-xs">{{ item.colorMode }}</span>
+        <span class="text-xs">{{ $t(item.label) }}</span>
       </Button>
     </div>
   </div>

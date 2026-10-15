@@ -1,3 +1,5 @@
+import { t } from '@/plugins/i18n'
+
 /** Formats the server accepts (it checks the file content, not the name). */
 export const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const
 
@@ -7,9 +9,9 @@ export const AVATAR_MAX_BYTES = 2 * 1024 * 1024
 /** Returns an error message, or `null` when the file can be uploaded. */
 export function validateAvatarFile(file: Pick<File, 'type' | 'size'>, maxBytes = AVATAR_MAX_BYTES): string | null {
   if (!(AVATAR_TYPES as readonly string[]).includes(file.type))
-    return 'Please choose a PNG, JPEG, GIF or WebP image.'
+    return t('validation.avatarType')
   if (file.size > maxBytes)
-    return `The image must be smaller than ${Math.round(maxBytes / 1024 / 1024)} MB.`
+    return t('validation.avatarSize', { size: Math.round(maxBytes / 1024 / 1024) })
   return null
 }
 

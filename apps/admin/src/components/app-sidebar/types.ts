@@ -4,6 +4,7 @@ import type { FunctionalComponent } from 'vue'
 type NavIcon = FunctionalComponent<LucideProps, Record<any, any>, any, Record<any, any>>
 
 interface BaseNavItem {
+  /** vue-i18n message key, e.g. `nav.users`; also identifies the entry in the nav path. */
   title: string
   icon?: NavIcon
   /** Permission code required to see the entry (hidden otherwise), e.g. `user:read`. */

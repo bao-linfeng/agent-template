@@ -4,6 +4,6 @@ import { Button } from '@repo/ui/components/button'
 
 <template>
   <Button type="button" variant="link" class="px-0 font-normal underline text-muted-foreground">
-    Terms of Service
+    {{ $t('auth.termsOfService') }}
   </Button>
 </template>

@@ -12,6 +12,7 @@ import { toast } from 'vue-sonner'
 
 import AvatarInput from '@/components/avatar-input.vue'
 import FormTextField from '@/components/form-text-field.vue'
+import { t } from '@/plugins/i18n'
 import { useRemoveAvatarMutation, useUpdateMeMutation, useUploadAvatarMutation } from '@/services/api/me.api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -28,11 +29,11 @@ const removeAvatar = useRemoveAvatarMutation()
 const avatarBusy = computed(() => uploadAvatar.isPending.value || removeAvatar.isPending.value)
 
 function onAvatarSelect(file: File) {
-  uploadAvatar.mutate(file, { onSuccess: () => toast.success('Avatar updated.') })
+  uploadAvatar.mutate(file, { onSuccess: () => toast.success(t('settings.profile.avatarUpdated')) })
 }
 
 function onAvatarRemove() {
-  removeAvatar.mutate(undefined, { onSuccess: () => toast.success('Avatar removed.') })
+  removeAvatar.mutate(undefined, { onSuccess: () => toast.success(t('settings.profile.avatarRemoved')) })
 }
 
 const form = useForm({
@@ -40,7 +41,7 @@ const form = useForm({
   validators: { onSubmit: profileValidator },
   onSubmit: async ({ value }) => {
     await updateMe.mutateAsync({ nickname: value.nickname.trim() }).then(
-      () => toast.success('Profile updated.'),
+      () => toast.success(t('settings.profile.updated')),
       () => {}, // Toasted by the global mutation handler.
     )
   },
@@ -54,17 +55,17 @@ watch(() => user.value?.nickname, (nickname) => {
 <template>
   <div>
     <h3 class="text-lg font-medium">
-      Profile
+      {{ $t('nav.profile') }}
     </h3>
     <p class="text-sm text-muted-foreground">
-      This is how others will see you on the site.
+      {{ $t('settings.profile.description') }}
     </p>
   </div>
   <Separator orientation="horizontal" class="my-4" />
 
   <div v-if="user" class="space-y-8">
     <FormItem>
-      <Label>Avatar</Label>
+      <Label>{{ $t('settings.profile.avatar') }}</Label>
       <AvatarInput
         :src="user.avatarUrl"
         :name="user.nickname"
@@ -80,41 +81,41 @@ watch(() => user.value?.nickname, (nickname) => {
         <template #default="{ field }">
           <FormTextField
             :field="field"
-            label="Nickname"
+            :label="$t('fields.nickname')"
             autocomplete="nickname"
-            description="This is your public display name."
+            :description="$t('settings.profile.nicknameHint')"
           />
         </template>
       </form.Field>
 
       <FormItem>
-        <Label for="profile-email">Email</Label>
+        <Label for="profile-email">{{ $t('email') }}</Label>
         <Input id="profile-email" :model-value="user.email" disabled />
         <FieldDescription>
-          Used to sign in and to receive password reset links.
+          {{ $t('settings.profile.emailHint') }}
         </FieldDescription>
       </FormItem>
 
       <FormItem>
-        <Label>Roles</Label>
+        <Label>{{ $t('fields.roles') }}</Label>
         <div class="flex flex-wrap gap-2">
           <Badge v-for="role in user.roles" :key="role" variant="secondary">
             {{ role }}
           </Badge>
-          <span v-if="!user.roles.length" class="text-sm text-muted-foreground">No roles</span>
+          <span v-if="!user.roles.length" class="text-sm text-muted-foreground">{{ $t('common.noRoles') }}</span>
         </div>
         <FieldDescription>
-          Roles are assigned by an administrator.
+          {{ $t('settings.profile.rolesHint') }}
         </FieldDescription>
       </FormItem>
 
       <div class="flex justify-start gap-2">
         <Button type="submit" :disabled="updateMe.isPending.value">
           <Spinner v-if="updateMe.isPending.value" class="mr-2" />
-          Update profile
+          {{ $t('settings.profile.submit') }}
         </Button>
         <Button type="button" variant="outline" @click="form.reset()">
-          Reset form
+          {{ $t('settings.profile.resetForm') }}
         </Button>
       </div>
     </form>

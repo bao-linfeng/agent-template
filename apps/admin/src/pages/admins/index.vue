@@ -50,15 +50,15 @@ const serverPagination = computed(() => ({
 </script>
 
 <template>
-  <BasicPage title="Admins" description="Accounts that sign in to this console, their roles and status. They are separate from client app users." sticky>
+  <BasicPage :title="$t('admins.title')" :description="$t('admins.description')" sticky>
     <template #actions>
       <Button variant="outline" :disabled="isFetching" @click="refetch()">
         <RefreshCwIcon :class="{ 'animate-spin': isFetching }" />
-        Refresh
+        {{ $t('common.refresh') }}
       </Button>
       <Button v-if="authStore.can('admin:create')" @click="createOpen = true">
         <PlusIcon />
-        New admin
+        {{ $t('admins.newAdmin') }}
       </Button>
     </template>
 
@@ -70,21 +70,21 @@ const serverPagination = computed(() => ({
     >
       <template #toolbar>
         <div class="flex flex-col gap-2 md:flex-row md:items-center">
-          <Input v-model="keyword" placeholder="Search email or nickname..." class="h-8 w-[200px] lg:w-[280px]" />
+          <Input v-model="keyword" :placeholder="$t('accounts.searchPlaceholder')" class="h-8 w-[200px] lg:w-[280px]" />
           <Select v-model="status">
             <SelectTrigger size="sm" class="w-[140px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
-                All statuses
+                {{ $t('accounts.allStatuses') }}
               </SelectItem>
               <SelectItem v-for="item in userStatuses" :key="item.value" :value="item.value">
-                {{ item.label }}
+                {{ $t(item.label) }}
               </SelectItem>
             </SelectContent>
           </Select>
-          <span class="text-sm text-muted-foreground md:ml-auto">{{ data?.total ?? 0 }} admins</span>
+          <span class="text-sm text-muted-foreground md:ml-auto">{{ $t('admins.total', { count: data?.total ?? 0 }) }}</span>
         </div>
       </template>
     </DataTable>

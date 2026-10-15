@@ -1,29 +1,32 @@
 import { z } from 'zod'
 
+import { t } from '@/plugins/i18n'
+
 // Limits mirror the server DTOs (apps/server/src/modules/auth/dto/auth.dto.ts).
-export const emailField = z.email({ error: 'Please enter a valid email address.' }).max(255)
+// Error messages are functions so they are translated in the locale active at validation time.
+export const emailField = z.email({ error: () => t('validation.email') }).max(255)
 
 /** 8-72 characters (bcrypt limit). */
 export const newPasswordField = z
   .string()
-  .min(8, { error: 'Password must be at least 8 characters.' })
-  .max(72, { error: 'Password must not be longer than 72 characters.' })
+  .min(8, { error: () => t('validation.passwordMin') })
+  .max(72, { error: () => t('validation.passwordMax') })
 
 export const nicknameField = z
   .string()
   .trim()
-  .min(2, { error: 'Nickname must be at least 2 characters.' })
-  .max(50, { error: 'Nickname must not be longer than 50 characters.' })
+  .min(2, { error: () => t('validation.nicknameMin') })
+  .max(50, { error: () => t('validation.nicknameMax') })
 
 function confirmMatches(value: { password: string, confirmPassword: string }) {
   return value.password === value.confirmPassword
 }
 
-const confirmError = { error: 'Passwords do not match.', path: ['confirmPassword'] }
+const confirmError = { error: () => t('validation.passwordsMismatch'), path: ['confirmPassword'] }
 
 export const loginValidator = z.object({
   email: emailField,
-  password: z.string().min(1, { error: 'Please enter your password.' }).max(72),
+  password: z.string().min(1, { error: () => t('validation.passwordRequired') }).max(72),
 })
 
 export const forgotPasswordValidator = z.object({

@@ -48,11 +48,11 @@ const serverPagination = computed(() => ({
 </script>
 
 <template>
-  <BasicPage title="Users" description="Accounts registered in the client app and their status. Admin console accounts are managed under Admins." sticky>
+  <BasicPage :title="$t('users.title')" :description="$t('users.description')" sticky>
     <template #actions>
       <Button variant="outline" :disabled="isFetching" @click="refetch()">
         <RefreshCwIcon :class="{ 'animate-spin': isFetching }" />
-        Refresh
+        {{ $t('common.refresh') }}
       </Button>
     </template>
 
@@ -64,21 +64,21 @@ const serverPagination = computed(() => ({
     >
       <template #toolbar>
         <div class="flex flex-col gap-2 md:flex-row md:items-center">
-          <Input v-model="keyword" placeholder="Search email or nickname..." class="h-8 w-[200px] lg:w-[280px]" />
+          <Input v-model="keyword" :placeholder="$t('accounts.searchPlaceholder')" class="h-8 w-[200px] lg:w-[280px]" />
           <Select v-model="status">
             <SelectTrigger size="sm" class="w-[140px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
-                All statuses
+                {{ $t('accounts.allStatuses') }}
               </SelectItem>
               <SelectItem v-for="item in userStatuses" :key="item.value" :value="item.value">
-                {{ item.label }}
+                {{ $t(item.label) }}
               </SelectItem>
             </SelectContent>
           </Select>
-          <span class="text-sm text-muted-foreground md:ml-auto">{{ data?.total ?? 0 }} users</span>
+          <span class="text-sm text-muted-foreground md:ml-auto">{{ $t('users.total', { count: data?.total ?? 0 }) }}</span>
         </div>
       </template>
     </DataTable>

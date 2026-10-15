@@ -22,8 +22,8 @@ const {
   isLoading = false,
   disabled = false,
   destructive = false,
-  cancelButtonText = 'Cancel',
-  confirmButtonText = 'Continue',
+  cancelButtonText,
+  confirmButtonText,
 } = defineProps<ConfirmDialogProps>()
 
 const emits = defineEmits<{
@@ -56,7 +56,7 @@ function handleConfirm() {
 
       <AlertDialogFooter>
         <AlertDialogCancel :disabled="isLoading" @click="openModel = false">
-          {{ cancelButtonText }}
+          {{ cancelButtonText ?? $t('common.cancel') }}
         </AlertDialogCancel>
 
         <Button
@@ -64,7 +64,7 @@ function handleConfirm() {
           :disabled="disabled || isLoading"
           @click="handleConfirm"
         >
-          {{ confirmButtonText }}
+          {{ confirmButtonText ?? $t('common.continue') }}
         </Button>
       </AlertDialogFooter>
     </AlertDialogContent>

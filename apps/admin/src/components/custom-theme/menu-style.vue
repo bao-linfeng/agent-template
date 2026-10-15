@@ -19,15 +19,15 @@ const menuStyles: Array<{
 }> = [
   {
     value: 'collapsible',
-    label: 'Collapsible',
+    label: 'customTheme.menuStyles.collapsible',
     icon: LayoutListIcon,
-    description: 'Traditional collapsible menu',
+    description: 'customTheme.menuStyles.collapsibleDescription',
   },
   {
     value: 'vercel',
-    label: 'Vercel Style',
+    label: 'customTheme.menuStyles.vercel',
     icon: ChevronRightIcon,
-    description: 'Click to navigate to the next level',
+    description: 'customTheme.menuStyles.vercelDescription',
   },
 ]
 
@@ -39,7 +39,7 @@ function handleMenuStyleChange(style: NavigationMode) {
 <template>
   <div class="space-y-1.5 pt-6">
     <Label for="menu-style" class="text-xs">
-      Menu Style
+      {{ $t('customTheme.menuStyle') }}
     </Label>
     <div class="grid grid-cols-2 gap-2 py-1.5">
       <Button
@@ -48,11 +48,11 @@ function handleMenuStyleChange(style: NavigationMode) {
         variant="outline"
         class="justify-center h-8 px-3"
         :class="navigationMode === style.value ? 'border-foreground border-2' : ''"
-        :title="style.description"
+        :title="$t(style.description)"
         @click="handleMenuStyleChange(style.value)"
       >
         <component :is="style.icon" class="w-4 h-4" />
-        {{ style.label }}
+        {{ $t(style.label) }}
       </Button>
     </div>
   </div>

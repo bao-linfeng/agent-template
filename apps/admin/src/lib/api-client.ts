@@ -9,6 +9,7 @@ import { createApiClient } from '@repo/utils'
 import { toast } from 'vue-sonner'
 
 import { API_BASE_URL, API_TIMEOUT } from '@/constants/app-config'
+import { t } from '@/plugins/i18n'
 
 export { getErrorMessage } from '@repo/utils'
 
@@ -28,7 +29,7 @@ async function handleUnauthorized() {
     return
 
   authStore.clear()
-  toast.error('Your session has expired, please sign in again.')
+  toast.error(t('auth.sessionExpired'))
   const redirect = router.currentRoute.value?.fullPath
   await router.push({ path: '/auth/sign-in', query: redirect && redirect !== '/' ? { redirect } : undefined })
 }

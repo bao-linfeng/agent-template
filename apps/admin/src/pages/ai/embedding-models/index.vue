@@ -11,6 +11,7 @@ import type { IEmbeddingModel } from '@/services/api/embedding-models.api'
 
 import ConfirmDialog from '@/components/confirm-dialog.vue'
 import { BasicPage } from '@/components/global-layout'
+import { t } from '@/plugins/i18n'
 import {
   useDeleteEmbeddingModelMutation,
   useEmbeddingModelsQuery,
@@ -40,20 +41,20 @@ function openDialog(model?: IEmbeddingModel) {
 }
 
 function runTest(model: IEmbeddingModel) {
-  const pending = toast.loading(`Testing ${model.name}...`)
+  const pending = toast.loading(t('embeddingModels.testing', { name: model.name }))
   test.mutate(model.id, {
     onSuccess: (result) => {
       if (result.ok)
-        toast.success(`${model.name}: ${result.dimensions} dimensions in ${result.latencyMs} ms.`, { id: pending })
+        toast.success(t('embeddingModels.testOk', { name: model.name, dimensions: result.dimensions, latency: result.latencyMs }), { id: pending })
       else
-        toast.error(`${model.name}: ${result.error ?? 'invalid response'}`, { id: pending })
+        toast.error(t('embeddingModels.testFailed', { name: model.name, error: result.error ?? t('embeddingModels.invalidResponse') }), { id: pending })
     },
     onError: () => toast.dismiss(pending),
   })
 }
 
 function makeDefault(model: IEmbeddingModel) {
-  setDefault.mutate(model.id, { onSuccess: () => toast.success(`${model.name} is now the default model.`) })
+  setDefault.mutate(model.id, { onSuccess: () => toast.success(t('embeddingModels.nowDefault', { name: model.name })) })
 }
 
 function askDelete(model: IEmbeddingModel) {
@@ -64,20 +65,20 @@ function askDelete(model: IEmbeddingModel) {
 function confirmDelete() {
   const model = deleting.value
   if (model)
-    remove.mutate(model.id, { onSuccess: () => toast.success(`${model.name} deleted.`) })
+    remove.mutate(model.id, { onSuccess: () => toast.success(t('embeddingModels.deleted', { name: model.name })) })
 }
 </script>
 
 <template>
   <BasicPage
-    title="Embedding Models"
-    description="Models that turn knowledge base documents into vectors. New knowledge bases use the default model."
+    :title="$t('embeddingModels.title')"
+    :description="$t('embeddingModels.description')"
     sticky
   >
     <template #actions>
       <Button v-if="canManage" @click="openDialog()">
         <PlusIcon />
-        New model
+        {{ $t('embeddingModels.newModel') }}
       </Button>
     </template>
 
@@ -85,15 +86,15 @@ function confirmDelete() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Endpoint</TableHead>
+            <TableHead>{{ $t('fields.name') }}</TableHead>
+            <TableHead>{{ $t('embeddingModels.endpoint') }}</TableHead>
             <TableHead class="text-right">
-              Dimensions
+              {{ $t('embeddingModels.dimensions') }}
             </TableHead>
             <TableHead class="text-right">
-              Batch
+              {{ $t('embeddingModels.batch') }}
             </TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>{{ $t('fields.status') }}</TableHead>
             <TableHead v-if="canManage" class="w-[60px]" />
           </TableRow>
         </TableHeader>
@@ -107,7 +108,7 @@ function confirmDelete() {
           </template>
           <TableRow v-else-if="!models?.length">
             <TableCell :colspan="canManage ? 6 : 5" class="h-24 text-center text-muted-foreground">
-              No embedding model yet.
+              {{ $t('embeddingModels.empty') }}
             </TableCell>
           </TableRow>
           <TableRow v-for="model in models" :key="model.id">
@@ -116,7 +117,7 @@ function confirmDelete() {
                 {{ model.name }}
                 <Badge v-if="model.isDefault" class="gap-1">
                   <StarIcon class="size-3" />
-                  Default
+                  {{ $t('embeddingModels.default') }}
                 </Badge>
               </div>
               <code class="text-xs text-muted-foreground">{{ model.model }}</code>
@@ -124,7 +125,7 @@ function confirmDelete() {
             <TableCell>
               <div class="flex items-center gap-2">
                 <code class="text-xs">{{ model.baseUrl }}</code>
-                <KeyRoundIcon v-if="model.hasApiKey" class="size-3.5 text-muted-foreground" aria-label="API key stored" />
+                <KeyRoundIcon v-if="model.hasApiKey" class="size-3.5 text-muted-foreground" :aria-label="$t('embeddingModels.apiKeyStored')" />
               </div>
             </TableCell>
             <TableCell class="text-right tabular-nums">
@@ -135,7 +136,7 @@ function confirmDelete() {
             </TableCell>
             <TableCell>
               <Badge :variant="model.enabled ? 'outline' : 'secondary'">
-                {{ model.enabled ? 'Enabled' : 'Disabled' }}
+                {{ model.enabled ? $t('common.enabled') : $t('common.disabled') }}
               </Badge>
             </TableCell>
             <TableCell v-if="canManage" class="text-right">
@@ -143,22 +144,22 @@ function confirmDelete() {
                 <DropdownMenuTrigger as-child>
                   <Button variant="ghost" size="icon" class="size-8">
                     <EllipsisIcon class="size-4" />
-                    <span class="sr-only">Open menu</span>
+                    <span class="sr-only">{{ $t('common.openMenu') }}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem @click="openDialog(model)">
-                    Edit
+                    {{ $t('common.edit') }}
                   </DropdownMenuItem>
                   <DropdownMenuItem :disabled="test.isPending.value" @click="runTest(model)">
-                    Test connection
+                    {{ $t('embeddingModels.testConnection') }}
                   </DropdownMenuItem>
                   <DropdownMenuItem v-if="!model.isDefault" :disabled="!model.enabled" @click="makeDefault(model)">
-                    Set as default
+                    {{ $t('embeddingModels.setDefault') }}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem :disabled="model.isDefault" class="text-destructive" @click="askDelete(model)">
-                    Delete
+                    {{ $t('common.delete') }}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -173,15 +174,15 @@ function confirmDelete() {
     <ConfirmDialog
       v-model:open="confirmOpen"
       destructive
-      confirm-button-text="Delete"
+      :confirm-button-text="$t('common.delete')"
       :is-loading="remove.isPending.value"
       @confirm="confirmDelete"
     >
       <template #title>
-        Delete {{ deleting?.name }}?
+        {{ $t('embeddingModels.deleteTitle', { name: deleting?.name }) }}
       </template>
       <template #description>
-        <p>Models used by a knowledge base cannot be deleted.</p>
+        <p>{{ $t('embeddingModels.deleteHint') }}</p>
       </template>
     </ConfirmDialog>
   </BasicPage>

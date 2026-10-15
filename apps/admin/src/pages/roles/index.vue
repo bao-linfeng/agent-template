@@ -10,6 +10,7 @@ import type { IRole } from '@/services/api/roles.api'
 
 import ConfirmDialog from '@/components/confirm-dialog.vue'
 import { BasicPage } from '@/components/global-layout'
+import { t } from '@/plugins/i18n'
 import { useDeleteRoleMutation, useRolesQuery } from '@/services/api/roles.api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -37,16 +38,16 @@ function askDelete(role: IRole) {
 function confirmDelete() {
   const role = deleting.value
   if (role)
-    remove.mutate(role.id, { onSuccess: () => toast.success(`Role ${role.name} deleted.`) })
+    remove.mutate(role.id, { onSuccess: () => toast.success(t('roles.deleted', { name: role.name })) })
 }
 </script>
 
 <template>
-  <BasicPage title="Roles" description="Bundle permissions into roles and assign them to admin accounts." sticky>
+  <BasicPage :title="$t('roles.title')" :description="$t('roles.description')" sticky>
     <template #actions>
       <Button v-if="authStore.can('role:create')" @click="openDialog()">
         <PlusIcon />
-        New role
+        {{ $t('roles.newRole') }}
       </Button>
     </template>
 
@@ -54,10 +55,10 @@ function confirmDelete() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Role</TableHead>
-            <TableHead>Permissions</TableHead>
+            <TableHead>{{ $t('roles.role') }}</TableHead>
+            <TableHead>{{ $t('fields.permissions') }}</TableHead>
             <TableHead class="w-[80px] text-right">
-              Admins
+              {{ $t('roles.admins') }}
             </TableHead>
             <TableHead class="w-[100px]" />
           </TableRow>
@@ -76,7 +77,7 @@ function confirmDelete() {
                 {{ role.name }}
                 <Badge v-if="role.isSystem" variant="outline" class="gap-1">
                   <LockIcon class="size-3" />
-                  System
+                  {{ $t('roles.system') }}
                 </Badge>
               </div>
               <code class="text-xs text-muted-foreground">{{ role.code }}</code>
@@ -89,21 +90,21 @@ function confirmDelete() {
                 <Badge v-for="permission in role.permissions" :key="permission" variant="secondary">
                   {{ permission }}
                 </Badge>
-                <span v-if="!role.permissions.length" class="text-sm text-muted-foreground">None</span>
+                <span v-if="!role.permissions.length" class="text-sm text-muted-foreground">{{ $t('common.none') }}</span>
               </div>
             </TableCell>
             <TableCell class="align-top text-right tabular-nums">
               {{ role.userCount }}
             </TableCell>
             <TableCell class="align-top text-right">
-              <Button v-if="authStore.can('role:update')" variant="ghost" size="icon" title="Edit" @click="openDialog(role)">
+              <Button v-if="authStore.can('role:update')" variant="ghost" size="icon" :title="$t('common.edit')" @click="openDialog(role)">
                 <PencilIcon />
               </Button>
               <Button
                 v-if="authStore.can('role:delete') && !role.isSystem"
                 variant="ghost"
                 size="icon"
-                title="Delete"
+                :title="$t('common.delete')"
                 class="text-destructive"
                 @click="askDelete(role)"
               >
@@ -120,15 +121,15 @@ function confirmDelete() {
     <ConfirmDialog
       v-model:open="confirmOpen"
       destructive
-      confirm-button-text="Delete"
+      :confirm-button-text="$t('common.delete')"
       :is-loading="remove.isPending.value"
       @confirm="confirmDelete"
     >
       <template #title>
-        Delete role {{ deleting?.name }}?
+        {{ $t('roles.deleteTitle', { name: deleting?.name }) }}
       </template>
       <template #description>
-        <p>{{ deleting?.userCount ? `${deleting.userCount} admin(s) will lose its permissions.` : 'No admin has this role.' }}</p>
+        <p>{{ deleting?.userCount ? $t('roles.deleteAffects', { count: deleting.userCount }) : $t('roles.deleteUnused') }}</p>
       </template>
     </ConfirmDialog>
   </BasicPage>

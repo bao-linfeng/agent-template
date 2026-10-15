@@ -47,15 +47,15 @@ function onChange(event: Event) {
       <div class="flex gap-2">
         <Button type="button" variant="outline" size="sm" :disabled="loading" @click="input?.click()">
           <ImageUpIcon />
-          {{ src ? 'Change avatar' : 'Upload avatar' }}
+          {{ src ? $t('avatar.change') : $t('avatar.upload') }}
         </Button>
         <Button v-if="removable && src" type="button" variant="ghost" size="sm" :disabled="loading" @click="emit('remove')">
           <Trash2Icon />
-          Remove
+          {{ $t('avatar.remove') }}
         </Button>
       </div>
       <p class="text-xs text-muted-foreground">
-        PNG, JPEG, GIF or WebP, up to 2 MB.
+        {{ $t('avatar.hint') }}
       </p>
       <p v-if="error" role="alert" class="text-sm text-destructive">
         {{ error }}

@@ -14,7 +14,7 @@ const { contentLayout } = storeToRefs(themeStore)
 <template>
   <div class="space-y-1.5 pt-6">
     <Label for="radius" class="text-xs">
-      Content Layout
+      {{ $t('customTheme.contentLayout') }}
     </Label>
     <div class="grid grid-cols-2 gap-2 py-1.5">
       <Button
@@ -25,7 +25,7 @@ const { contentLayout } = storeToRefs(themeStore)
         @click="setContentLayout(layout.value)"
       >
         <component :is="layout.icon" />
-        {{ layout.label }}
+        {{ $t(`customTheme.layouts.${layout.value}`) }}
       </Button>
     </div>
   </div>

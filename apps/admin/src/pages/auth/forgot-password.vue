@@ -36,19 +36,19 @@ const form = useForm({
       <Card class="w-full max-w-sm">
         <CardHeader>
           <CardTitle class="text-2xl">
-            Forgot Password
+            {{ $t('auth.forgotTitle') }}
           </CardTitle>
           <CardDescription>
-            Enter your registered email and we will send you a link to reset your password.
+            {{ $t('auth.forgotDescription') }}
           </CardDescription>
         </CardHeader>
         <form novalidate @submit.prevent="form.handleSubmit">
           <CardContent class="grid gap-4">
             <Alert v-if="sentTo">
               <MailCheckIcon />
-              <AlertTitle>Check your inbox</AlertTitle>
+              <AlertTitle>{{ $t('auth.checkInbox') }}</AlertTitle>
               <AlertDescription>
-                If {{ sentTo }} is registered, a reset link is on its way. It is valid for a limited time and only once.
+                {{ $t('auth.resetLinkSent', { email: sentTo }) }}
               </AlertDescription>
             </Alert>
             <form.Field name="email">
@@ -60,13 +60,13 @@ const form = useForm({
           <CardFooter class="flex flex-col gap-2 pt-4">
             <Button type="submit" class="w-full" :disabled="isPending">
               <Spinner v-if="isPending" class="mr-2" />
-              {{ sentTo ? 'Send again' : $t('forgotPasswordPage.continue') }}
+              {{ sentTo ? $t('auth.sendAgain') : $t('forgotPasswordPage.continue') }}
             </Button>
 
             <div class="text-sm">
-              Remembered it?
+              {{ $t('auth.remembered') }}
               <Button type="button" variant="link" class="px-0 text-muted-foreground" @click="$router.push('/auth/sign-in')">
-                Back to sign in.
+                {{ $t('auth.backToSignIn') }}
               </Button>
             </div>
           </CardFooter>

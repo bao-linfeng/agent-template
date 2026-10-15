@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { computed, effectScope, nextTick, shallowRef } from 'vue'
 
 import { DEFAULT_PAGE_SIZE } from '@/constants/app'
+import { i18n } from '@/plugins/i18n'
 
 import type { DataTableColumnDef } from '../table'
 
@@ -32,6 +33,7 @@ describe('useDataTable', () => {
   it('renders a finite page count for client-side pagination', async () => {
     const wrapper = mount(DataTable<Person>, {
       props: { columns, data },
+      global: { plugins: [i18n] },
     })
 
     expect(wrapper.text()).toContain('Page 1 of 1')

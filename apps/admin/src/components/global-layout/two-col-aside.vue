@@ -25,14 +25,14 @@ const currentLink = computed(() => props.nav.find(link => link.url === currentPa
       :class="link.url === currentPath ? activeClass : ''"
     >
       <component :is="link.icon" class="size-4 mr-1" />
-      <span>{{ link.title }}</span>
+      <span>{{ $t(link.title) }}</span>
     </router-link>
 
     <DropdownMenu class="lg:hidden">
       <DropdownMenuTrigger as-child>
         <Button variant="outline" class="w-48 lg:hidden">
           <component :is="currentLink?.icon" class="size-4 mr-1" />
-          <span>{{ currentLink?.title }}</span>
+          <span>{{ currentLink ? $t(currentLink.title) : "" }}</span>
           <ChevronsUpDownIcon class="size-4 ml-auto" />
         </Button>
       </DropdownMenuTrigger>
@@ -42,7 +42,7 @@ const currentLink = computed(() => props.nav.find(link => link.url === currentPa
           @click="$router.push(link.url)"
         >
           <component :is="link.icon" class="size-4 mr-1" />
-          {{ link.title }}
+          {{ $t(link.title) }}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -14,7 +14,7 @@ const { radius } = storeToRefs(themeStore)
 <template>
   <div class="space-y-1.5 pt-6">
     <Label for="radius" class="text-xs">
-      Radius
+      {{ $t('customTheme.radius') }}
     </Label>
     <div class="grid grid-cols-5 gap-2 py-1.5">
       <Button

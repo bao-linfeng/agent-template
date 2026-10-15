@@ -65,11 +65,11 @@ const initials = computed(() => initialsOf(user.name || user.email))
           <DropdownMenuGroup>
             <DropdownMenuItem @click="$router.push('/settings/')">
               <UserRoundCogIcon />
-              Profile
+              {{ $t('nav.profile') }}
             </DropdownMenuItem>
             <DropdownMenuItem @click="$router.push('/settings/account')">
               <KeyRoundIcon />
-              Security
+              {{ $t('nav.security') }}
             </DropdownMenuItem>
           </DropdownMenuGroup>
 

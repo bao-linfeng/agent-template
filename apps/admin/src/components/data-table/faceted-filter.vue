@@ -58,7 +58,7 @@ function handleSelect(option: FacetedFilterOption) {
               variant="secondary"
               class="px-1 font-normal rounded-sm"
             >
-              {{ selectedValues.size }} selected
+              {{ $t('dataTable.selectedCount', { count: selectedValues.size }) }}
             </Badge>
 
             <template v-else>
@@ -82,7 +82,7 @@ function handleSelect(option: FacetedFilterOption) {
       >
         <CommandInput :placeholder="title" />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandEmpty>{{ $t('dataTable.noResults') }}</CommandEmpty>
           <CommandGroup>
             <CommandItem
               v-for="option in options"
@@ -112,11 +112,11 @@ function handleSelect(option: FacetedFilterOption) {
             <CommandSeparator />
             <CommandGroup>
               <CommandItem
-                :value="{ label: 'Clear filters' }"
+                :value="{ label: $t('dataTable.clearFilters') }"
                 class="justify-center text-center"
                 @select="column?.setFilterValue(undefined)"
               >
-                Clear filters
+                {{ $t('dataTable.clearFilters') }}
               </CommandItem>
             </CommandGroup>
           </template>

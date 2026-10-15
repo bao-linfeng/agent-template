@@ -46,7 +46,7 @@ const firstKey = computed(() => navigator?.userAgent.includes('Mac OS') ? '⌘' 
     </Button>
 
     <CommandDialog v-model:open="open">
-      <CommandInput placeholder="Type a command or search..." />
+      <CommandInput :placeholder="$t('header.commandPlaceholder')" />
       <CommandList>
         <CommandEmpty>
           <Empty>
@@ -54,9 +54,9 @@ const firstKey = computed(() => navigator?.userAgent.includes('Mac OS') ? '⌘' 
               <EmptyMedia variant="icon">
                 <MenuIcon />
               </EmptyMedia>
-              <EmptyTitle>No menu found.</EmptyTitle>
+              <EmptyTitle>{{ $t('header.noMenuTitle') }}</EmptyTitle>
               <EmptyDescription>
-                Try searching for a command or check the spelling.
+                {{ $t('header.noMenuDescription') }}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>

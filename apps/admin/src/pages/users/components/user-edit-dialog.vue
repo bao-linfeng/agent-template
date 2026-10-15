@@ -14,6 +14,7 @@ import type { IClientUser, UserStatus } from '@/services/types/user.type'
 
 import FormTextField from '@/components/form-text-field.vue'
 import { nicknameField } from '@/pages/auth/validators/auth.validator'
+import { t } from '@/plugins/i18n'
 import { useUpdateAdminUserMutation } from '@/services/api/admin-users.api'
 
 import { userStatuses } from '../data/data'
@@ -48,7 +49,7 @@ const form = useForm({
     catch {
       return // Toasted by the global mutation handler.
     }
-    toast.success('User updated.')
+    toast.success(t('users.updated'))
     open.value = false
   },
 })
@@ -63,32 +64,32 @@ watch(open, (isOpen) => {
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Edit user</DialogTitle>
+        <DialogTitle>{{ $t('users.editTitle') }}</DialogTitle>
         <DialogDescription>{{ user.email }}</DialogDescription>
       </DialogHeader>
 
       <form id="user-edit-form" class="grid gap-6" novalidate @submit.prevent="form.handleSubmit">
         <form.Field name="nickname">
           <template #default="{ field }">
-            <FormTextField :field="field" label="Nickname" />
+            <FormTextField :field="field" :label="$t('fields.nickname')" />
           </template>
         </form.Field>
 
         <form.Field name="status">
           <template #default="{ field }">
             <FormItem>
-              <Label>Status</Label>
+              <Label>{{ $t('fields.status') }}</Label>
               <Select :model-value="field.state.value" @update:model-value="field.handleChange($event as UserStatus)">
                 <SelectTrigger class="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem v-for="status in userStatuses" :key="status.value" :value="status.value">
-                    {{ status.label }}
+                    {{ $t(status.label) }}
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <FieldDescription>Disabling signs the user out of the client app everywhere.</FieldDescription>
+              <FieldDescription>{{ $t('users.statusHint') }}</FieldDescription>
             </FormItem>
           </template>
         </form.Field>
@@ -96,11 +97,11 @@ watch(open, (isOpen) => {
 
       <DialogFooter>
         <Button type="button" variant="outline" @click="open = false">
-          Cancel
+          {{ $t('common.cancel') }}
         </Button>
         <Button type="submit" form="user-edit-form" :disabled="update.isPending.value">
           <Spinner v-if="update.isPending.value" class="mr-2" />
-          Save changes
+          {{ $t('common.saveChanges') }}
         </Button>
       </DialogFooter>
     </DialogContent>

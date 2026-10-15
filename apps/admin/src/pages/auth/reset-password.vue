@@ -8,6 +8,7 @@ import { toast } from 'vue-sonner'
 
 import FormTextField from '@/components/form-text-field.vue'
 import { LOGIN_PATH } from '@/constants/app'
+import { t } from '@/plugins/i18n'
 import { useResetPasswordMutation } from '@/services/api/auth.api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -38,7 +39,7 @@ const form = useForm({
     }
     // Every session of the account was signed out, including this browser's.
     authStore.clear()
-    toast.success('Your password has been reset. Please sign in with the new password.')
+    toast.success(t('auth.resetSuccess'))
     await router.replace(LOGIN_PATH)
   },
 })
@@ -51,17 +52,17 @@ const form = useForm({
       <Card class="w-full max-w-sm">
         <CardHeader>
           <CardTitle class="text-2xl">
-            Reset Password
+            {{ $t('auth.resetTitle') }}
           </CardTitle>
           <CardDescription>
-            Choose a new password. You will be signed out on every device.
+            {{ $t('auth.resetDescription') }}
           </CardDescription>
         </CardHeader>
         <form novalidate @submit.prevent="form.handleSubmit">
           <CardContent class="grid gap-4">
             <Alert v-if="!token" variant="destructive">
               <AlertDescription>
-                This page needs the link from the reset email. Request a new one if it has expired.
+                {{ $t('auth.resetNeedsLink') }}
               </AlertDescription>
             </Alert>
             <template v-else>
@@ -69,16 +70,16 @@ const form = useForm({
                 <template #default="{ field }">
                   <FormTextField
                     :field="field"
-                    label="New password"
+                    :label="$t('auth.newPassword')"
                     type="password"
-                    placeholder="At least 8 characters"
+                    :placeholder="$t('auth.newPasswordPlaceholder')"
                     autocomplete="new-password"
                   />
                 </template>
               </form.Field>
               <form.Field name="confirmPassword">
                 <template #default="{ field }">
-                  <FormTextField :field="field" label="Confirm new password" type="password" autocomplete="new-password" />
+                  <FormTextField :field="field" :label="$t('auth.confirmNewPassword')" type="password" autocomplete="new-password" />
                 </template>
               </form.Field>
             </template>
@@ -86,10 +87,10 @@ const form = useForm({
           <CardFooter class="flex flex-col gap-2 pt-4">
             <Button v-if="token" type="submit" class="w-full" :disabled="isPending">
               <Spinner v-if="isPending" class="mr-2" />
-              Reset password
+              {{ $t('auth.resetSubmit') }}
             </Button>
             <Button type="button" variant="link" class="text-muted-foreground" @click="$router.push('/auth/forgot-password')">
-              Request a new link
+              {{ $t('auth.requestNewLink') }}
             </Button>
           </CardFooter>
         </form>

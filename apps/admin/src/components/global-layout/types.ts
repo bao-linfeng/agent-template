@@ -7,6 +7,7 @@ export interface LayoutHeaderProps {
 }
 
 export interface TwoColAsideNavItem {
+  /** vue-i18n message key. */
   title: string
   url: string
   icon?: Component

@@ -24,10 +24,10 @@ defineProps<{
       <slot>
         <div class="flex justify-center gap-2">
           <Button variant="outline" @click="$router.back()">
-            Go Back
+            {{ $t('errors.goBack') }}
           </Button>
           <Button @click="$router.push('/')">
-            Back to Home
+            {{ $t('errors.backToHome') }}
           </Button>
         </div>
       </slot>

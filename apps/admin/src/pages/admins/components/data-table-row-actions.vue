@@ -37,12 +37,12 @@ function toggleStatus() {
     <DropdownMenuTrigger as-child>
       <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
         <EllipsisIcon class="size-4" />
-        <span class="sr-only">Open menu</span>
+        <span class="sr-only">{{ $t('common.openMenu') }}</span>
       </Button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" class="w-[160px]">
       <DropdownMenuItem @click="isOpen = true">
-        Edit
+        {{ $t('common.edit') }}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
       <DropdownMenuItem
@@ -50,7 +50,7 @@ function toggleStatus() {
         :class="admin.status === 'active' ? 'text-destructive' : ''"
         @click="toggleStatus"
       >
-        {{ admin.status === 'active' ? 'Disable' : 'Enable' }}
+        {{ admin.status === 'active' ? $t('common.disable') : $t('common.enable') }}
       </DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>

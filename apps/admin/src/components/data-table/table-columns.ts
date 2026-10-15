@@ -3,6 +3,8 @@ import type { RowData } from '@tanstack/vue-table'
 import { Checkbox } from '@repo/ui/components/checkbox'
 import { h } from 'vue'
 
+import { t } from '@/plugins/i18n'
+
 import type { DataTableColumnDef } from './table'
 
 import RadioCell from './radio-cell.vue'
@@ -21,12 +23,12 @@ export function createSelectColumn<T extends RowData>(): DataTableColumnDef<T> {
     header: ({ table }) => h(Checkbox, {
       'modelValue': table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate'),
       'onUpdate:modelValue': value => table.toggleAllPageRowsSelected(!!value),
-      'ariaLabel': 'Select all',
+      'ariaLabel': t('dataTable.selectAll'),
     }),
     cell: ({ row }) => h(Checkbox, {
       'modelValue': row.getIsSelected(),
       'onUpdate:modelValue': value => row.toggleSelected(!!value),
-      'ariaLabel': 'Select row',
+      'ariaLabel': t('dataTable.selectRow'),
     }),
     enableSorting: false,
     enableHiding: false,

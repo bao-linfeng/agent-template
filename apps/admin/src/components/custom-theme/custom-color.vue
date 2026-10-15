@@ -14,7 +14,7 @@ const { theme: t } = storeToRefs(themeStore)
 <template>
   <div class="space-y-1.5 pt-6">
     <Label for="radius" class="text-xs">
-      Color
+      {{ $t('customTheme.color') }}
     </Label>
     <div class="grid grid-cols-2 gap-2 py-1.5">
       <Button

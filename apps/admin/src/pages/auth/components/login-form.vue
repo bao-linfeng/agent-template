@@ -9,6 +9,7 @@ import { useForm } from '@tanstack/vue-form'
 import FormTextField from '@/components/form-text-field.vue'
 import { useAuth } from '@/composables/use-auth'
 import { getErrorMessage } from '@/lib/api-client'
+import { t } from '@/plugins/i18n'
 
 import type { LoginValidator } from '../validators/auth.validator'
 
@@ -31,7 +32,7 @@ const form = useForm({
       await login({ email: value.email.trim(), password: value.password })
     }
     catch (error) {
-      errorMessage.value = getErrorMessage(error, 'Sign in failed, please try again.')
+      errorMessage.value = getErrorMessage(error, t('auth.signInFailed'))
     }
   },
 })
@@ -41,11 +42,10 @@ const form = useForm({
   <Card class="w-full max-w-sm">
     <CardHeader>
       <CardTitle class="text-2xl">
-        Login
+        {{ $t('login') }}
       </CardTitle>
       <CardDescription>
-        Enter your admin account email and password.
-        Accounts are created by an administrator.
+        {{ $t('auth.loginDescription') }}
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -91,9 +91,9 @@ const form = useForm({
         </Button>
 
         <CardDescription>
-          By clicking login, you agree to our
+          {{ $t('auth.agreePrefix') }}
           <TermsOfServiceButton />
-          and
+          {{ $t('auth.and') }}
           <PrivacyPolicyButton />
         </CardDescription>
       </form>

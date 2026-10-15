@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { setLocale } from '@/plugins/i18n'
+
 import { resolveErrorPage } from '../data/error-pages'
 
 describe('resolveErrorPage', () => {
@@ -21,5 +23,15 @@ describe('resolveErrorPage', () => {
       code: 404,
       subtitle: 'Page Not Found',
     })
+  })
+
+  it('uses the current locale', () => {
+    setLocale('zh')
+    try {
+      expect(resolveErrorPage('403')).toMatchObject({ code: 403, subtitle: '禁止访问' })
+    }
+    finally {
+      setLocale('en')
+    }
   })
 })

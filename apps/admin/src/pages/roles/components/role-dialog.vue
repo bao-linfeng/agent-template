@@ -14,6 +14,7 @@ import type { IPermission, IRole } from '@/services/api/roles.api'
 
 import FormTextField from '@/components/form-text-field.vue'
 import { ALL_PERMISSIONS } from '@/lib/permissions'
+import { t } from '@/plugins/i18n'
 import { usePermissionsQuery, useSaveRoleMutation } from '@/services/api/roles.api'
 
 /** `role` undefined creates a new role. */
@@ -36,8 +37,8 @@ const permissionGroups = computed(() => {
 })
 
 const validator = z.object({
-  code: z.string().regex(/^[a-z][a-z0-9_]{1,63}$/, { error: 'Lower snake case, 2-64 characters, e.g. content_editor.' }),
-  name: z.string().trim().min(1, { error: 'Please enter a name.' }).max(100),
+  code: z.string().regex(/^[a-z][a-z0-9_]{1,63}$/, { error: () => t('validation.roleCode') }),
+  name: z.string().trim().min(1, { error: () => t('validation.nameRequired') }).max(100),
   description: z.string().max(500),
   permissions: z.array(z.string()),
 })
@@ -72,7 +73,7 @@ const form = useForm({
     catch {
       return // Toasted by the global mutation handler.
     }
-    toast.success(props.role ? 'Role updated.' : 'Role created.')
+    toast.success(props.role ? t('roles.updated') : t('roles.created'))
     open.value = false
   },
 })
@@ -91,9 +92,9 @@ function togglePermission(codes: string[], code: string, checked: boolean | 'ind
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{{ role ? 'Edit role' : 'New role' }}</DialogTitle>
+        <DialogTitle>{{ role ? $t('roles.editTitle') : $t('roles.newRole') }}</DialogTitle>
         <DialogDescription>
-          Users get the union of the permissions of all their roles. Changes apply immediately.
+          {{ $t('roles.dialogDescription') }}
         </DialogDescription>
       </DialogHeader>
 
@@ -102,30 +103,30 @@ function togglePermission(codes: string[], code: string, checked: boolean | 'ind
           <template #default="{ field }">
             <FormTextField
               :field="field"
-              label="Code"
+              :label="$t('fields.code')"
               placeholder="content_editor"
               :disabled="!!role"
-              :description="role ? 'The code cannot be changed.' : 'Stable identifier used in code and seeds.'"
+              :description="role ? $t('roles.codeLocked') : $t('roles.codeHint')"
             />
           </template>
         </form.Field>
         <form.Field name="name">
           <template #default="{ field }">
-            <FormTextField :field="field" label="Name" placeholder="Content editor" />
+            <FormTextField :field="field" :label="$t('fields.name')" :placeholder="$t('roles.namePlaceholder')" />
           </template>
         </form.Field>
         <form.Field name="description">
           <template #default="{ field }">
-            <FormTextField :field="field" label="Description" placeholder="Optional" />
+            <FormTextField :field="field" :label="$t('fields.description')" :placeholder="$t('common.optional')" />
           </template>
         </form.Field>
 
         <form.Field name="permissions">
           <template #default="{ field, state }">
             <FormItem>
-              <Label>Permissions</Label>
+              <Label>{{ $t('fields.permissions') }}</Label>
               <FieldDescription v-if="isSuperAdmin">
-                super_admin always has every permission.
+                {{ $t('roles.superAdminHint') }}
               </FieldDescription>
               <div v-else class="grid gap-4 rounded-md border p-3">
                 <div v-for="[subject, items] in permissionGroups" :key="subject" class="grid gap-2">
@@ -150,11 +151,11 @@ function togglePermission(codes: string[], code: string, checked: boolean | 'ind
 
       <DialogFooter>
         <Button type="button" variant="outline" @click="open = false">
-          Cancel
+          {{ $t('common.cancel') }}
         </Button>
         <Button type="submit" form="role-form" :disabled="save.isPending.value">
           <Spinner v-if="save.isPending.value" class="mr-2" />
-          Save
+          {{ $t('common.save') }}
         </Button>
       </DialogFooter>
     </DialogContent>

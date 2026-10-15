@@ -20,13 +20,13 @@ defineProps<{
   >
     <a v-if="isExternalUrl" :href="menu.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2">
       <component :is="menu.icon" v-if="menu.icon" />
-      <span>{{ menu.title }}</span>
+      <span>{{ $t(menu.title) }}</span>
       <ExternalLinkIcon class="w-4 h-4 ml-auto" />
     </a>
 
     <router-link v-else :to="menu.url!" class="flex items-center gap-2">
       <component :is="menu.icon" v-if="menu.icon" />
-      <span>{{ menu.title }}</span>
+      <span>{{ $t(menu.title) }}</span>
     </router-link>
   </SidebarMenuButton>
 </template>

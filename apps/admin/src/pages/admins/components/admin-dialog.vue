@@ -16,6 +16,7 @@ import type { IAdminAccount, UserStatus } from '@/services/types/user.type'
 import FormTextField from '@/components/form-text-field.vue'
 import { emailField, newPasswordField, nicknameField } from '@/pages/auth/validators/auth.validator'
 import { userStatuses } from '@/pages/users/data/data'
+import { t } from '@/plugins/i18n'
 import { useCreateAdminMutation, useUpdateAdminMutation } from '@/services/api/admins.api'
 import { useRolesQuery } from '@/services/api/roles.api'
 import { useAuthStore } from '@/stores/auth'
@@ -72,7 +73,7 @@ async function save(value: FormValues) {
       nickname,
       roleIds: canEditRoles.value ? value.roleIds : undefined,
     })
-    toast.success(`Admin ${value.email.trim()} created. Share the initial password with them securely.`)
+    toast.success(t('admins.created', { email: value.email.trim() }))
     return
   }
   const original = initialValues(props.admin)
@@ -82,7 +83,7 @@ async function save(value: FormValues) {
     status: value.status !== original.status ? value.status : undefined,
     roleIds: canEditRoles.value && !sameRoles(value.roleIds, original.roleIds) ? value.roleIds : undefined,
   })
-  toast.success('Admin updated.')
+  toast.success(t('admins.updated'))
 }
 
 const form = useForm({
@@ -113,9 +114,9 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
   <Dialog v-model:open="open">
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{{ isCreate ? 'New admin' : 'Edit admin' }}</DialogTitle>
+        <DialogTitle>{{ isCreate ? $t('admins.newAdmin') : $t('admins.editTitle') }}</DialogTitle>
         <DialogDescription>
-          {{ admin ? admin.email : 'Admin accounts can only sign in to this console, not to the client app.' }}
+          {{ admin ? admin.email : $t('admins.createDescription') }}
         </DialogDescription>
       </DialogHeader>
 
@@ -123,17 +124,17 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
         <template v-if="isCreate">
           <form.Field name="email">
             <template #default="{ field }">
-              <FormTextField :field="field" label="Email" type="email" autocomplete="off" />
+              <FormTextField :field="field" :label="$t('email')" type="email" autocomplete="off" />
             </template>
           </form.Field>
           <form.Field name="password">
             <template #default="{ field }">
               <FormTextField
                 :field="field"
-                label="Initial password"
+                :label="$t('admins.initialPassword')"
                 type="password"
                 autocomplete="new-password"
-                description="8-72 characters. The admin can change it under Settings after signing in."
+                :description="$t('admins.initialPasswordHint')"
               />
             </template>
           </form.Field>
@@ -141,14 +142,14 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
 
         <form.Field name="nickname">
           <template #default="{ field }">
-            <FormTextField :field="field" label="Nickname" />
+            <FormTextField :field="field" :label="$t('fields.nickname')" />
           </template>
         </form.Field>
 
         <form.Field v-if="!isCreate" name="status">
           <template #default="{ field }">
             <FormItem>
-              <Label>Status</Label>
+              <Label>{{ $t('fields.status') }}</Label>
               <Select
                 :model-value="field.state.value"
                 :disabled="isSelf"
@@ -159,12 +160,12 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem v-for="status in userStatuses" :key="status.value" :value="status.value">
-                    {{ status.label }}
+                    {{ $t(status.label) }}
                   </SelectItem>
                 </SelectContent>
               </Select>
               <FieldDescription>
-                {{ isSelf ? 'You cannot disable your own account.' : 'Disabling signs the admin out everywhere.' }}
+                {{ isSelf ? $t('admins.cannotDisableSelf') : $t('admins.statusHint') }}
               </FieldDescription>
             </FormItem>
           </template>
@@ -173,7 +174,7 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
         <form.Field name="roleIds">
           <template #default="{ field }">
             <FormItem>
-              <Label>Roles</Label>
+              <Label>{{ $t('fields.roles') }}</Label>
               <div v-if="canEditRoles" class="grid gap-2">
                 <label v-for="role in roles" :key="role.id" class="flex items-start gap-2 text-sm">
                   <Checkbox
@@ -187,7 +188,7 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
                 </label>
               </div>
               <p v-else class="text-sm text-muted-foreground">
-                {{ admin?.roles.map(role => role.name).join(', ') || 'No roles' }}
+                {{ admin?.roles.map(role => role.name).join(', ') || $t('common.noRoles') }}
               </p>
             </FormItem>
           </template>
@@ -196,11 +197,11 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
 
       <DialogFooter>
         <Button type="button" variant="outline" @click="open = false">
-          Cancel
+          {{ $t('common.cancel') }}
         </Button>
         <Button type="submit" form="admin-form" :disabled="pending">
           <Spinner v-if="pending" class="mr-2" />
-          {{ isCreate ? 'Create admin' : 'Save changes' }}
+          {{ isCreate ? $t('admins.createSubmit') : $t('common.saveChanges') }}
         </Button>
       </DialogFooter>
     </DialogContent>

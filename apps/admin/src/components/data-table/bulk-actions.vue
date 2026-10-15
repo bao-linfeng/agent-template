@@ -47,16 +47,16 @@ function handleClearSelection() {
             variant="outline"
             size="icon"
             class="size-6 rounded-full"
-            aria-label="Clear selection"
-            title="Clear selection (Escape)"
+            :aria-label="$t('dataTable.clearSelection')"
+            :title="$t('dataTable.clearSelectionHint')"
             @click="handleClearSelection"
           >
             <XIcon />
-            <span class="sr-only">Clear selection</span>
+            <span class="sr-only">{{ $t('dataTable.clearSelection') }}</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Clear selection (Escape)</p>
+          <p>{{ $t('dataTable.clearSelectionHint') }}</p>
         </TooltipContent>
       </Tooltip>
 
@@ -69,11 +69,11 @@ function handleClearSelection() {
       <section id="bulk-actions-description" class="flex items-center gap-x-1 text-sm">
         <Badge
           class="min-w-8 rounded-lg"
-          :aria-label="`${selectedCount} selected`"
+          :aria-label="$t('dataTable.selectedCount', { count: selectedCount })"
         >
           {{ selectedCount }}
         </Badge>
-        {{ entityName }} selected
+        {{ $t('dataTable.entitySelected', { entity: entityName }) }}
       </section>
 
       <Separator

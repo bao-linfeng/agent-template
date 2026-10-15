@@ -53,37 +53,37 @@ export default {
         <template v-if="canSorted">
           <DropdownMenuItem @click="props.column.toggleSorting(false)">
             <ArrowUpIcon class="mr-2 size-4 text-muted-foreground/70" />
-            Asc
+            {{ $t('dataTable.asc') }}
           </DropdownMenuItem>
           <DropdownMenuItem @click="props.column.toggleSorting(true)">
             <ArrowDownIcon class="mr-2 size-4 text-muted-foreground/70" />
-            Desc
+            {{ $t('dataTable.desc') }}
           </DropdownMenuItem>
           <DropdownMenuItem @click="props.column.clearSorting()">
             <ChevronsUpDownIcon class="mr-2 size-4 text-muted-foreground/70" />
-            Clear Sorting
+            {{ $t('dataTable.clearSorting') }}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
         </template>
 
         <DropdownMenuItem @click="props.column.toggleVisibility(false)">
           <EyeOffIcon class="mr-2 size-4 text-muted-foreground/70" />
-          Hide
+          {{ $t('dataTable.hide') }}
         </DropdownMenuItem>
 
         <template v-if="canPinned">
           <DropdownMenuSeparator />
           <DropdownMenuItem @click="props.column.pin('start')">
             <ArrowLeftIcon class="mr-2 size-4 text-muted-foreground/70" />
-            Pin Left
+            {{ $t('dataTable.pinLeft') }}
           </DropdownMenuItem>
           <DropdownMenuItem @click="props.column.pin('end')">
             <ArrowRightIcon class="mr-2 size-4 text-muted-foreground/70" />
-            Pin Right
+            {{ $t('dataTable.pinRight') }}
           </DropdownMenuItem>
           <DropdownMenuItem @click="props.column.pin(false)">
             <PinOffIcon class="mr-2 size-4 text-muted-foreground/70" />
-            Unpin
+            {{ $t('dataTable.unpin') }}
           </DropdownMenuItem>
         </template>
       </DropdownMenuContent>

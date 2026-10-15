@@ -6,6 +6,7 @@ import { Skeleton } from '@repo/ui/components/skeleton'
 import dayjs from 'dayjs'
 import { toast } from 'vue-sonner'
 
+import { t } from '@/plugins/i18n'
 import { useRevokeSessionMutation, useSessionsQuery } from '@/services/api/me.api'
 
 const { data: sessions, isPending } = useSessionsQuery()
@@ -14,15 +15,19 @@ const revoke = useRevokeSessionMutation()
 /** Short browser/OS label from a user agent string. */
 function describeAgent(userAgent: string | null) {
   if (!userAgent)
-    return 'Unknown device'
+    return t('settings.sessions.unknownDevice')
   const browser = /(Edg|Firefox|Chrome|Safari)\/[\d.]+/.exec(userAgent)?.[1]
   const os = /(Windows|Mac OS X|Android|iPhone|iPad|Linux)/.exec(userAgent)?.[1]
   const names: Record<string, string> = { 'Edg': 'Edge', 'Mac OS X': 'macOS' }
-  return [browser && (names[browser] ?? browser), os && (names[os] ?? os)].filter(Boolean).join(' on ') || userAgent.slice(0, 60)
+  const browserName = browser && (names[browser] ?? browser)
+  const osName = os && (names[os] ?? os)
+  if (browserName && osName)
+    return t('settings.sessions.agent', { browser: browserName, os: osName })
+  return browserName || osName || userAgent.slice(0, 60)
 }
 
 function onRevoke(id: string) {
-  revoke.mutate(id, { onSuccess: () => toast.success('Session signed out.') })
+  revoke.mutate(id, { onSuccess: () => toast.success(t('settings.sessions.revoked')) })
 }
 </script>
 
@@ -30,10 +35,10 @@ function onRevoke(id: string) {
   <div class="space-y-4">
     <div>
       <h4 class="font-medium">
-        Active sessions
+        {{ $t('settings.sessions.title') }}
       </h4>
       <p class="text-sm text-muted-foreground">
-        Sign out of devices you no longer use.
+        {{ $t('settings.sessions.description') }}
       </p>
     </div>
 
@@ -48,12 +53,15 @@ function onRevoke(id: string) {
           <div class="flex items-center gap-2 font-medium">
             {{ describeAgent(session.userAgent) }}
             <Badge v-if="session.current" variant="secondary">
-              This device
+              {{ $t('settings.sessions.thisDevice') }}
             </Badge>
           </div>
           <span class="text-xs text-muted-foreground">
-            {{ session.ip ?? 'Unknown IP' }} · Active {{ dayjs(session.lastUsedAt ?? session.createdAt).fromNow() }}
-            · Signed in {{ dayjs(session.createdAt).format('YYYY-MM-DD HH:mm') }}
+            {{ $t('settings.sessions.meta', {
+              ip: session.ip ?? $t('settings.sessions.unknownIp'),
+              active: dayjs(session.lastUsedAt ?? session.createdAt).fromNow(),
+              signedIn: dayjs(session.createdAt).format('YYYY-MM-DD HH:mm'),
+            }) }}
           </span>
         </div>
         <Button
@@ -64,7 +72,7 @@ function onRevoke(id: string) {
           @click="onRevoke(session.id)"
         >
           <LogOutIcon />
-          Sign out
+          {{ $t('settings.sessions.signOut') }}
         </Button>
       </li>
     </ul>

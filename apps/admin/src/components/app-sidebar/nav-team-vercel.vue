@@ -36,14 +36,14 @@ function handleGoBack() {
       <!-- Root level: show all groups -->
       <div v-if="navigationPath.length === 0" key="root">
         <SidebarGroup v-for="group in navMain" :key="group.title">
-          <SidebarGroupLabel>{{ group.title }}</SidebarGroupLabel>
+          <SidebarGroupLabel>{{ $t(group.title) }}</SidebarGroupLabel>
           <SidebarMenu>
             <template v-for="menu in group.items" :key="menu.title">
               <!-- Leaf item -->
               <SidebarMenuItem v-if="!menu.items">
                 <MenuButton
                   :is-active="isMenuItemActive(menu)"
-                  :tooltip="menu.title"
+                  :tooltip="$t(menu.title)"
                   :is-external-url="isExternalUrl(menu.url)"
                   :menu="menu"
                 />
@@ -53,12 +53,12 @@ function handleGoBack() {
               <SidebarMenuItem v-else>
                 <SidebarMenuButton
                   class="cursor-pointer"
-                  :tooltip="menu.title"
+                  :tooltip="$t(menu.title)"
                   :is-active="isMenuItemActive(menu)"
                   @click="enterMenu(menu)"
                 >
                   <component :is="menu.icon" v-if="menu.icon" />
-                  <span>{{ menu.title }}</span>
+                  <span>{{ $t(menu.title) }}</span>
                   <ChevronRightIcon class="ml-auto w-4 h-4" />
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -81,7 +81,7 @@ function handleGoBack() {
               >
                 <ChevronLeftIcon />
                 <div class="text-center w-full text-sm font-medium">
-                  {{ currentMenuTitle }}
+                  {{ $t(currentMenuTitle) }}
                 </div>
                 <ChevronRightIcon class="invisible" />
               </SidebarMenuButton>
@@ -93,7 +93,7 @@ function handleGoBack() {
               <SidebarMenuItem v-if="!item.items">
                 <MenuButton
                   :is-active="isMenuItemActive(item)"
-                  :tooltip="item.title"
+                  :tooltip="$t(item.title)"
                   :is-external-url="isExternalUrl(item.url)"
                   :menu="item"
                 />
@@ -103,11 +103,11 @@ function handleGoBack() {
               <SidebarMenuItem v-else>
                 <SidebarMenuButton
                   class="cursor-pointer"
-                  :tooltip="item.title"
+                  :tooltip="$t(item.title)"
                   @click="enterMenu(item)"
                 >
                   <component :is="item.icon" v-if="item.icon" />
-                  <span>{{ item.title }}</span>
+                  <span>{{ $t(item.title) }}</span>
                   <ChevronRightIcon class="ml-auto w-4 h-4" />
                 </SidebarMenuButton>
               </SidebarMenuItem>
