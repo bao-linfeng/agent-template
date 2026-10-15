@@ -23,7 +23,9 @@
     "@lucide/vue": "catalog:",
     "@repo/ui": "workspace:*",
     "@repo/utils": "workspace:*",
+    "@tanstack/vue-query": "catalog:",
     "class-variance-authority": "catalog:",
+    "pinia": "catalog:",
     "vue": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:"
@@ -32,6 +34,7 @@
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@tailwindcss/vite": "catalog:",
+    "@tanstack/eslint-plugin-query": "catalog:",
     "@types/node": "^26.5.1",
     "@vitejs/plugin-vue": "catalog:",
     "@vitest/coverage-v8": "catalog:",

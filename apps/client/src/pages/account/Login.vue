@@ -1,46 +1,40 @@
 <script setup lang="ts">
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
-import { reactive, shallowRef } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+import { computed, reactive, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AuthShell from '@/components/account/AuthShell.vue'
 import TextField from '@/components/account/TextField.vue'
 import { takeFlash } from '@/composables/useFlash'
-import { useSession } from '@/composables/useSession'
 import { errorMessage } from '@/lib/api'
 import { checkEmail, collectErrors, safeRedirect } from '@/lib/validation'
+import { useSessionStore } from '@/stores/session'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { login } = useSession()
+const session = useSessionStore()
 
 const form = reactive({ email: '', password: '' })
 const errors = shallowRef<Partial<Record<keyof typeof form, string>>>({})
-const failure = shallowRef('')
 const notice = takeFlash()
-const submitting = shallowRef(false)
 
-async function submit() {
+const { mutate: login, isPending: submitting, error } = useMutation({
+  mutationFn: session.login,
+  onSuccess: () => router.replace(safeRedirect(route.query.redirect)),
+})
+const failure = computed(() => (error.value ? errorMessage(error.value) : ''))
+
+function submit() {
   errors.value = collectErrors({
     email: checkEmail(form.email),
     password: form.password ? undefined : t('validation.passwordRequired'),
   })
   if (Object.keys(errors.value).length)
     return
-  submitting.value = true
-  failure.value = ''
-  try {
-    await login({ email: form.email.trim(), password: form.password })
-    await router.replace(safeRedirect(route.query.redirect))
-  }
-  catch (error) {
-    failure.value = errorMessage(error)
-  }
-  finally {
-    submitting.value = false
-  }
+  login({ email: form.email.trim(), password: form.password })
 }
 </script>
 

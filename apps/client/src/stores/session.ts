@@ -1,26 +1,32 @@
 import type { Credentials, Registration, UserProfile } from '@/lib/account'
-import { computed, readonly, shallowRef } from 'vue'
+import { defineStore } from 'pinia'
+import { computed, shallowRef } from 'vue'
 import { t } from '@/i18n'
 import { accountApi } from '@/lib/account'
 import { errorMessage, onSessionExpired } from '@/lib/api'
+import { queryClient } from '@/lib/query-client'
 
 /**
- * App-wide session state (module level, like `useCollecty`). The session itself is kept in HttpOnly
- * cookies; this only mirrors the signed-in profile and is restored from `GET /users/me` on load.
+ * The session itself lives in HttpOnly cookies; this store only mirrors the signed-in profile.
+ * It is not persisted: `restore()` asks the server (`GET /users/me`) once per page load.
  */
-const user = shallowRef<UserProfile | null>(null)
-const initialized = shallowRef(false)
-let restoring: Promise<void> | null = null
-
-function setUser(profile: UserProfile | null) {
-  user.value = profile
-  initialized.value = true
-}
-
-onSessionExpired(() => setUser(null))
-
-export function useSession() {
+export const useSessionStore = defineStore('session', () => {
+  const user = shallowRef<UserProfile | null>(null)
+  /** True once the session has been restored (or a login/logout happened). */
+  const initialized = shallowRef(false)
   const isLoggedIn = computed(() => user.value !== null)
+
+  function setUser(profile: UserProfile | null) {
+    // Cached server data belongs to the user who just left.
+    if (user.value && user.value.id !== profile?.id)
+      queryClient.removeQueries()
+    user.value = profile
+    initialized.value = true
+  }
+
+  onSessionExpired(() => setUser(null))
+
+  let restoring: Promise<void> | null = null
 
   /** Loads the profile for an existing cookie session once; concurrent callers share the request. */
   function restore(): Promise<void> {
@@ -79,8 +85,8 @@ export function useSession() {
   }
 
   return {
-    user: readonly(user),
-    initialized: readonly(initialized),
+    user,
+    initialized,
     isLoggedIn,
     restore,
     login,
@@ -91,4 +97,4 @@ export function useSession() {
     removeAvatar,
     clear,
   }
-}
+})

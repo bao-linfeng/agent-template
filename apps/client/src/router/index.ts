@@ -1,7 +1,7 @@
 import type { RouteLocationNormalized, RouteRecordRaw } from 'vue-router'
 import { createRouter, createWebHistory } from 'vue-router'
-import { useSession } from '@/composables/useSession'
 import { onSessionExpired } from '@/lib/api'
+import { useSessionStore } from '@/stores/session'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -191,15 +191,15 @@ export function resolveAccessRedirect(to: Pick<RouteLocationNormalized, 'fullPat
 }
 
 router.beforeEach(async (to) => {
-  const session = useSession()
-  if (!session.initialized.value) {
+  const session = useSessionStore()
+  if (!session.initialized) {
     const restoring = session.restore()
     // Public pages render right away; the navbar updates once the session is known.
     if (!to.meta.requiresAuth && !to.meta.guestOnly)
       return
     await restoring
   }
-  return resolveAccessRedirect(to, session.isLoggedIn.value)
+  return resolveAccessRedirect(to, session.isLoggedIn)
 })
 
 // An expired session on a protected page goes back to sign-in.

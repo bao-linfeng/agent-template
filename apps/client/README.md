@@ -29,7 +29,8 @@
 通过 `src/lib/api.ts` 与后端通信，底层是 `@repo/utils` 的 `createApiClient`（ofetch，`credentials: 'include'`，Cookie 认证，401 时自动刷新并重试一次）。
 
 - **接口基地址**：`VITE_API_BASE_URL`（默认 `http://localhost:3100/api`）
-- **会话**：模块级 `useSession()` composable，在路由守卫中恢复登录态
+- **会话**：Pinia store `useSessionStore()`（`src/stores/session.ts`，不持久化），在路由守卫中通过 `GET /users/me` 恢复登录态；退出或会话过期时清空 Vue Query 缓存
+- **服务端状态**：TanStack Vue Query，`QueryClient` 在 `src/lib/query-client.ts`；页面提交统一用 `useMutation`（`isPending`/`error`），错误在表单内展示
 - **找回密码**：发送 `resetUrl: http://localhost:5174/reset-password`，后端校验来源
 
 ## 🛠️ 技术栈
@@ -37,6 +38,7 @@
 - Vue 3.5、Vue Router 5、Vite 8、TypeScript 6
 - Tailwind CSS 4（via `@tailwindcss/vite`）
 - `@repo/ui`（shadcn-vue 组件）、reka-ui 2+、`@lucide/vue`
+- Pinia（客户端状态）、TanStack Vue Query（服务端状态）
 - class-variance-authority（CVA，区块 variants）
 - Vitest + happy-dom、`@repo/eslint-config`（Antfu ESLint）
 
@@ -80,12 +82,15 @@ src/
 │   ├── useCollecty.ts         # Section Collector 逻辑
 │   ├── useFlash.ts            # Flash 消息
 │   ├── useFont.ts             # 字体切换
-│   ├── useObjectUrl.ts        # Blob/File 对象 URL 管理
-│   └── useSession.ts          # 登录态管理（模块级单例）
+│   └── useObjectUrl.ts        # Blob/File 对象 URL 管理
 ├── lib/
-│   └── api.ts                 # HTTP 客户端（Cookie + 自动刷新）
+│   ├── account.ts             # 账号相关接口
+│   ├── api.ts                 # HTTP 客户端（Cookie + 自动刷新）
+│   └── query-client.ts        # Vue Query 的 QueryClient
 ├── pages/                     # 路由页面
 ├── router/                    # 显式路由表（src/router/index.ts）
+├── stores/
+│   └── session.ts             # 登录态（Pinia）
 └── types/                     # 类型定义
 ```
 

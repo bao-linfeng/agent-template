@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Alert, AlertDescription, AlertTitle } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
-import { shallowRef } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+import { computed, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AuthShell from '@/components/account/AuthShell.vue'
 import TextField from '@/components/account/TextField.vue'
@@ -13,27 +14,22 @@ const { t } = useI18n()
 
 const email = shallowRef('')
 const error = shallowRef<string>()
-const failure = shallowRef('')
 const sentTo = shallowRef('')
-const submitting = shallowRef(false)
 
-async function submit() {
+const { mutate: sendResetLink, isPending: submitting, error: requestError } = useMutation({
+  // Same answer whether or not the email is registered.
+  mutationFn: (address: string) => accountApi.forgotPassword(address),
+  onSuccess: (_data, address) => {
+    sentTo.value = address
+  },
+})
+const failure = computed(() => (requestError.value ? errorMessage(requestError.value) : ''))
+
+function submit() {
   error.value = checkEmail(email.value)
   if (error.value)
     return
-  submitting.value = true
-  failure.value = ''
-  try {
-    // Same answer whether or not the email is registered.
-    await accountApi.forgotPassword(email.value.trim())
-    sentTo.value = email.value.trim()
-  }
-  catch (requestError) {
-    failure.value = errorMessage(requestError)
-  }
-  finally {
-    submitting.value = false
-  }
+  sendResetLink(email.value.trim())
 }
 </script>
 

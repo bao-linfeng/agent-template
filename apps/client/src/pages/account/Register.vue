@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import type { Registration } from '@/lib/account'
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
-import { reactive, shallowRef } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+import { computed, reactive, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AuthShell from '@/components/account/AuthShell.vue'
@@ -9,23 +11,32 @@ import AvatarPicker from '@/components/account/AvatarPicker.vue'
 import TextField from '@/components/account/TextField.vue'
 import { flash } from '@/composables/useFlash'
 import { useObjectUrl } from '@/composables/useObjectUrl'
-import { useSession } from '@/composables/useSession'
 import { errorMessage } from '@/lib/api'
 import { checkConfirmation, checkEmail, checkNewPassword, checkNickname, collectErrors, safeRedirect } from '@/lib/validation'
+import { useSessionStore } from '@/stores/session'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { register } = useSession()
+const session = useSessionStore()
 
 const form = reactive({ nickname: '', email: '', password: '', confirmPassword: '' })
 const avatar = shallowRef<File | null>(null)
 const avatarPreview = useObjectUrl(avatar)
 const errors = shallowRef<Partial<Record<keyof typeof form, string>>>({})
-const failure = shallowRef('')
-const submitting = shallowRef(false)
 
-async function submit() {
+const { mutate: register, isPending: submitting, error } = useMutation({
+  mutationFn: (variables: { registration: Registration, avatar: File | null }) =>
+    session.register(variables.registration, variables.avatar),
+  onSuccess: (avatarError) => {
+    if (avatarError)
+      flash({ type: 'warning', text: t('account.register.avatarNotSaved', { error: avatarError }) })
+    return router.replace(safeRedirect(route.query.redirect))
+  },
+})
+const failure = computed(() => (error.value ? errorMessage(error.value) : ''))
+
+function submit() {
   errors.value = collectErrors({
     nickname: checkNickname(form.nickname),
     email: checkEmail(form.email),
@@ -34,23 +45,10 @@ async function submit() {
   })
   if (Object.keys(errors.value).length)
     return
-  submitting.value = true
-  failure.value = ''
-  try {
-    const avatarError = await register(
-      { nickname: form.nickname.trim(), email: form.email.trim(), password: form.password },
-      avatar.value,
-    )
-    if (avatarError)
-      flash({ type: 'warning', text: t('account.register.avatarNotSaved', { error: avatarError }) })
-    await router.replace(safeRedirect(route.query.redirect))
-  }
-  catch (error) {
-    failure.value = errorMessage(error)
-  }
-  finally {
-    submitting.value = false
-  }
+  register({
+    registration: { nickname: form.nickname.trim(), email: form.email.trim(), password: form.password },
+    avatar: avatar.value,
+  })
 }
 </script>
 

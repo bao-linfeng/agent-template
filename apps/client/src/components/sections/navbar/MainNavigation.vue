@@ -27,6 +27,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@repo/ui/components/sheet'
+import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -34,7 +35,7 @@ import { DarkMode } from '@/components/darkMode'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
 import { ThemingSettings } from '@/components/theming'
 import { useCollecty } from '@/composables/useCollecty'
-import { useSession } from '@/composables/useSession'
+import { useSessionStore } from '@/stores/session'
 import Navbar from './Navbar.vue'
 import NavbarBrand from './NavbarBrand.vue'
 import NavbarLayer from './NavbarLayer.vue'
@@ -45,7 +46,7 @@ const { t } = useI18n()
 const { collection } = useCollecty()
 const isButtonVisible = computed(() => collection.value.length > 0)
 
-const { user } = useSession()
+const { user } = storeToRefs(useSessionStore())
 const initials = computed(() => [...(user.value?.nickname.trim() || '?')].slice(0, 2).join('').toUpperCase())
 
 interface RouteChild {

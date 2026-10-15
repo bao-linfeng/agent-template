@@ -1,51 +1,47 @@
 <script setup lang="ts">
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
+import { useMutation } from '@tanstack/vue-query'
 import { computed, reactive, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import AuthShell from '@/components/account/AuthShell.vue'
 import TextField from '@/components/account/TextField.vue'
 import { flash } from '@/composables/useFlash'
-import { useSession } from '@/composables/useSession'
 import { accountApi } from '@/lib/account'
 import { errorMessage } from '@/lib/api'
 import { checkConfirmation, checkNewPassword, collectErrors } from '@/lib/validation'
+import { useSessionStore } from '@/stores/session'
 
 // Opened from the email link: /reset-password?token=...
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const session = useSession()
+const session = useSessionStore()
 const token = computed(() => (typeof route.query.token === 'string' ? route.query.token : ''))
 
 const form = reactive({ password: '', confirmPassword: '' })
 const errors = shallowRef<Partial<Record<keyof typeof form, string>>>({})
-const failure = shallowRef('')
-const submitting = shallowRef(false)
 
-async function submit() {
+const { mutate: resetPassword, isPending: submitting, error } = useMutation({
+  mutationFn: (password: string) => accountApi.resetPassword(token.value, password),
+  onSuccess: () => {
+    // Every session of the account is signed out by the server.
+    session.clear()
+    flash({ type: 'success', text: t('account.reset.done') })
+    return router.replace('/login')
+  },
+})
+const failure = computed(() => (error.value ? errorMessage(error.value) : ''))
+
+function submit() {
   errors.value = collectErrors({
     password: checkNewPassword(form.password),
     confirmPassword: checkConfirmation(form.password, form.confirmPassword),
   })
   if (Object.keys(errors.value).length)
     return
-  submitting.value = true
-  failure.value = ''
-  try {
-    await accountApi.resetPassword(token.value, form.password)
-    // Every session of the account is signed out by the server.
-    session.clear()
-    flash({ type: 'success', text: t('account.reset.done') })
-    await router.replace('/login')
-  }
-  catch (error) {
-    failure.value = errorMessage(error)
-  }
-  finally {
-    submitting.value = false
-  }
+  resetPassword(form.password)
 }
 </script>
 

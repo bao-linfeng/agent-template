@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { resolveAccessRedirect, routes } from '../index'
 
-vi.mock('@/composables/useSession', () => ({ useSession: vi.fn() }))
+vi.mock('@/stores/session', () => ({ useSessionStore: vi.fn() }))
 
 function to(fullPath: string) {
   const record = routes.find(route => route.path === fullPath.split('?')[0])

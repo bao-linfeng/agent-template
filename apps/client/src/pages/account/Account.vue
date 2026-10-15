@@ -3,17 +3,19 @@ import { LogOut } from '@lucide/vue'
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/card'
-import { reactive, shallowRef, watch } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
+import { storeToRefs } from 'pinia'
+import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import AvatarPicker from '@/components/account/AvatarPicker.vue'
 import TextField from '@/components/account/TextField.vue'
 import { MainNavigation } from '@/components/sections/navbar'
 import { takeFlash } from '@/composables/useFlash'
-import { useSession } from '@/composables/useSession'
 import { accountApi } from '@/lib/account'
 import { errorMessage } from '@/lib/api'
 import { checkConfirmation, checkNewPassword, checkNickname, collectErrors } from '@/lib/validation'
+import { useSessionStore } from '@/stores/session'
 
 interface Status {
   type: 'success' | 'error' | 'warning'
@@ -22,57 +24,65 @@ interface Status {
 
 const { t, locale } = useI18n()
 const router = useRouter()
-const session = useSession()
-const { user } = session
+const session = useSessionStore()
+const { user } = storeToRefs(session)
 
 const notice = shallowRef<Status | null>(takeFlash())
+
+/** Mutation callbacks that show the outcome under the form; `success` is a message key. */
+function reportTo(status: typeof notice, success: string) {
+  return {
+    onMutate: () => {
+      status.value = null
+    },
+    onSuccess: () => {
+      status.value = { type: 'success', text: t(success) }
+    },
+    onError: (error: Error) => {
+      status.value = { type: 'error', text: errorMessage(error) }
+    },
+  } as const
+}
 
 // Profile
 const nickname = shallowRef(user.value?.nickname ?? '')
 const nicknameError = shallowRef<string>()
 const profileStatus = shallowRef<Status | null>(null)
-const savingProfile = shallowRef(false)
-const avatarBusy = shallowRef(false)
 
 watch(() => user.value?.nickname, (value) => {
   nickname.value = value ?? ''
 })
 
-async function run(status: typeof profileStatus, busy: typeof savingProfile, action: () => Promise<void>, success: string) {
-  busy.value = true
-  status.value = null
-  try {
-    await action()
-    status.value = { type: 'success', text: success }
-  }
-  catch (error) {
-    status.value = { type: 'error', text: errorMessage(error) }
-  }
-  finally {
-    busy.value = false
-  }
-}
+const { mutate: updateProfile, isPending: savingProfile } = useMutation({
+  mutationFn: session.updateProfile,
+  ...reportTo(profileStatus, 'account.profile.saved'),
+})
+const { mutate: uploadAvatar, isPending: uploadingAvatar } = useMutation({
+  mutationFn: session.uploadAvatar,
+  ...reportTo(profileStatus, 'account.profile.avatarUpdated'),
+})
+const { mutate: removeAvatar, isPending: removingAvatar } = useMutation({
+  mutationFn: session.removeAvatar,
+  ...reportTo(profileStatus, 'account.profile.avatarRemoved'),
+})
+const avatarBusy = computed(() => uploadingAvatar.value || removingAvatar.value)
 
 function saveProfile() {
   nicknameError.value = checkNickname(nickname.value)
   if (nicknameError.value)
     return
-  run(profileStatus, savingProfile, () => session.updateProfile({ nickname: nickname.value.trim() }), t('account.profile.saved'))
-}
-
-function onAvatarSelect(file: File) {
-  run(profileStatus, avatarBusy, () => session.uploadAvatar(file), t('account.profile.avatarUpdated'))
-}
-
-function onAvatarRemove() {
-  run(profileStatus, avatarBusy, () => session.removeAvatar(), t('account.profile.avatarRemoved'))
+  updateProfile({ nickname: nickname.value.trim() })
 }
 
 // Password
 const password = reactive({ current: '', next: '', confirm: '' })
 const passwordErrors = shallowRef<Partial<Record<keyof typeof password, string>>>({})
 const passwordStatus = shallowRef<Status | null>(null)
-const savingPassword = shallowRef(false)
+
+const { mutate: submitPassword, isPending: savingPassword } = useMutation({
+  mutationFn: (variables: { current: string, next: string }) => accountApi.changePassword(variables.current, variables.next),
+  ...reportTo(passwordStatus, 'account.password.changed'),
+})
 
 function changePassword() {
   passwordErrors.value = collectErrors({
@@ -82,10 +92,11 @@ function changePassword() {
   })
   if (Object.keys(passwordErrors.value).length)
     return
-  run(passwordStatus, savingPassword, async () => {
-    await accountApi.changePassword(password.current, password.next)
-    Object.assign(password, { current: '', next: '', confirm: '' })
-  }, t('account.password.changed'))
+  submitPassword({ current: password.current, next: password.next }, {
+    onSuccess: () => {
+      Object.assign(password, { current: '', next: '', confirm: '' })
+    },
+  })
 }
 
 async function logout() {
@@ -129,8 +140,8 @@ async function logout() {
             :name="user.nickname"
             :busy="avatarBusy"
             removable
-            @select="onAvatarSelect"
-            @remove="onAvatarRemove"
+            @select="uploadAvatar"
+            @remove="removeAvatar()"
           />
           <form class="grid gap-4" novalidate @submit.prevent="saveProfile">
             <TextField v-model="nickname" :label="t('account.fields.nickname')" autocomplete="nickname" :error="nicknameError" />
