@@ -61,7 +61,6 @@
     "embla-carousel-autoplay": "^8.6.0",
     "motion-v": "2.2.1",
     "nprogress": "^0.2.0",
-    "ofetch": "^1.5.1",
     "pinia": "^4.0.3",
     "pinia-plugin-persistedstate": "^4.7.1",
     "reka-ui": "catalog:",

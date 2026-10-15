@@ -1,13 +1,13 @@
 import type { App } from 'vue'
 
+import { isUnauthorized } from '@repo/utils'
 import { MutationCache, QueryCache, QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
-import { FetchError } from 'ofetch'
 import { toast } from 'vue-sonner'
 
 import { getErrorMessage } from '@/lib/api-client'
 
 function handleError(error: Error) {
-  if (error instanceof FetchError && error.status === 401)
+  if (isUnauthorized(error))
     return
 
   toast.error(getErrorMessage(error))

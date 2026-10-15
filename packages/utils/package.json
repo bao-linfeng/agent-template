@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "cn": "^0.2.6"
+    "cn": "^0.2.6",
+    "ofetch": "catalog:"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

@@ -6,12 +6,75 @@ settings:
 
 catalogs:
   default:
+    '@antfu/eslint-config':
+      specifier: ^9.5.1
+      version: 9.5.1
+    '@lucide/vue':
+      specifier: ^1.46.0
+      version: 1.56.0
+    '@tailwindcss/vite':
+      specifier: ^4.3.3
+      version: 4.3.3
+    '@vitejs/plugin-vue':
+      specifier: ^6.0.9
+      version: 6.0.10
     '@vitest/coverage-v8':
       specifier: ^4.1.11
       version: 4.1.11
+    '@vue/test-utils':
+      specifier: ^2.5.1
+      version: 2.5.1
+    '@vueuse/core':
+      specifier: ^14.4.0
+      version: 14.4.0
+    class-variance-authority:
+      specifier: ^0.7.1
+      version: 0.7.1
+    eslint:
+      specifier: ^10.10.0
+      version: 10.12.0
+    eslint-plugin-format:
+      specifier: ^2.0.1
+      version: 2.0.1
+    happy-dom:
+      specifier: ^20.14.5
+      version: 20.14.6
+    ofetch:
+      specifier: ^1.5.1
+      version: 1.5.1
+    reka-ui:
+      specifier: ^2.10.4
+      version: 2.11.0
+    tailwindcss:
+      specifier: ^4.3.3
+      version: 4.3.3
+    tw-animate-css:
+      specifier: ^1.4.0
+      version: 1.4.0
+    typescript:
+      specifier: ~6.0.3
+      version: 6.0.3
+    vaul-vue:
+      specifier: ^0.4.1
+      version: 0.4.1
+    vite:
+      specifier: ^8.3.0
+      version: 8.3.4
     vitest:
       specifier: ^4.1.11
       version: 4.1.11
+    vue:
+      specifier: ^3.5.42
+      version: 3.5.44
+    vue-router:
+      specifier: ^5.3.1
+      version: 5.4.0
+    vue-sonner:
+      specifier: ^2.0.9
+      version: 2.0.9
+    vue-tsc:
+      specifier: ^3.3.11
+      version: 3.3.13
 
 importers:
 
@@ -77,9 +140,6 @@ importers:
       nprogress:
         specifier: ^0.2.0
         version: 0.2.0
-      ofetch:
-        specifier: ^1.5.1
-        version: 1.5.1
       pinia:
         specifier: ^4.0.3
         version: 4.0.3(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3))
@@ -509,6 +569,9 @@ importers:
       cn:
         specifier: ^0.2.6
         version: 0.2.6
+      ofetch:
+        specifier: 'catalog:'
+        version: 1.5.1
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -10208,7 +10271,7 @@ snapshots:
 
   '@types/ws@8.18.2':
     dependencies:
-      '@types/node': 24.19.2
+      '@types/node': 26.6.5
 
   '@typescript-eslint/eslint-plugin@8.71.2(@typescript-eslint/parser@8.71.2(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)':
     dependencies:
@@ -10430,7 +10493,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.3.0
       tinyrainbow: 3.2.0
-      vitest: 4.1.11(@types/node@24.19.2)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.6)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
+      vitest: 4.1.11(@types/node@26.6.5)(@vitest/coverage-v8@4.1.11)(happy-dom@20.14.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))
 
   '@vitest/eslint-plugin@1.6.27(@typescript-eslint/eslint-plugin@8.71.2(@typescript-eslint/parser@8.71.2(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3))(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)(vitest@4.1.11)':
     dependencies:
@@ -10959,7 +11022,7 @@ snapshots:
 
   buffer-image-size@0.6.4:
     dependencies:
-      '@types/node': 24.19.2
+      '@types/node': 26.6.5
 
   buffer@5.7.1:
     dependencies:
@@ -12376,7 +12439,7 @@ snapshots:
 
   happy-dom@20.14.6:
     dependencies:
-      '@types/node': 24.19.2
+      '@types/node': 26.6.5
       '@types/whatwg-mimetype': 3.0.2
       '@types/ws': 8.18.2
       buffer-image-size: 0.6.4

@@ -1,14 +1,14 @@
 # Agent Template
 
-基于 pnpm workspace 和 Turborepo 的多应用模板，包含 Vue 管理端、Vue 客户端、NestJS 后端和 VitePress 文档站点；管理端与客户端共用 `@repo/ui` 组件和 `@repo/utils` 工具函数。项目不使用 React 技术栈。
+基于 pnpm workspace 和 Turborepo 的全栈多应用模板，包含 Vue 管理端、Vue 客户端、NestJS 后端和 VitePress 文档站点；管理端与客户端共用 `@repo/ui` 组件和 `@repo/utils` 工具函数。项目不使用 React 技术栈。
 
 ## 项目结构
 
 | 目录                         | 用途                                                          | 开发地址                |
 | ---------------------------- | ------------------------------------------------------------- | ----------------------- |
-| `apps/admin`                 | Vue 3 管理端，文件路由                                        | `http://localhost:5173` |
-| `apps/client`                | Vue 3 展示端（落地页区块），手写路由                          | `http://localhost:5174` |
-| `apps/server`                | NestJS / Fastify API                                          | `http://localhost:3100` |
+| `apps/admin`                 | Vue 3 管理端，文件路由，shadcn-vue 组件库                     | `http://localhost:5173` |
+| `apps/client`                | Vue 3 展示端（落地页区块），手写路由，BuildY 页面构建器       | `http://localhost:5174` |
+| `apps/server`                | NestJS 12 / Fastify API，Drizzle + PostgreSQL + pgvector      | `http://localhost:3100` |
 | `apps/docs`                  | VitePress 文档站点                                            | `http://localhost:3001` |
 | `packages/ui`                | `@repo/ui`：shadcn-vue 组件 + 共享 Tailwind 4 主题映射        | —                       |
 | `packages/utils`             | `@repo/utils`：框架无关的工具函数（`cn`、`isExternalUrl` 等） | —                       |
@@ -17,9 +17,39 @@
 
 admin 与 client 使用同一套技术栈：Vue 3.5、Vue Router 5、Vite 8、Tailwind CSS 4、reka-ui、`@lucide/vue`、TypeScript 6。共享依赖的版本写在根 `pnpm-workspace.yaml` 的 `catalog:` 中。共享包的用法见 `apps/docs/guide/shared-packages.md`。
 
-管理端使用 `vite-plugin-vue-layouts-next`，以匹配当前 Vite 8 和 Vue Router 5；不要从旧模板副本复制回旧布局插件依赖。
-
 `apps/admin/shadcn-vue-admin-main/` 是保留的上游模板副本，不是工作区应用；实际修改应位于 `apps/admin/src/`。它不参与管理端测试和 lint。
+
+## 主要功能
+
+### 管理端（apps/admin）
+
+- 亮色/暗色模式切换（Pinia 持久化）
+- 全局搜索命令面板
+- 文件系统路由（vite-plugin-vue-layouts-next）+ 自动导入
+- 国际化（vue-i18n v11+）
+- 表单验证（TanStack Vue Form + Zod 4+）
+- 数据展示（TanStack Table/Query + Unovis 图表）
+- 动画支持（AutoAnimate、Motion-V、TW Animate CSS）
+- 用户管理、角色权限（RBAC）、Embedding 模型配置
+- 会话管理（会话列表与远程下线）
+
+### 客户端（apps/client）
+
+- 落地页区块系统（Hero、Blog、Navbar 等，CVA variants）
+- 运行时主题切换（多套调色板，持久化）
+- Section Collector：收藏区块后一键进入 BuildY 可视化页面构建器
+- 账号体系：注册、登录、忘记/重置密码、个人资料与头像
+
+### 后端（apps/server）
+
+| 模块           | 能力                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| 认证 `auth`    | 注册即登录、登录、刷新令牌轮换（重放检测）、退出、忘记密码（邮件链接）、重置密码；HttpOnly Cookie      |
+| 用户 `users`   | 个人资料、头像上传（RustFS）、修改密码、会话列表与下线；后台用户列表/编辑/禁用/分配角色                |
+| 权限 `rbac`    | 角色 + 权限码（`user:read` 等），CASL 规则，系统角色 `super_admin` / `admin` / `user`                  |
+| AI `ai`        | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                 |
+| RAG `rag`      | 知识库、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索            |
+| 基础设施       | zod 环境变量校验、Redis 限流、邮件队列（Mailpit）、健康检查、Swagger、请求 ID 与结构化日志             |
 
 ## 环境与安装
 
@@ -52,6 +82,30 @@ pnpm -C apps/docs dev
 
 管理端、客户端和文档站固定使用 5173、5174、3001 端口，端口被占用时会报错，不会自动换端口。后端可通过进程环境变量 `PORT` 修改端口。
 
+### 后端基础设施
+
+后端依赖本地 Docker（PostgreSQL + pgvector、Redis、RustFS、Mailpit）：
+
+```sh
+cd apps/server
+cp .env.example .env        # 本地默认值即可直接使用
+pnpm infra:up               # 启动 postgres(pgvector) / redis / rustfs / mailpit
+pnpm db:migrate             # 应用数据库迁移
+pnpm db:seed                # 初始化角色、超级管理员、默认 bge-m3 模型
+pnpm dev                    # http://localhost:3100/api
+```
+
+本地向量化（可选）：
+
+```sh
+docker compose --profile ai up -d
+docker compose exec ollama ollama pull bge-m3
+```
+
+- Swagger 文档：<http://localhost:3100/api/docs>
+- Mailpit 收件箱：<http://localhost:8025>
+- RustFS 控制台：<http://localhost:9001>
+
 ### 环境变量与前后端联调
 
 管理端：复制 `apps/admin/.env.example` 为同目录 `.env`（默认 `VITE_SERVER_API_URL=http://localhost:3100`、`VITE_SERVER_API_PREFIX=/api`），校验规则位于 `src/validators/env.validator.ts`。客户端：可选 `apps/client/.env` 中的 `VITE_API_BASE_URL`，未设置时使用 `http://localhost:3100/api`。
@@ -61,9 +115,7 @@ pnpm -C apps/docs dev
 - 两端都实现了注册（可选头像，注册即登录后上传）、登录、退出、忘记密码、重置密码、个人资料（昵称、头像上传/删除）和修改密码；管理端另有会话列表与下线、用户管理（搜索、分页、编辑、禁用、分配角色）、角色管理和 Embedding 模型配置（新增、编辑、测试连通性、设为默认、删除）。
 - 请求统一带 Cookie（`credentials: 'include'`）；接口返回 401 时自动调用 `POST /api/auth/refresh` 并重试一次（并发请求共享同一次刷新），刷新失败则清空登录态并跳转登录页。
 - 找回密码时前端把自己的重置页地址作为 `resetUrl` 传给后端（管理端 `/auth/reset-password`，客户端 `/reset-password`），后端只接受 `APP_WEB_URL` 或 `CORS_ORIGINS` 中的来源。
-- 管理端按 `GET /api/users/me` 返回的权限码过滤侧边栏和命令面板，页面可在 `<route>` 中声明 `meta.permission`；使用默认布局的页面默认需要登录。管理端模板自带的其他示例页面（Tasks、Billing 等）仍是演示数据。
-- 后端依赖本地 Docker（PostgreSQL + pgvector、Redis、RustFS、Mailpit）：先在 `apps/server` 复制 `.env.example` 为 `.env`，再执行 `pnpm -C apps/server infra:up`、`db:migrate`、`db:seed`。详见 [apps/server/README.md](apps/server/README.md)。
-- 后端提供注册/登录/刷新/找回密码、用户与头像、RBAC 角色权限、Embedding 模型配置和 RAG 知识库接口，认证使用 HttpOnly Cookie；管理端自带的示例业务 API 不代表后端已实现。
+- 管理端按 `GET /api/users/me` 返回的权限码过滤侧边栏和命令面板，页面可在 `<route>` 中声明 `meta.permission`；使用默认布局的页面默认需要登录。
 - 生产环境必须设置 `JWT_SECRET` 和 `ENCRYPTION_KEY`；Nest Observe 仅在配置 `OBSERVE_APP_KEY`/`OBSERVE_APP_SECRET` 时启用。
 
 ## 检查与测试
@@ -108,10 +160,12 @@ pnpm -C apps/client build
 ## 构建与运行产物
 
 - admin / client：产物位于各自 `dist/`，可使用 `pnpm -C apps/admin preview` 或 `pnpm -C apps/client preview` 本地预览。
-- server：先 `pnpm -C apps/server build`，再 `pnpm -C apps/server start:prod`，入口为 `dist/main.js`。
+- server：先 `pnpm -C apps/server build`，再 `pnpm -C apps/server start:prod`，入口为 `dist/main.js`。生产部署前先执行 `node dist/scripts/migrate.js` 应用数据库迁移。
 - docs：先 `pnpm -C apps/docs build`（产物在 `apps/docs/dist/`），再 `pnpm -C apps/docs preview` 本地预览。
 - Turbo 缓存各工作区的 `dist/` 构建产物；类型检查和测试每次执行，不复用成功日志。
 
 ## 开发指引
 
 开始修改前阅读根 `AGENTS.md`；管理端和后端另有各自的 `AGENTS.md`。管理端的路由和自动导入声明由 Vite 生成；后端使用 NodeNext ESM，相对 TypeScript 导入保留 `.js` 扩展名。
+
+管理端使用 `vite-plugin-vue-layouts-next`，以匹配当前 Vite 8 和 Vue Router 5；不要从旧模板副本复制回旧布局插件依赖。

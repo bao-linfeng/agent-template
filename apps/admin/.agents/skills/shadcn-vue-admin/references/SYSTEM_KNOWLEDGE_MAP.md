@@ -50,7 +50,7 @@ meta:
 
 ## Data Fetching / API
 
-- ofetch client: `src/lib/api-client.ts` (`apiFetch`: cookies via `credentials: 'include'`, shared `POST /auth/refresh` + one retry on 401, sign-out on failure; `getErrorMessage` for Nest errors)
+- ofetch client: `src/lib/api-client.ts`, an instance of `createApiClient` from `@repo/utils` (`apiFetch`: cookies via `credentials: 'include'`, shared `POST /auth/refresh` + one retry on 401, sign-out on failure; `getErrorMessage` for Nest errors)
 - Vue Query plugin: `src/plugins/tanstack-vue-query/setup.ts` (global error toasts for queries and mutations, 401 excluded)
 - API modules: `src/services/api/*.api.ts` — transport functions + query/mutation hooks. Real server APIs: `auth`, `me`, `admin-users`, `roles`, `embedding-models`; `example-*` are mocks.
 - Shared types: `src/services/types/response.type.ts` (`IPaginated`), `src/services/types/user.type.ts`
@@ -107,7 +107,7 @@ Plugin initialization entry: `src/plugins/index.ts`
 - Add/modify a layout: edit `src/layouts/*.vue`, then set `meta.layout` in the page.
 - Add a plugin: create `src/plugins/<plugin>/setup.ts`, then register it in `src/plugins/index.ts`.
 - Add an API module: create `src/services/api/*.api.ts`; put shared request/response types in `src/services/types/*` or `src/services/api/types/*`.
-- Add data fetching: use ofetch (`src/composables/use-fetch.ts`) + Vue Query (setup: `src/plugins/tanstack-vue-query/setup.ts`).
+- Add data fetching: add a service in `src/services/api/` calling `apiFetch` (`src/lib/api-client.ts`) + Vue Query (setup: `src/plugins/tanstack-vue-query/setup.ts`).
 - Add a form: define a zod validator in `src/pages/**/validators/*.validator.ts`, then use it from `src/pages/**/components/*-form.vue`.
 - Add a store: create `src/stores/*.ts` (Pinia; persistedstate is enabled).
 

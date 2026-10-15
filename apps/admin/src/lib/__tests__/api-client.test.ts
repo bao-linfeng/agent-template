@@ -1,5 +1,5 @@
+import { FetchError } from '@repo/utils'
 import { useQueryClient } from '@tanstack/vue-query'
-import { FetchError } from 'ofetch'
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
 
@@ -188,7 +188,7 @@ describe('aPI error handling', () => {
 describe('getErrorMessage', () => {
   function fetchError(data: unknown, statusText = 'Bad Request') {
     const error = new FetchError('failed')
-    Object.assign(error, { data, statusText })
+    Object.assign(error, { data, statusText, response: new Response(null, { status: 400 }) })
     return error
   }
 

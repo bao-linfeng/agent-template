@@ -1,3 +1,5 @@
+export { createApiClient, FetchError, getErrorMessage, isUnauthorized } from './api-client'
+export type { ApiClient, ApiClientOptions, ApiFetch, FetchOptions } from './api-client'
 export { cn } from './cn'
 export { isExternalUrl } from './is-external-url'
 export { applyThemeClass } from './theme'

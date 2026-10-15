@@ -1,7 +1,7 @@
 import type { Credentials, Registration, UserProfile } from '@/lib/account'
 import { computed, readonly, shallowRef } from 'vue'
 import { accountApi } from '@/lib/account'
-import { onSessionExpired } from '@/lib/api'
+import { errorMessage, onSessionExpired } from '@/lib/api'
 
 /**
  * App-wide session state (module level, like `useCollecty`). The session itself is kept in HttpOnly
@@ -47,7 +47,7 @@ export function useSession() {
       setUser(await accountApi.uploadAvatar(avatar, avatar.name))
     }
     catch (error) {
-      return error instanceof Error ? error.message : 'The avatar could not be saved.'
+      return errorMessage(error, 'The avatar could not be saved.')
     }
   }
 
