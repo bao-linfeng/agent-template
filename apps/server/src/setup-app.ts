@@ -1,7 +1,7 @@
 import fastifyCookie from '@fastify/cookie'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyMultipart from '@fastify/multipart'
-import { ValidationPipe } from '@nestjs/common'
+import { ValidationPipe, VersioningType } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
   FastifyAdapter,
@@ -52,6 +52,8 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   })
   app.setGlobalPrefix(prefix)
+  // Realm controllers carry `version: API_VERSION` → `/<prefix>/v1/{client,admin}/...`; public routes stay unversioned.
+  app.enableVersioning({ type: VersioningType.URI })
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -66,11 +68,15 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
       new DocumentBuilder()
         .setTitle('Agent Template API')
         .setDescription(
-          'Cookie-authenticated API with two separate account realms: client users sign in via POST /auth/login, ' +
-            'admin console accounts via POST /admin/auth/login (all /admin routes). The browser keeps the HttpOnly cookies.',
+          'Cookie-authenticated API with two separate account realms: client users sign in via POST /v1/client/auth/login ' +
+            '(all /v1/client routes), admin console accounts via POST /v1/admin/auth/login (all /v1/admin routes). ' +
+            'The browser keeps the HttpOnly cookies. Non-browser client apps (mini-programs, native apps) send ' +
+            'X-Auth-Transport: bearer to the client auth routes, receive the tokens in the body and authenticate ' +
+            'with Authorization: Bearer <accessToken>.',
         )
         .setVersion('1.0')
         .addCookieAuth(REALM_COOKIES.user.access, undefined, 'user')
+        .addBearerAuth({ type: 'http', scheme: 'bearer' }, 'user-bearer')
         .addCookieAuth(REALM_COOKIES.admin.access, undefined, 'admin')
         .build(),
     )

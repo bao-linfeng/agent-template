@@ -2,7 +2,7 @@ export type UserStatus = 'active' | 'disabled'
 
 /**
  * Fields shared by every account payload. Dates are ISO strings. The admin console signs in with admin
- * accounts (`admin_users`); client app users (`users`) are a separate population managed under `/admin/users`.
+ * accounts (`admin_users`); client app users (`users`) are a separate population managed under `/v1/admin/users`.
  */
 export interface IPublicUser {
   id: string
@@ -14,7 +14,7 @@ export interface IPublicUser {
   createdAt: string
 }
 
-/** `GET /admin/me`: the signed-in admin with role and permission codes. */
+/** `GET /v1/admin/me`: the signed-in admin with role and permission codes. */
 export interface IUserProfile extends IPublicUser {
   roles: string[]
   permissions: string[]
@@ -26,10 +26,10 @@ export interface IRoleSummary {
   name: string
 }
 
-/** Client app users as returned by `/admin/users` (they have no roles). */
+/** Client app users as returned by `/v1/admin/users` (they have no roles). */
 export type IClientUser = IPublicUser
 
-/** Admin console accounts as returned by `/admin/admins`. */
+/** Admin console accounts as returned by `/v1/admin/admins`. */
 export interface IAdminAccount extends IPublicUser {
   roles: IRoleSummary[]
 }

@@ -39,11 +39,11 @@ applyThemeClass('', document.body) // 清空 body 上的主题 class
 
 ### `createApiClient({ baseURL, authPath?, timeout?, onUnauthorized? })`
 
-基于 [ofetch](https://github.com/unjs/ofetch) 的 Cookie 会话客户端，对接 `apps/server`：所有请求带 `credentials: 'include'`；遇到 401 时，并发请求共享一次 `POST <authPath>/refresh` 并各自重试一次；刷新失败或重试仍是 401 时调用（并等待）`onUnauthorized`。`authPath` 是账号体系对应的认证路由：客户端用户为 `/auth`（默认），管理端为 `/admin/auth`。`<authPath>` 下登录、注册等凭证接口的 401 原样抛出，不触发刷新。返回 `{ fetch, refreshSession }`，错误为 ofetch 的 `FetchError`（同样从本包导出，另有 `isUnauthorized(error)`）。
+基于 [ofetch](https://github.com/unjs/ofetch) 的 Cookie 会话客户端，对接 `apps/server`：所有请求带 `credentials: 'include'`；遇到 401 时，并发请求共享一次 `POST <authPath>/refresh` 并各自重试一次；刷新失败或重试仍是 401 时调用（并等待）`onUnauthorized`。`baseURL` 指向账号体系（realm）的版本化根路径：客户端用户为 `<API>/v1/client`，管理端为 `<API>/v1/admin`；`authPath` 是相对 `baseURL` 的认证路由，两端都是默认的 `/auth`。`<authPath>` 下登录、注册等凭证接口的 401 原样抛出，不触发刷新。返回 `{ fetch, refreshSession }`，错误为 ofetch 的 `FetchError`（同样从本包导出，另有 `isUnauthorized(error)`）。
 
 ```ts
 export const { fetch: api } = createApiClient({
-  baseURL: 'http://localhost:3100/api',
+  baseURL: 'http://localhost:3100/api/v1/client',
   onUnauthorized: () => router.push('/login'),
 })
 await api<UserProfile>('/users/me', { method: 'PATCH', body: { nickname: 'Ada' } })

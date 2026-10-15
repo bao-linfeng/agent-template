@@ -1,6 +1,5 @@
 import {
   Body,
-  Controller,
   Delete,
   Get,
   HttpCode,
@@ -13,28 +12,28 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger'
-import { PaginationQueryDto } from '../../common/dto/pagination.dto.js'
-import { readSingleFile } from '../../common/http/multipart.js'
-import type { AuthUser, HttpRequest } from '../../common/http/request.js'
-import type { Env } from '../../config/env.js'
-import { CurrentUser } from '../auth/decorators.js'
-import { SUPPORTED_EXTENSIONS } from './document-parsers.js'
-import { DocumentsService } from './documents.service.js'
+import { PaginationQueryDto } from '../../../common/dto/pagination.dto.js'
+import { readSingleFile } from '../../../common/http/multipart.js'
+import type { AuthUser, HttpRequest } from '../../../common/http/request.js'
+import type { Env } from '../../../config/env.js'
+import { ClientController, CurrentUser } from '../../auth/decorators.js'
+import { SUPPORTED_EXTENSIONS } from '../document-parsers.js'
+import { DocumentsService } from '../documents.service.js'
 import {
   CreateKnowledgeBaseDto,
   CreateTextDocumentDto,
   SearchKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
-} from './dto/rag.dto.js'
-import { KnowledgeBasesService } from './knowledge-bases.service.js'
-import { RetrievalService } from './retrieval.service.js'
+} from '../dto/rag.dto.js'
+import { KnowledgeBasesService } from '../knowledge-bases.service.js'
+import { RetrievalService } from '../retrieval.service.js'
 
 /**
  * Knowledge bases of the signed-in client user. Every route only sees the user's own knowledge
- * bases; others answer 404. Administrators use `/admin/rag/knowledge-bases`.
+ * bases; others answer 404. Administrators use `/v1/admin/rag/knowledge-bases`.
  */
-@ApiTags('rag')
-@Controller('rag/knowledge-bases')
+@ApiTags('client / rag')
+@ClientController('rag/knowledge-bases')
 export class RagController {
   constructor(
     private readonly knowledgeBases: KnowledgeBasesService,

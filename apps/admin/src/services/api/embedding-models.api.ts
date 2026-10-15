@@ -60,7 +60,7 @@ export interface IEmbeddingTestResult {
   error?: string
 }
 
-const BASE = '/admin/ai/embedding-models'
+const BASE = '/ai/embedding-models'
 /** The server waits up to 60 s for the provider. */
 const TEST_TIMEOUT = 65_000
 

@@ -112,11 +112,11 @@ docker compose exec ollama ollama pull bge-m3
 
 管理端和客户端已对接后端的账号相关接口：
 
-- 客户端用户和后台管理员是两套独立账号（不同的表、会话和 Cookie，同一邮箱在两边是两个账号）：客户端走 `/api/auth/*`、`/api/users/me`，管理端走 `/api/admin/auth/*`、`/api/admin/me`。RBAC 只用于管理员。
+- 客户端用户和后台管理员是两套独立账号（不同的表、会话和 Cookie，同一邮箱在两边是两个账号）：客户端走 `/api/v1/client/auth/*`、`/api/v1/client/users/me`，管理端走 `/api/v1/admin/auth/*`、`/api/v1/admin/me`。RBAC 只用于管理员。
 - 客户端实现了注册（可选头像，注册即登录后上传）、登录、退出、忘记密码、重置密码、个人资料（昵称、头像上传/删除）和修改密码；管理端不开放注册（首个超级管理员由 `db:seed` 创建，其他管理员在“Admins”页面新建），实现了登录、退出、忘记/重置密码、个人资料、修改密码、会话列表与下线、客户端用户管理（搜索、分页、编辑、禁用）、管理员管理（新建、编辑、禁用、分配角色）、角色管理和 Embedding 模型配置（新增、编辑、测试连通性、设为默认、删除）。
-- 请求统一带 Cookie（`credentials: 'include'`）；接口返回 401 时自动调用对应的 `POST /api/auth/refresh`（管理端 `/api/admin/auth/refresh`）并重试一次（并发请求共享同一次刷新），刷新失败则清空登录态并跳转登录页。
+- 请求统一带 Cookie（`credentials: 'include'`）；接口返回 401 时自动调用对应的 `POST /api/v1/client/auth/refresh`（管理端 `/api/v1/admin/auth/refresh`）并重试一次（并发请求共享同一次刷新），刷新失败则清空登录态并跳转登录页。
 - 找回密码时前端把自己的重置页地址作为 `resetUrl` 传给后端（管理端 `/auth/reset-password`，客户端 `/reset-password`），后端只接受 `APP_WEB_URL` 或 `CORS_ORIGINS` 中的来源。
-- 管理端按 `GET /api/admin/me` 返回的权限码过滤侧边栏和命令面板，页面可在 `<route>` 中声明 `meta.permission`；使用默认布局的页面默认需要登录。
+- 管理端按 `GET /api/v1/admin/me` 返回的权限码过滤侧边栏和命令面板，页面可在 `<route>` 中声明 `meta.permission`；使用默认布局的页面默认需要登录。
 - 生产环境必须设置 `JWT_SECRET` 和 `ENCRYPTION_KEY`；Nest Observe 仅在配置 `OBSERVE_APP_KEY`/`OBSERVE_APP_SECRET` 时启用。
 
 ## 检查与测试

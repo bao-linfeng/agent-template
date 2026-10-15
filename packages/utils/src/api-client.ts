@@ -4,7 +4,8 @@
  * The server authenticates with HttpOnly cookies, so every request is sent with
  * `credentials: 'include'`. A 401 triggers one shared `POST <authPath>/refresh` and a single retry; if
  * the refresh fails too, `onUnauthorized` decides what happens to the local session. Client users and
- * admin console accounts are separate realms with their own auth routes (`/auth`, `/admin/auth`).
+ * admin console accounts are separate realms, each under its own versioned root (`/v1/client`,
+ * `/v1/admin`) with its own `/auth` routes; point `baseURL` at the realm root.
  */
 import type { FetchOptions } from 'ofetch'
 
@@ -17,9 +18,9 @@ export type { FetchOptions }
 const CREDENTIAL_ENDPOINTS = ['login', 'register', 'refresh', 'logout', 'forgot-password', 'reset-password']
 
 export interface ApiClientOptions {
-  /** API root including the prefix, e.g. `http://localhost:3100/api`. */
+  /** Realm root including the API prefix and version, e.g. `http://localhost:3100/api/v1/client`. */
   baseURL: string
-  /** Auth routes of the account realm, relative to `baseURL`: `/auth` (client users, default) or `/admin/auth`. */
+  /** Auth routes of the account realm, relative to `baseURL` (default `/auth`). */
   authPath?: string
   timeout?: number
   /** Called when a 401 cannot be recovered by refreshing; awaited before the error is rethrown. */

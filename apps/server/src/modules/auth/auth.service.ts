@@ -102,7 +102,7 @@ export class AuthService {
     })
   }
 
-  /** Revokes the session identified by either cookie; never fails so the client can always sign out. */
+  /** Revokes the session identified by either token; never fails so the client can always sign out. */
   async logout(
     realm: Realm,
     accessToken: string | undefined,

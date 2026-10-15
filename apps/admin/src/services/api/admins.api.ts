@@ -21,24 +21,24 @@ export interface ICreateAdminBody {
 
 // Transport layer for admin console accounts (permissions: `admin:read|create|update`)
 export function fetchAdmins(query: IListUsersQuery = {}) {
-  return apiFetch<IPaginated<IAdminAccount>>('/admin/admins', { method: 'get', query: compactQuery(query) })
+  return apiFetch<IPaginated<IAdminAccount>>('/admins', { method: 'get', query: compactQuery(query) })
 }
 
 export function fetchAdmin(id: string) {
-  return apiFetch<IAdminAccount>(`/admin/admins/${id}`, { method: 'get' })
+  return apiFetch<IAdminAccount>(`/admins/${id}`, { method: 'get' })
 }
 
 export function createAdmin(body: ICreateAdminBody) {
-  return apiFetch<IAdminAccount>('/admin/admins', { method: 'post', body })
+  return apiFetch<IAdminAccount>('/admins', { method: 'post', body })
 }
 
 export function updateAdmin(id: string, body: IAdminUpdateUserBody) {
-  return apiFetch<IAdminAccount>(`/admin/admins/${id}`, { method: 'patch', body })
+  return apiFetch<IAdminAccount>(`/admins/${id}`, { method: 'patch', body })
 }
 
 /** Replaces the admin's roles. */
 export function setAdminRoles(id: string, roleIds: string[]) {
-  return apiFetch<IAdminAccount>(`/admin/admins/${id}/roles`, { method: 'put', body: { roleIds } })
+  return apiFetch<IAdminAccount>(`/admins/${id}/roles`, { method: 'put', body: { roleIds } })
 }
 
 // Query/mutation hooks

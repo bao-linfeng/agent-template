@@ -51,21 +51,21 @@
 管理端通过 `src/lib/api-client.ts` 与后端通信，底层是 `@repo/utils` 的 `createApiClient`（ofetch，Cookie 认证，`credentials: 'include'`）。
 
 - **接口基地址**：`VITE_SERVER_API_URL`（默认 `http://localhost:3100`）+ `VITE_SERVER_API_PREFIX`（默认 `/api`）
-- **账号体系**：管理端使用独立的管理员账号（`/api/admin/auth/*`，不开放注册），与客户端用户互不相通；首个超级管理员由服务端 `pnpm db:seed` 创建，其他管理员在 `/admins` 页面新建
-- **自动刷新**：401 时调用 `POST /api/admin/auth/refresh` 并重试一次，并发请求共享同一次刷新；刷新失败则清空登录态并跳转登录页
-- **权限过滤**：`GET /api/admin/me` 返回 `roles` 和 `permissions`，用于控制侧边栏和命令面板的可见性；页面在 `<route>` 中声明 `meta.permission`
+- **账号体系**：管理端使用独立的管理员账号（`/api/v1/admin/auth/*`，不开放注册），与客户端用户互不相通；首个超级管理员由服务端 `pnpm db:seed` 创建，其他管理员在 `/admins` 页面新建
+- **自动刷新**：401 时调用 `POST /api/v1/admin/auth/refresh` 并重试一次，并发请求共享同一次刷新；刷新失败则清空登录态并跳转登录页
+- **权限过滤**：`GET /api/v1/admin/me` 返回 `roles` 和 `permissions`，用于控制侧边栏和命令面板的可见性；页面在 `<route>` 中声明 `meta.permission`
 - **找回密码**：发送 `resetUrl: http://localhost:5175/auth/reset-password`，后端校验来源必须在 `APP_WEB_URL` 或 `CORS_ORIGINS` 中
 
 已对接的 API 模块（`src/services/api/`）：
 
-| 模块                      | 接口                                              |
-| ------------------------- | ------------------------------------------------- |
-| `auth.api.ts`             | 登录、退出、忘记密码、重置密码（`/admin/auth`）   |
-| `me.api.ts`               | 个人资料、头像上传/删除、修改密码、会话列表与下线 |
-| `admin-users.api.ts`      | 客户端用户列表、编辑、禁用                        |
-| `admins.api.ts`           | 管理员账号列表、新建、编辑、禁用、分配角色        |
-| `roles.api.ts`            | 角色列表、创建、编辑、删除                        |
-| `embedding-models.api.ts` | Embedding 模型 CRUD 与连通性测试                  |
+| 模块                      | 接口                                               |
+| ------------------------- | -------------------------------------------------- |
+| `auth.api.ts`             | 登录、退出、忘记密码、重置密码（`/v1/admin/auth`） |
+| `me.api.ts`               | 个人资料、头像上传/删除、修改密码、会话列表与下线  |
+| `admin-users.api.ts`      | 客户端用户列表、编辑、禁用                         |
+| `admins.api.ts`           | 管理员账号列表、新建、编辑、禁用、分配角色         |
+| `roles.api.ts`            | 角色列表、创建、编辑、删除                         |
+| `embedding-models.api.ts` | Embedding 模型 CRUD 与连通性测试                   |
 
 ## 🛠️ 技术栈
 

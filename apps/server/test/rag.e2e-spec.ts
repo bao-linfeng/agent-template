@@ -1,5 +1,6 @@
 import {
-  API,
+  ADMIN_API,
+  CLIENT_API,
   createTestApp,
   E2E_ADMIN,
   loginAdmin,
@@ -37,14 +38,16 @@ describe('embedding models & RAG (e2e)', () => {
   ) {
     return waitFor(async () => {
       const response = await agent
-        .get(`${API}/rag/knowledge-bases/${kbId}/documents/${documentId}`)
+        .get(
+          `${CLIENT_API}/rag/knowledge-bases/${kbId}/documents/${documentId}`,
+        )
         .expect(200)
       return response.body.status === status ? response.body : undefined
     })
   }
 
   it('manages embedding models from the admin console without leaking API keys', async () => {
-    const list = await admin.get(`${API}/admin/ai/embedding-models`).expect(200)
+    const list = await admin.get(`${ADMIN_API}/ai/embedding-models`).expect(200)
     expect(list.body).toContainEqual(
       expect.objectContaining({
         name: 'bge-m3',
@@ -54,7 +57,7 @@ describe('embedding models & RAG (e2e)', () => {
     )
 
     const created = await admin
-      .post(`${API}/admin/ai/embedding-models`)
+      .post(`${ADMIN_API}/ai/embedding-models`)
       .send({
         name: 'small-768',
         baseUrl: fakeUrl(),
@@ -86,12 +89,12 @@ describe('embedding models & RAG (e2e)', () => {
     expect(
       (
         await admin
-          .post(`${API}/admin/ai/embedding-models/${created.body.id}/test`)
+          .post(`${ADMIN_API}/ai/embedding-models/${created.body.id}/test`)
           .expect(200)
       ).body,
     ).toMatchObject({ ok: true, dimensions: 768 })
     const mismatch = await admin
-      .post(`${API}/admin/ai/embedding-models/test`)
+      .post(`${ADMIN_API}/ai/embedding-models/test`)
       .send({ baseUrl: fakeUrl(), model: 'fake-768', dimensions: 512 })
       .expect(200)
     expect(mismatch.body).toMatchObject({
@@ -99,41 +102,41 @@ describe('embedding models & RAG (e2e)', () => {
       error: expect.stringContaining('768-dimensional'),
     })
     const broken = await admin
-      .post(`${API}/admin/ai/embedding-models/test`)
+      .post(`${ADMIN_API}/ai/embedding-models/test`)
       .send({ baseUrl: fakeUrl(), model: 'broken', dimensions: 8 })
       .expect(200)
     expect(broken.body.ok).toBe(false)
 
     const cleared = await admin
-      .patch(`${API}/admin/ai/embedding-models/${created.body.id}`)
+      .patch(`${ADMIN_API}/ai/embedding-models/${created.body.id}`)
       .send({ apiKey: null })
       .expect(200)
     expect(cleared.body.hasApiKey).toBe(false)
 
     await admin
-      .post(`${API}/admin/ai/embedding-models/${created.body.id}/default`)
+      .post(`${ADMIN_API}/ai/embedding-models/${created.body.id}/default`)
       .expect(200)
     const defaults = (
-      await admin.get(`${API}/admin/ai/embedding-models`).expect(200)
+      await admin.get(`${ADMIN_API}/ai/embedding-models`).expect(200)
     ).body.filter((m: { isDefault: boolean }) => m.isDefault)
     expect(defaults).toHaveLength(1)
     await admin
-      .delete(`${API}/admin/ai/embedding-models/${created.body.id}`)
+      .delete(`${ADMIN_API}/ai/embedding-models/${created.body.id}`)
       .expect(400)
 
     const bge = list.body.find((m: { name: string }) => m.name === 'bge-m3')
     await admin
-      .post(`${API}/admin/ai/embedding-models/${bge.id}/default`)
+      .post(`${ADMIN_API}/ai/embedding-models/${bge.id}/default`)
       .expect(200)
     await admin
-      .delete(`${API}/admin/ai/embedding-models/${created.body.id}`)
+      .delete(`${ADMIN_API}/ai/embedding-models/${created.body.id}`)
       .expect(204)
   })
 
   it('indexes documents in the background and retrieves the most relevant chunks', async () => {
     const { agent } = await registerUser(t)
     const kb = await agent
-      .post(`${API}/rag/knowledge-bases`)
+      .post(`${CLIENT_API}/rag/knowledge-bases`)
       .send({ name: 'Zoo', chunkSize: 200, chunkOverlap: 20 })
       .expect(201)
     expect(kb.body.embeddingModel).toMatchObject({
@@ -143,12 +146,12 @@ describe('embedding models & RAG (e2e)', () => {
     const kbId = kb.body.id as string
 
     const cats = await agent
-      .post(`${API}/rag/knowledge-bases/${kbId}/documents/text`)
+      .post(`${CLIENT_API}/rag/knowledge-bases/${kbId}/documents/text`)
       .send({ title: 'Cats', content: DOCS.cats })
       .expect(201)
     expect(cats.body.status).toBe('pending')
     const rockets = await agent
-      .post(`${API}/rag/knowledge-bases/${kbId}/documents`)
+      .post(`${CLIENT_API}/rag/knowledge-bases/${kbId}/documents`)
       .field('title', 'Rockets')
       .attach('file', Buffer.from(`# Rockets\n\n${DOCS.rockets}`), 'rockets.md')
       .expect(201)
@@ -164,7 +167,7 @@ describe('embedding models & RAG (e2e)', () => {
     await waitForDocument(agent, kbId, rockets.body.id)
 
     const results = await agent
-      .post(`${API}/rag/knowledge-bases/${kbId}/search`)
+      .post(`${CLIENT_API}/rag/knowledge-bases/${kbId}/search`)
       .send({ query: 'why do cats purr', topK: 2 })
       .expect(200)
     expect(results.body).toHaveLength(2)
@@ -175,7 +178,7 @@ describe('embedding models & RAG (e2e)', () => {
     expect(results.body[0].score).toBeGreaterThan(results.body[1].score)
 
     const filtered = await agent
-      .post(`${API}/rag/knowledge-bases/${kbId}/search`)
+      .post(`${CLIENT_API}/rag/knowledge-bases/${kbId}/search`)
       .send({ query: 'orbital rockets stages', minScore: 0.3 })
       .expect(200)
     expect(
@@ -185,19 +188,21 @@ describe('embedding models & RAG (e2e)', () => {
     ).toEqual(['Rockets'])
 
     await agent
-      .post(`${API}/rag/knowledge-bases/${kbId}/documents`)
+      .post(`${CLIENT_API}/rag/knowledge-bases/${kbId}/documents`)
       .attach('file', Buffer.from('%PDF-1.7'), 'paper.pdf')
       .expect(400)
 
     await agent
       .post(
-        `${API}/rag/knowledge-bases/${kbId}/documents/${cats.body.id}/reindex`,
+        `${CLIENT_API}/rag/knowledge-bases/${kbId}/documents/${cats.body.id}/reindex`,
       )
       .expect(202)
     await waitForDocument(agent, kbId, cats.body.id)
 
     await agent
-      .delete(`${API}/rag/knowledge-bases/${kbId}/documents/${cats.body.id}`)
+      .delete(
+        `${CLIENT_API}/rag/knowledge-bases/${kbId}/documents/${cats.body.id}`,
+      )
       .expect(204)
     const chunks = await t.pool.query(
       'select count(*)::int as n from rag_chunks where document_id = $1',
@@ -206,7 +211,7 @@ describe('embedding models & RAG (e2e)', () => {
     expect(chunks.rows[0].n).toBe(0)
 
     const listed = await agent
-      .get(`${API}/rag/knowledge-bases/${kbId}/documents`)
+      .get(`${CLIENT_API}/rag/knowledge-bases/${kbId}/documents`)
       .expect(200)
     expect(listed.body.total).toBe(1)
   })
@@ -214,7 +219,7 @@ describe('embedding models & RAG (e2e)', () => {
   it('marks documents as failed when the embedding provider rejects them permanently', async () => {
     const { agent } = await registerUser(t)
     const broken = await admin
-      .post(`${API}/admin/ai/embedding-models`)
+      .post(`${ADMIN_API}/ai/embedding-models`)
       .send({
         name: 'broken-model',
         baseUrl: fakeUrl(),
@@ -223,17 +228,17 @@ describe('embedding models & RAG (e2e)', () => {
       })
       .expect(201)
     const kb = await agent
-      .post(`${API}/rag/knowledge-bases`)
+      .post(`${CLIENT_API}/rag/knowledge-bases`)
       .send({ name: 'Broken', embeddingModelId: broken.body.id })
       .expect(201)
 
     // Disabled models fail immediately (no retries).
     await admin
-      .patch(`${API}/admin/ai/embedding-models/${broken.body.id}`)
+      .patch(`${ADMIN_API}/ai/embedding-models/${broken.body.id}`)
       .send({ enabled: false })
       .expect(200)
     const document = await agent
-      .post(`${API}/rag/knowledge-bases/${kb.body.id}/documents/text`)
+      .post(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}/documents/text`)
       .send({ title: 'x', content: 'hello' })
       .expect(201)
     const failed = await waitForDocument(
@@ -245,11 +250,13 @@ describe('embedding models & RAG (e2e)', () => {
     expect(failed.error).toContain('disabled')
 
     await admin
-      .delete(`${API}/admin/ai/embedding-models/${broken.body.id}`)
+      .delete(`${ADMIN_API}/ai/embedding-models/${broken.body.id}`)
       .expect(409)
-    await agent.delete(`${API}/rag/knowledge-bases/${kb.body.id}`).expect(204)
+    await agent
+      .delete(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}`)
+      .expect(204)
     await admin
-      .delete(`${API}/admin/ai/embedding-models/${broken.body.id}`)
+      .delete(`${ADMIN_API}/ai/embedding-models/${broken.body.id}`)
       .expect(204)
   })
 
@@ -257,53 +264,56 @@ describe('embedding models & RAG (e2e)', () => {
     const owner = await registerUser(t)
     const stranger = await registerUser(t)
     const kb = await owner.agent
-      .post(`${API}/rag/knowledge-bases`)
+      .post(`${CLIENT_API}/rag/knowledge-bases`)
       .send({ name: 'Private' })
       .expect(201)
     expect(kb.body.ownerId).toBe(owner.user.id)
 
     // Other users' knowledge bases look like missing ones.
     await stranger.agent
-      .get(`${API}/rag/knowledge-bases/${kb.body.id}`)
+      .get(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}`)
       .expect(404)
     await stranger.agent
-      .post(`${API}/rag/knowledge-bases/${kb.body.id}/search`)
+      .post(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}/search`)
       .send({ query: 'x' })
       .expect(404)
     await stranger.agent
-      .delete(`${API}/rag/knowledge-bases/${kb.body.id}`)
+      .delete(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}`)
       .expect(404)
     expect(
-      (await stranger.agent.get(`${API}/rag/knowledge-bases`).expect(200)).body
-        .items,
+      (
+        await stranger.agent
+          .get(`${CLIENT_API}/rag/knowledge-bases`)
+          .expect(200)
+      ).body.items,
     ).toEqual([])
 
     // Admin sessions do not open client routes; the admin routes list every user's knowledge bases.
-    await admin.get(`${API}/rag/knowledge-bases`).expect(401)
-    await owner.agent.get(`${API}/admin/rag/knowledge-bases`).expect(401)
+    await admin.get(`${CLIENT_API}/rag/knowledge-bases`).expect(401)
+    await owner.agent.get(`${ADMIN_API}/rag/knowledge-bases`).expect(401)
     await admin
-      .get(`${API}/admin/rag/knowledge-bases/${kb.body.id}`)
+      .get(`${ADMIN_API}/rag/knowledge-bases/${kb.body.id}`)
       .expect(200)
     const mine = await admin
-      .get(`${API}/admin/rag/knowledge-bases`)
+      .get(`${ADMIN_API}/rag/knowledge-bases`)
       .query({ ownerId: owner.user.id })
       .expect(200)
     expect(mine.body.items.map((item: { id: string }) => item.id)).toEqual([
       kb.body.id,
     ])
     await admin
-      .get(`${API}/admin/rag/knowledge-bases/${kb.body.id}/documents`)
+      .get(`${ADMIN_API}/rag/knowledge-bases/${kb.body.id}/documents`)
       .expect(200)
 
     await owner.agent
-      .patch(`${API}/rag/knowledge-bases/${kb.body.id}`)
+      .patch(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}`)
       .send({ chunkSize: 400, chunkOverlap: 300 })
       .expect(400)
     await admin
-      .delete(`${API}/admin/rag/knowledge-bases/${kb.body.id}`)
+      .delete(`${ADMIN_API}/rag/knowledge-bases/${kb.body.id}`)
       .expect(204)
     await owner.agent
-      .get(`${API}/rag/knowledge-bases/${kb.body.id}`)
+      .get(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}`)
       .expect(404)
   })
 

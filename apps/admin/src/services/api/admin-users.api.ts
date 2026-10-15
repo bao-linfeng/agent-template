@@ -31,11 +31,11 @@ export function compactQuery<T extends object>(query: T): Partial<T> {
 
 // Transport layer for client app users (permissions: `user:read`, `user:update`)
 export function fetchAdminUsers(query: IListUsersQuery = {}) {
-  return apiFetch<IPaginated<IClientUser>>('/admin/users', { method: 'get', query: compactQuery(query) })
+  return apiFetch<IPaginated<IClientUser>>('/users', { method: 'get', query: compactQuery(query) })
 }
 
 export function updateAdminUser(id: string, body: IAdminUpdateUserBody) {
-  return apiFetch<IClientUser>(`/admin/users/${id}`, { method: 'patch', body })
+  return apiFetch<IClientUser>(`/users/${id}`, { method: 'patch', body })
 }
 
 // Query/mutation hooks

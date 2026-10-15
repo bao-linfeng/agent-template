@@ -9,14 +9,14 @@ import {
   Post,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { AdminController } from '../auth/decorators.js'
-import { RequirePermissions } from '../rbac/policies.js'
+import { AdminController } from '../../auth/decorators.js'
+import { RequirePermissions } from '../../rbac/policies.js'
 import {
   CreateEmbeddingModelDto,
   TestEmbeddingConfigDto,
   UpdateEmbeddingModelDto,
-} from './dto/embedding-model.dto.js'
-import { EmbeddingModelsService } from './embedding-models.service.js'
+} from '../dto/embedding-model.dto.js'
+import { EmbeddingModelsService } from '../embedding-models.service.js'
 
 /** Admin console configuration of embedding providers. API keys are write-only (`hasApiKey` in responses). */
 @ApiTags('admin / ai')

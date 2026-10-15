@@ -52,7 +52,7 @@ function respond(status: number, body: unknown = { message: 'Service unavailable
 function route(handler: (path: string, call: number) => Response) {
   const calls = new Map<string, number>()
   fetchMock.mockImplementation((request: string | Request) => {
-    const path = new URL(typeof request === 'string' ? request : request.url).pathname.replace(/^\/api/, '')
+    const path = new URL(typeof request === 'string' ? request : request.url).pathname.replace(/^\/api\/v1\/admin/, '')
     const call = calls.get(path) ?? 0
     calls.set(path, call + 1)
     return Promise.resolve(handler(path, call))
@@ -89,7 +89,8 @@ describe('aPI error handling', () => {
   it('sends cookies with every request', async () => {
     route(() => respond(200, { ok: true }))
 
-    await apiFetch('/admin/me')
+    await apiFetch('/me')
+    expect(String(fetchMock.mock.calls[0]![0])).toBe('https://example.test/api/v1/admin/me')
     expect(fetchMock.mock.calls[0]![1]).toMatchObject({ credentials: 'include' })
   })
 
@@ -129,7 +130,7 @@ describe('aPI error handling', () => {
 
   it('refreshes an expired session once and retries the concurrent requests', async () => {
     route((path, call) => {
-      if (path === '/admin/auth/refresh')
+      if (path === '/auth/refresh')
         return respond(204)
       return call === 0 ? respond(401, { message: 'Unauthorized' }) : respond(200, { path })
     })
@@ -138,7 +139,7 @@ describe('aPI error handling', () => {
       { path: '/tasks/1' },
       { path: '/tasks/2' },
     ])
-    expect(callsTo('/admin/auth/refresh')).toBe(1)
+    expect(callsTo('/auth/refresh')).toBe(1)
     expect(authStore.isLogin).toBe(true)
     expect(push).not.toHaveBeenCalled()
   })
@@ -164,7 +165,7 @@ describe('aPI error handling', () => {
   })
 
   it('signs out when the retried request is still unauthorized', async () => {
-    route(path => (path === '/admin/auth/refresh' ? respond(204) : respond(401, { message: 'Unauthorized' })))
+    route(path => (path === '/auth/refresh' ? respond(204) : respond(401, { message: 'Unauthorized' })))
 
     await expect(apiFetch('/tasks/1')).rejects.toMatchObject({ status: 401 })
     expect(callsTo('/tasks/1')).toBe(2)
@@ -172,13 +173,13 @@ describe('aPI error handling', () => {
     expect(push).toHaveBeenCalledTimes(1)
   })
 
-  it.each(['/admin/auth/login', '/admin/auth/forgot-password', '/admin/auth/reset-password'])(
+  it.each(['/auth/login', '/auth/forgot-password', '/auth/reset-password'])(
     'passes credential errors from %s through without refreshing',
     async (path) => {
       route(() => respond(401, { message: 'Email or password is incorrect' }))
 
       await expect(apiFetch(path, { method: 'post', body: {} })).rejects.toMatchObject({ status: 401 })
-      expect(callsTo('/admin/auth/refresh')).toBe(0)
+      expect(callsTo('/auth/refresh')).toBe(0)
       expect(authStore.isLogin).toBe(true)
       expect(push).not.toHaveBeenCalled()
     },

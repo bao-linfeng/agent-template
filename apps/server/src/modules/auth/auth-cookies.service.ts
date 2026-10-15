@@ -9,8 +9,9 @@ import { SessionsService } from './sessions.service.js'
 
 /**
  * Auth cookies are HttpOnly + SameSite=Lax. Each realm has its own cookie names, so signing in to the
- * client app and the admin console in one browser never overwrites the other session. The refresh
- * token is scoped to the realm's auth routes so it is not sent with ordinary API calls.
+ * client app and the admin console in one browser never overwrites the other session. Cookies are
+ * scoped to the realm's routes, and the refresh token to its auth routes so it is not sent with
+ * ordinary API calls.
  */
 @Injectable()
 export class AuthCookies {
@@ -30,11 +31,11 @@ export class AuthCookies {
     this.prefix = `/${config.get('API_PREFIX', { infer: true })}`
   }
 
-  /** Absolute cookie paths of a realm, e.g. `/api/admin/auth`. */
+  /** Absolute cookie paths of a realm, e.g. `/api/v1/admin/auth`. */
   paths(realm: Realm): { access: string; refresh: string } {
     const { accessPath, refreshPath } = REALM_COOKIES[realm]
     return {
-      access: accessPath ? `${this.prefix}${accessPath}` : '/',
+      access: `${this.prefix}${accessPath}`,
       refresh: `${this.prefix}${refreshPath}`,
     }
   }

@@ -16,13 +16,13 @@ import { SYSTEM_ROLES } from '../rbac/permissions.js'
 import { RbacService } from '../rbac/rbac.service.js'
 import type { CreateAdminDto } from './dto/admin.dto.js'
 
-/** `GET /admin/me`: the signed-in admin with role and permission codes (build menus from them). */
+/** `GET /v1/admin/me`: the signed-in admin with role and permission codes (build menus from them). */
 export interface AdminProfile extends PublicAccount {
   roles: string[]
   permissions: string[]
 }
 
-/** Admin accounts as listed in `/admin/admins`. */
+/** Admin accounts as listed in `/v1/admin/admins`. */
 export interface AdminView extends PublicAccount {
   roles: { id: string; code: string; name: string }[]
 }

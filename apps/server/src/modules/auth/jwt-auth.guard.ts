@@ -10,13 +10,16 @@ import type { Redis } from 'ioredis'
 import type { HttpRequest } from '../../common/http/request.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
 import { revokedSessionKey, type AccessTokenPayload } from './auth.constants.js'
+import { readBearerToken } from './bearer.js'
 import { IS_PUBLIC_KEY, REALM_KEY } from './decorators.js'
-import { REALM_COOKIES, type Realm } from './realms.js'
+import { BEARER_REALMS, REALM_COOKIES, type Realm } from './realms.js'
 
 /**
  * Global guard: every route requires a valid access token of its realm unless marked `@Public()`.
- * Admin routes (`@AdminController`) read `admin_access_token`, every other route `access_token`; a
- * token issued for the other realm is rejected. Revoked sessions are rejected via Redis.
+ * Client routes (`@ClientController`) read `access_token`, admin routes (`@AdminController`)
+ * `admin_access_token`; a token issued for the other realm is rejected. Realms in `BEARER_REALMS` also
+ * accept `Authorization: Bearer <access token>` (mini-programs, native apps), which wins over the cookie.
+ * A non-public route without a realm is a programming error. Revoked sessions are rejected via Redis.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -36,12 +39,20 @@ export class JwtAuthGuard implements CanActivate {
     ) {
       return true
     }
-    const realm =
-      this.reflector.getAllAndOverride<Realm | undefined>(REALM_KEY, targets) ??
-      'user'
+    const realm = this.reflector.getAllAndOverride<Realm | undefined>(
+      REALM_KEY,
+      targets,
+    )
+    if (!realm) {
+      throw new Error(
+        'Protected route without a realm: use @ClientController/@AdminController or @Public()',
+      )
+    }
 
     const request = context.switchToHttp().getRequest<HttpRequest>()
-    const token = request.cookies?.[REALM_COOKIES[realm].access]
+    const token =
+      (BEARER_REALMS.has(realm) ? readBearerToken(request) : undefined) ??
+      request.cookies?.[REALM_COOKIES[realm].access]
     if (!token) {
       throw new UnauthorizedException('Authentication required')
     }

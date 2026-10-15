@@ -66,3 +66,12 @@ export class ResetPasswordDto {
   @MaxLength(72)
   password!: string
 }
+
+/** Body of `refresh` and `logout`; browsers send nothing and use the refresh cookie instead. */
+export class RefreshTokenDto {
+  /** Bearer clients only (`X-Auth-Transport: bearer`): the refresh token from sign-in or the last refresh. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  refreshToken?: string
+}

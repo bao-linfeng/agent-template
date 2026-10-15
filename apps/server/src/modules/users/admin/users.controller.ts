@@ -3,10 +3,10 @@ import { ApiTags } from '@nestjs/swagger'
 import {
   AdminUpdateAccountDto,
   ListAccountsQueryDto,
-} from '../accounts/dto/account.dto.js'
-import { AccountsService } from '../accounts/accounts.service.js'
-import { AdminController } from '../auth/decorators.js'
-import { RequirePermissions } from '../rbac/policies.js'
+} from '../../accounts/dto/account.dto.js'
+import { AccountsService } from '../../accounts/accounts.service.js'
+import { AdminController } from '../../auth/decorators.js'
+import { RequirePermissions } from '../../rbac/policies.js'
 
 /** Client users as seen from the admin console (view, rename, enable/disable). */
 @ApiTags('admin / users')

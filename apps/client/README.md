@@ -9,7 +9,7 @@
 - **暗色模式切换**：`DarkMode` 组件，同步系统偏好
 - **Section Collector**：点击区块上的书签图标收藏到 `localStorage.uiCollection`；集合非空时导航栏出现 BuildY 按钮，打开 `public/buildy` 中的可视化页面构建器（读取集合和当前主题）
 - **账号体系**：注册（可选头像）、登录、忘记密码、重置密码、个人资料与头像管理
-- **自动 Token 刷新**：401 时调用 `POST /api/auth/refresh` 并重试，并发请求共享同一次刷新，刷新失败跳转登录页
+- **自动 Token 刷新**：401 时调用 `POST /api/v1/client/auth/refresh` 并重试，并发请求共享同一次刷新，刷新失败跳转登录页
 
 ## 📄 页面列表
 
@@ -29,7 +29,7 @@
 通过 `src/lib/api.ts` 与后端通信，底层是 `@repo/utils` 的 `createApiClient`（ofetch，`credentials: 'include'`，Cookie 认证，401 时自动刷新并重试一次）。
 
 - **接口基地址**：`VITE_API_BASE_URL`（默认 `http://localhost:3100/api`）
-- **会话**：Pinia store `useSessionStore()`（`src/stores/session.ts`，不持久化），在路由守卫中通过 `GET /users/me` 恢复登录态；退出或会话过期时清空 Vue Query 缓存
+- **会话**：Pinia store `useSessionStore()`（`src/stores/session.ts`，不持久化），在路由守卫中通过 `GET /api/v1/client/users/me` 恢复登录态；退出或会话过期时清空 Vue Query 缓存
 - **服务端状态**：TanStack Vue Query，`QueryClient` 在 `src/lib/query-client.ts`；页面提交统一用 `useMutation`（`isPending`/`error`），错误在表单内展示
 - **找回密码**：发送 `resetUrl: http://localhost:5174/reset-password`，后端校验来源
 

@@ -34,7 +34,7 @@ describe('api', () => {
 
     await expect(api('/users/me')).resolves.toEqual({ ok: true })
     const [url, init] = fetchMock.mock.calls[0]!
-    expect(url).toBe(`${API_BASE_URL}/users/me`)
+    expect(url).toBe(`${API_BASE_URL}/v1/client/users/me`)
     expect(init).toMatchObject({ credentials: 'include' })
   })
 

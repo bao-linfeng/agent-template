@@ -39,11 +39,30 @@ export const REALM_TABLES: Record<Realm, RealmTables> = {
   },
 }
 
+/** URI version of every realm route (`/<prefix>/v1/...`); public routes such as `/health` are unversioned. */
+export const API_VERSION = '1'
+
+/** Route segment of each realm below the version: `/<prefix>/v1/client/...`, `/<prefix>/v1/admin/...`. */
+export const REALM_ROUTES: Record<Realm, string> = {
+  user: 'client',
+  admin: 'admin',
+}
+
+/**
+ * Realms whose clients may skip cookies: mini-programs and native apps cannot keep HttpOnly cookies, so
+ * they send `X-Auth-Transport: bearer` to the credential endpoints, receive the tokens in the body and
+ * authenticate with `Authorization: Bearer <access token>`. The admin console is browser-only and
+ * stays cookie-only.
+ */
+export const BEARER_REALMS: ReadonlySet<Realm> = new Set<Realm>(['user'])
+
+const realmBase = (realm: Realm) => `/v${API_VERSION}/${REALM_ROUTES[realm]}`
+
 export interface RealmCookies {
   access: string
   refresh: string
-  /** Paths below the API prefix. Without `accessPath` the access token is sent site-wide (`/`). */
-  accessPath?: string
+  /** Paths below the API prefix: the access token goes to the realm's routes, the refresh token to its auth routes. */
+  accessPath: string
   refreshPath: string
 }
 
@@ -51,12 +70,13 @@ export const REALM_COOKIES: Record<Realm, RealmCookies> = {
   user: {
     access: 'access_token',
     refresh: 'refresh_token',
-    refreshPath: '/auth',
+    accessPath: realmBase('user'),
+    refreshPath: `${realmBase('user')}/auth`,
   },
   admin: {
     access: 'admin_access_token',
     refresh: 'admin_refresh_token',
-    accessPath: '/admin',
-    refreshPath: '/admin/auth',
+    accessPath: realmBase('admin'),
+    refreshPath: `${realmBase('admin')}/auth`,
   },
 }

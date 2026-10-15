@@ -19,22 +19,22 @@ export function resetPasswordPageUrl(origin = window.location.origin) {
   return `${origin}/auth/reset-password`
 }
 
-// Transport layer for admin console accounts (`/admin/auth`; there is no self-registration, admins are
+// Transport layer for admin console accounts (`/v1/admin/auth`; there is no self-registration, admins are
 // created under Admins). A successful login sets the HttpOnly admin session cookies.
 export function login(body: ILoginBody) {
-  return apiFetch<IUserProfile>('/admin/auth/login', { method: 'post', body })
+  return apiFetch<IUserProfile>('/auth/login', { method: 'post', body })
 }
 
 export function logout() {
-  return apiFetch<void>('/admin/auth/logout', { method: 'post' })
+  return apiFetch<void>('/auth/logout', { method: 'post' })
 }
 
 export function forgotPassword(email: string, resetUrl = resetPasswordPageUrl()) {
-  return apiFetch<{ message: string }>('/admin/auth/forgot-password', { method: 'post', body: { email, resetUrl } })
+  return apiFetch<{ message: string }>('/auth/forgot-password', { method: 'post', body: { email, resetUrl } })
 }
 
 export function resetPassword(body: IResetPasswordBody) {
-  return apiFetch<void>('/admin/auth/reset-password', { method: 'post', body })
+  return apiFetch<void>('/auth/reset-password', { method: 'post', body })
 }
 
 // Mutations (errors are toasted by the global MutationCache handler).

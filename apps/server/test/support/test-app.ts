@@ -15,6 +15,8 @@ import { configureApp, createFastifyAdapter } from '../../src/setup-app.js'
 export { E2E_ADMIN } from './constants.js'
 
 export const API = '/api'
+export const CLIENT_API = `${API}/v1/client`
+export const ADMIN_API = `${API}/v1/admin`
 
 export class Mailbox implements MailTransport {
   readonly sent: MailJob[] = []
@@ -72,7 +74,7 @@ export function uniqueEmail(prefix = 'user'): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}@e2e.test`
 }
 
-/** Registers a client user through `/auth/register` and returns a cookie-carrying agent. */
+/** Registers a client user through `/v1/client/auth/register` and returns a cookie-carrying agent. */
 export async function registerUser(
   testApp: TestApp,
   overrides: { email?: string; password?: string; nickname?: string } = {},
@@ -85,7 +87,7 @@ export async function registerUser(
   }
   const agent = testApp.agent()
   const response = await agent
-    .post(`${API}/auth/register`)
+    .post(`${CLIENT_API}/auth/register`)
     .send({ ...credentials, nickname })
     .expect(201)
   /** `credentials` is the login payload ({ email, password }). */
@@ -96,14 +98,14 @@ export async function registerUser(
   }
 }
 
-/** Signs in to the admin console (`/admin/auth/login`) and returns a cookie-carrying agent. */
+/** Signs in to the admin console (`/v1/admin/auth/login`) and returns a cookie-carrying agent. */
 export async function loginAdmin(
   testApp: TestApp,
   admin: { email: string; password: string },
 ) {
   const agent = testApp.agent()
   await agent
-    .post(`${API}/admin/auth/login`)
+    .post(`${ADMIN_API}/auth/login`)
     .send({ email: admin.email, password: admin.password })
     .expect(200)
   return agent
@@ -111,7 +113,7 @@ export async function loginAdmin(
 
 export type Agent = Awaited<ReturnType<typeof loginAdmin>>
 
-/** Creates an admin console account through `POST /admin/admins` (as `creator`) and signs it in. */
+/** Creates an admin console account through `POST /v1/admin/admins` (as `creator`) and signs it in. */
 export async function createAdmin(
   testApp: TestApp,
   creator: Agent,
@@ -122,7 +124,7 @@ export async function createAdmin(
     password: 'admin-password-1',
   }
   const response = await creator
-    .post(`${API}/admin/admins`)
+    .post(`${ADMIN_API}/admins`)
     .send({
       ...credentials,
       nickname: overrides.nickname ?? 'Operator',

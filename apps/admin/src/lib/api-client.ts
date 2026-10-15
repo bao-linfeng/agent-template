@@ -1,6 +1,7 @@
 /**
  * Admin instance of the shared cookie-session client from `@repo/utils` (ofetch, one shared
- * `POST /admin/auth/refresh` + retry on 401). The admin console signs in with admin accounts, which are
+ * `POST /auth/refresh` + retry on 401). Paths are relative to the admin realm root
+ * `<API_BASE_URL>/v1/admin`. The admin console signs in with admin accounts, which are
  * separate from client app users. When the session cannot be refreshed, it is cleared and the user is
  * sent to sign-in.
  */
@@ -32,9 +33,11 @@ async function handleUnauthorized() {
   await router.push({ path: '/auth/sign-in', query: redirect && redirect !== '/' ? { redirect } : undefined })
 }
 
+/** Versioned admin console routes of apps/server; client app routes live under `/v1/client`. */
+export const ADMIN_API_ROOT = '/v1/admin'
+
 export const { fetch: apiFetch, refreshSession } = createApiClient({
-  baseURL: API_BASE_URL,
-  authPath: '/admin/auth',
+  baseURL: `${API_BASE_URL}${ADMIN_API_ROOT}`,
   timeout: API_TIMEOUT ?? 5000,
   onUnauthorized: handleUnauthorized,
 })

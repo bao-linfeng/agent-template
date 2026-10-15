@@ -34,23 +34,23 @@ export type IUpdateRoleBody = Partial<Omit<ICreateRoleBody, 'code'>>
 
 // Transport layer (permissions: `role:read|create|update|delete`)
 export function fetchPermissions() {
-  return apiFetch<IPermission[]>('/admin/permissions', { method: 'get' })
+  return apiFetch<IPermission[]>('/permissions', { method: 'get' })
 }
 
 export function fetchRoles() {
-  return apiFetch<IRole[]>('/admin/roles', { method: 'get' })
+  return apiFetch<IRole[]>('/roles', { method: 'get' })
 }
 
 export function createRole(body: ICreateRoleBody) {
-  return apiFetch<IRole>('/admin/roles', { method: 'post', body })
+  return apiFetch<IRole>('/roles', { method: 'post', body })
 }
 
 export function updateRole(id: string, body: IUpdateRoleBody) {
-  return apiFetch<IRole>(`/admin/roles/${id}`, { method: 'patch', body })
+  return apiFetch<IRole>(`/roles/${id}`, { method: 'patch', body })
 }
 
 export function deleteRole(id: string) {
-  return apiFetch<void>(`/admin/roles/${id}`, { method: 'delete' })
+  return apiFetch<void>(`/roles/${id}`, { method: 'delete' })
 }
 
 // Query/mutation hooks

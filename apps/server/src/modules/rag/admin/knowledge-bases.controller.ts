@@ -9,16 +9,16 @@ import {
   Query,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { PaginationQueryDto } from '../../common/dto/pagination.dto.js'
-import { AdminController } from '../auth/decorators.js'
-import { RequirePermissions } from '../rbac/policies.js'
-import { DocumentsService } from './documents.service.js'
+import { PaginationQueryDto } from '../../../common/dto/pagination.dto.js'
+import { AdminController } from '../../auth/decorators.js'
+import { RequirePermissions } from '../../rbac/policies.js'
+import { DocumentsService } from '../documents.service.js'
 import {
   AdminListKnowledgeBasesQueryDto,
   SearchKnowledgeBaseDto,
-} from './dto/rag.dto.js'
-import { KnowledgeBasesService } from './knowledge-bases.service.js'
-import { RetrievalService } from './retrieval.service.js'
+} from '../dto/rag.dto.js'
+import { KnowledgeBasesService } from '../knowledge-bases.service.js'
+import { RetrievalService } from '../retrieval.service.js'
 
 /** Every client user's knowledge bases, for administrators (`knowledge-base:read` / `knowledge-base:manage`). */
 @ApiTags('admin / rag')

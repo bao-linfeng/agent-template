@@ -31,7 +31,7 @@ const fileUploadBody = {
 
 /**
  * Self-service routes of the signed-in account (profile, avatar, password, sessions), shared by
- * `/users/me` (client) and `/admin/me` (admin console). Subclasses add the controller decorator and
+ * `/v1/client/users/me` (client) and `/v1/admin/me` (admin console). Subclasses add the controller decorator and
  * decide what the profile contains. The realm comes from the session (`user.realm`), which the auth
  * guard has already matched against the controller's realm.
  */

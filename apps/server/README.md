@@ -6,11 +6,11 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 
 | 模块 | 能力 |
 | ---- | ---- |
-| 认证 `auth` | 客户端用户与后台管理员是两套独立账号（不同的表、会话、Cookie）。客户端 `/api/auth/*`：注册即登录、登录、刷新令牌轮换（重放检测）、退出、忘记/重置密码；后台 `/api/admin/auth/*`：同样的流程但不开放注册。凭证接口独立限流 |
-| 账号 `accounts` / `users` / `admins` | 个人资料、头像上传（RustFS，按文件头校验格式）、修改密码、会话列表与下线（客户端 `/api/users/me`，后台 `/api/admin/me`）；后台管理客户端用户 `/api/admin/users`（编辑、禁用）和管理员账号 `/api/admin/admins`（新建、编辑、禁用、分配角色） |
+| 认证 `auth` | 客户端用户与后台管理员是两套独立账号（不同的表、会话、Cookie）。客户端 `/api/v1/client/auth/*`：注册即登录、登录、刷新令牌轮换（重放检测）、退出、忘记/重置密码；后台 `/api/v1/admin/auth/*`：同样的流程但不开放注册。凭证接口独立限流 |
+| 账号 `accounts` / `users` / `admins` | 个人资料、头像上传（RustFS，按文件头校验格式）、修改密码、会话列表与下线（客户端 `/api/v1/client/users/me`，后台 `/api/v1/admin/me`）；后台管理客户端用户 `/api/v1/admin/users`（编辑、禁用）和管理员账号 `/api/v1/admin/admins`（新建、编辑、禁用、分配角色） |
 | 权限 `rbac` | 只作用于后台管理员：角色 + 权限码（`user:read`、`admin:create` 等，CASL）；系统角色 `super_admin` / `admin`。客户端用户没有角色，只能操作自己的数据 |
 | AI `ai` | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型） |
-| RAG `rag` | 客户端用户自己的知识库（`/api/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/admin/rag/knowledge-bases` 查看/删除所有知识库 |
+| RAG `rag` | 客户端用户自己的知识库（`/api/v1/client/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/v1/admin/rag/knowledge-bases` 查看/删除所有知识库 |
 | 基础设施 | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Swagger、请求 ID 与结构化日志 |
 
 ## 快速开始
@@ -36,7 +36,7 @@ docker compose --profile ai up -d
 docker compose exec ollama ollama pull bge-m3
 ```
 
-默认模型指向 `http://localhost:11434/v1`。也可以在后台 `/api/admin/ai/embedding-models` 改成其他 OpenAI 兼容服务（vLLM、Xinference、TEI、SiliconFlow、OpenAI 等）。
+默认模型指向 `http://localhost:11434/v1`。也可以在后台 `/api/v1/admin/ai/embedding-models` 改成其他 OpenAI 兼容服务（vLLM、Xinference、TEI、SiliconFlow、OpenAI 等）。
 
 ## 常用脚本
 
@@ -57,10 +57,11 @@ docker compose exec ollama ollama pull bge-m3
 
 - 所有接口都在 `/api` 前缀下，返回原始 JSON；列表接口返回 `{ items, total, page, pageSize }`。
 - 跨域请求需要带上 Cookie（`credentials: 'include'`），允许的来源由 `CORS_ORIGINS` 配置（默认 5175 / 5174）。
-- 客户端用户和后台管理员是两套账号：客户端调用 `/api/auth/*`、`/api/users/me` 等，Cookie 为 `access_token`/`refresh_token`；管理端调用 `/api/admin/auth/*` 和其他 `/api/admin/*`，Cookie 为 `admin_access_token`/`admin_refresh_token`。同一浏览器可同时登录两边，互不影响；同一邮箱在两边是两个无关的账号。
-- 接口返回 401 时先调用对应的 `POST /api/auth/refresh`（管理端为 `/api/admin/auth/refresh`），刷新成功后重试原请求；刷新仍返回 401 时跳转登录页。
-- `GET /api/admin/me` 会返回管理员的 `roles` 和 `permissions`，可用于渲染菜单和按钮权限；客户端的 `GET /api/users/me` 不含角色和权限。
+- 客户端用户和后台管理员是两套账号：客户端调用 `/api/v1/client/auth/*`、`/api/v1/client/users/me` 等，Cookie 为 `access_token`/`refresh_token`；管理端调用 `/api/v1/admin/auth/*` 和其他 `/api/v1/admin/*`，Cookie 为 `admin_access_token`/`admin_refresh_token`。同一浏览器可同时登录两边，互不影响；同一邮箱在两边是两个无关的账号。
+- 接口返回 401 时先调用对应的 `POST /api/v1/client/auth/refresh`（管理端为 `/api/v1/admin/auth/refresh`），刷新成功后重试原请求；刷新仍返回 401 时跳转登录页。
+- 小程序、原生 App 等无法使用 HttpOnly Cookie 的客户端走客户端账号体系的 Bearer 模式：请求 `/api/v1/client/auth/{login,register,refresh,logout}` 时带上 `X-Auth-Transport: bearer`，登录/注册返回 `{ account, tokens }`（`tokens` 含 `accessToken`、`expiresIn`、`refreshToken`、`refreshExpiresIn`），不写 Cookie；之后的请求带 `Authorization: Bearer <accessToken>`；401 时用 `POST /api/v1/client/auth/refresh` + body `{ refreshToken }` 换取新的 `tokens`（refresh token 每次都会轮换，需覆盖保存）；退出时带上 `Authorization` 和/或 body `refreshToken`。管理端只支持 Cookie。
+- `GET /api/v1/admin/me` 会返回管理员的 `roles` 和 `permissions`，可用于渲染菜单和按钮权限；客户端的 `GET /api/v1/client/users/me` 不含角色和权限。
 - 第一个后台超级管理员由 `pnpm db:seed`（`SEED_ADMIN_*`）创建，之后的管理员在后台“Admins”页面新建。
-- 找回密码时可传 `resetUrl`（例如管理端的 `http://localhost:5175/auth/reset-password`），来源必须是 `APP_WEB_URL` 或 `CORS_ORIGINS` 之一，否则返回 400；不传时链接为 `APP_WEB_URL/reset-password?token=...`。前端页面拿到 token 后调用对应的 `POST /api/auth/reset-password` 或 `POST /api/admin/auth/reset-password`。
+- 找回密码时可传 `resetUrl`（例如管理端的 `http://localhost:5175/auth/reset-password`），来源必须是 `APP_WEB_URL` 或 `CORS_ORIGINS` 之一，否则返回 400；不传时链接为 `APP_WEB_URL/reset-password?token=...`。前端页面拿到 token 后调用对应的 `POST /api/v1/client/auth/reset-password` 或 `POST /api/v1/admin/auth/reset-password`。
 - 修改密码时当前密码错误返回 400（不是 401），以免前端误判为登录过期。
 - CORS 允许 `GET/HEAD/POST/PUT/PATCH/DELETE`；`@fastify/cors` 默认只放行前三种，新增方法时同步修改 `setup-app.ts`。
