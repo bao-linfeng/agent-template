@@ -1,25 +1,25 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
-const DEV_JWT_SECRET = 'local-development-only-jwt-secret-change-me';
+const DEV_JWT_SECRET = 'local-development-only-jwt-secret-change-me'
 // 32 zero bytes, base64. Only usable outside production.
-const DEV_ENCRYPTION_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=';
+const DEV_ENCRYPTION_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
 
 const booleanString = z
   .enum(['true', 'false', '1', '0'])
-  .transform((value) => value === 'true' || value === '1');
+  .transform((value) => value === 'true' || value === '1')
 
 const csv = z.string().transform((value) =>
   value
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean),
-);
+)
 
 const base64Key32 = z
   .string()
   .refine((value) => Buffer.from(value, 'base64').length === 32, {
     message: 'must be 32 bytes encoded as base64 (openssl rand -base64 32)',
-  });
+  })
 
 export const envSchema = z
   .object({
@@ -106,7 +106,7 @@ export const envSchema = z
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') {
-      return;
+      return
     }
     for (const key of ['JWT_SECRET', 'ENCRYPTION_KEY'] as const) {
       if (!env[key]) {
@@ -114,29 +114,29 @@ export const envSchema = z
           code: 'custom',
           path: [key],
           message: `${key} must be set in production`,
-        });
+        })
       }
     }
   })
   .transform((env) => {
-    const isProduction = env.NODE_ENV === 'production';
+    const isProduction = env.NODE_ENV === 'production'
     return {
       ...env,
       JWT_SECRET: env.JWT_SECRET ?? DEV_JWT_SECRET,
       ENCRYPTION_KEY: env.ENCRYPTION_KEY ?? DEV_ENCRYPTION_KEY,
       COOKIE_SECURE: env.COOKIE_SECURE ?? isProduction,
       SWAGGER_ENABLED: env.SWAGGER_ENABLED ?? !isProduction,
-    };
-  });
+    }
+  })
 
-export type Env = z.output<typeof envSchema>;
+export type Env = z.output<typeof envSchema>
 
 export function validateEnv(raw: Record<string, unknown>): Env {
-  const result = envSchema.safeParse(raw);
+  const result = envSchema.safeParse(raw)
   if (!result.success) {
     throw new Error(
       `Invalid environment configuration:\n${z.prettifyError(result.error)}`,
-    );
+    )
   }
-  return result.data;
+  return result.data
 }

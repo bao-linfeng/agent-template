@@ -4,41 +4,41 @@ import {
   Injectable,
   Logger,
   UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { and, eq, gt, isNull } from 'drizzle-orm';
-import type { Redis } from 'ioredis';
-import { randomToken, sha256 } from '../../common/crypto/crypto.js';
-import type { RequestMeta } from '../../common/http/request.js';
-import type { Env } from '../../config/env.js';
-import type { Database } from '../../database/database.js';
-import { InjectDb } from '../../database/database.module.js';
-import { mailTemplates } from '../../infra/mail/mail.templates.js';
-import { MailService } from '../../infra/mail/mail.service.js';
-import { InjectRedis } from '../../infra/redis/redis.module.js';
+} from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { JwtService } from '@nestjs/jwt'
+import { and, eq, gt, isNull } from 'drizzle-orm'
+import type { Redis } from 'ioredis'
+import { randomToken, sha256 } from '../../common/crypto/crypto.js'
+import type { RequestMeta } from '../../common/http/request.js'
+import type { Env } from '../../config/env.js'
+import type { Database } from '../../database/database.js'
+import { InjectDb } from '../../database/database.module.js'
+import { mailTemplates } from '../../infra/mail/mail.templates.js'
+import { MailService } from '../../infra/mail/mail.service.js'
+import { InjectRedis } from '../../infra/redis/redis.module.js'
 import {
   AccountsService,
   normalizeEmail,
   type AccountRow,
-} from '../accounts/accounts.service.js';
-import type { AccessTokenPayload } from './auth.constants.js';
+} from '../accounts/accounts.service.js'
+import type { AccessTokenPayload } from './auth.constants.js'
 import type {
   ForgotPasswordDto,
   LoginDto,
   RegisterDto,
   ResetPasswordDto,
-} from './dto/auth.dto.js';
-import { PasswordHasher } from './password-hasher.service.js';
-import { REALM_TABLES, type Realm } from './realms.js';
-import { SessionsService, type IssuedTokens } from './sessions.service.js';
+} from './dto/auth.dto.js'
+import { PasswordHasher } from './password-hasher.service.js'
+import { REALM_TABLES, type Realm } from './realms.js'
+import { SessionsService, type IssuedTokens } from './sessions.service.js'
 
 export interface AuthResult {
-  tokens: IssuedTokens;
-  account: AccountRow;
+  tokens: IssuedTokens
+  account: AccountRow
 }
 
-const RESET_REQUEST_COOLDOWN_SECONDS = 60;
+const RESET_REQUEST_COOLDOWN_SECONDS = 60
 
 /**
  * Credential flows for both realms. An email only exists within its realm: signing in to the admin
@@ -46,7 +46,7 @@ const RESET_REQUEST_COOLDOWN_SECONDS = 60;
  */
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
+  private readonly logger = new Logger(AuthService.name)
 
   constructor(
     @InjectDb() private readonly db: Database,
@@ -63,9 +63,9 @@ export class AuthService {
   async register(dto: RegisterDto, meta: RequestMeta): Promise<AuthResult> {
     const account = await this.accounts.create('user', dto, undefined, {
       lastLoginAt: new Date(),
-    });
-    const tokens = await this.sessions.create('user', account, meta);
-    return { tokens, account };
+    })
+    const tokens = await this.sessions.create('user', account, meta)
+    return { tokens, account }
   }
 
   async login(
@@ -73,19 +73,19 @@ export class AuthService {
     dto: LoginDto,
     meta: RequestMeta,
   ): Promise<AuthResult> {
-    const account = await this.accounts.findByEmail(realm, dto.email);
+    const account = await this.accounts.findByEmail(realm, dto.email)
     const valid = account
       ? await this.hasher.verify(dto.password, account.passwordHash)
-      : await this.hasher.verifyAgainstDummy(dto.password);
+      : await this.hasher.verifyAgainstDummy(dto.password)
     if (!account || !valid) {
-      throw new UnauthorizedException('Email or password is incorrect');
+      throw new UnauthorizedException('Email or password is incorrect')
     }
     if (account.status !== 'active') {
-      throw new ForbiddenException('This account has been disabled');
+      throw new ForbiddenException('This account has been disabled')
     }
-    const tokens = await this.sessions.create(realm, account, meta);
-    await this.accounts.touchLastLogin(realm, account.id);
-    return { tokens, account };
+    const tokens = await this.sessions.create(realm, account, meta)
+    await this.accounts.touchLastLogin(realm, account.id)
+    return { tokens, account }
   }
 
   refresh(
@@ -94,12 +94,12 @@ export class AuthService {
     meta: RequestMeta,
   ): Promise<IssuedTokens> {
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token missing');
+      throw new UnauthorizedException('Refresh token missing')
     }
     return this.sessions.rotate(realm, refreshToken, meta, async (id) => {
-      const account = await this.accounts.findById(realm, id);
-      return account?.status === 'active' ? account : undefined;
-    });
+      const account = await this.accounts.findById(realm, id)
+      return account?.status === 'active' ? account : undefined
+    })
   }
 
   /** Revokes the session identified by either cookie; never fails so the client can always sign out. */
@@ -111,16 +111,16 @@ export class AuthService {
     if (accessToken) {
       try {
         const payload =
-          await this.jwt.verifyAsync<AccessTokenPayload>(accessToken);
+          await this.jwt.verifyAsync<AccessTokenPayload>(accessToken)
         if (payload.realm === realm) {
-          await this.sessions.revoke(realm, payload.sid);
-          return;
+          await this.sessions.revoke(realm, payload.sid)
+          return
         }
       } catch {
         // Expired or invalid: fall back to the refresh token.
       }
     }
-    await this.sessions.revokeByRefreshToken(realm, refreshToken);
+    await this.sessions.revokeByRefreshToken(realm, refreshToken)
   }
 
   /**
@@ -132,28 +132,28 @@ export class AuthService {
     dto: ForgotPasswordDto,
     meta: RequestMeta,
   ): Promise<void> {
-    const resetUrl = this.resolveResetUrl(dto.resetUrl);
-    const email = normalizeEmail(dto.email);
+    const resetUrl = this.resolveResetUrl(dto.resetUrl)
+    const email = normalizeEmail(dto.email)
     const cooldown = await this.redis.set(
       `auth:password-reset:cooldown:${realm}:${sha256(email)}`,
       '1',
       'EX',
       RESET_REQUEST_COOLDOWN_SECONDS,
       'NX',
-    );
+    )
     if (cooldown !== 'OK') {
-      return;
+      return
     }
-    const account = await this.accounts.findByEmail(realm, email);
+    const account = await this.accounts.findByEmail(realm, email)
     if (!account || account.status !== 'active') {
-      return;
+      return
     }
 
-    const { resetTokens } = REALM_TABLES[realm];
-    const token = randomToken();
+    const { resetTokens } = REALM_TABLES[realm]
+    const token = randomToken()
     const ttlSeconds = this.config.get('PASSWORD_RESET_TTL_SECONDS', {
       infer: true,
-    });
+    })
     await this.db.transaction(async (tx) => {
       // Only the latest link stays valid.
       await tx
@@ -161,16 +161,16 @@ export class AuthService {
         .set({ usedAt: new Date() })
         .where(
           and(eq(resetTokens.userId, account.id), isNull(resetTokens.usedAt)),
-        );
+        )
       await tx.insert(resetTokens).values({
         userId: account.id,
         tokenHash: sha256(token),
         expiresAt: new Date(Date.now() + ttlSeconds * 1000),
         requestIp: meta.ip,
-      });
-    });
+      })
+    })
 
-    resetUrl.searchParams.set('token', token);
+    resetUrl.searchParams.set('token', token)
     await this.mail.send(
       account.email,
       mailTemplates.passwordReset({
@@ -178,32 +178,32 @@ export class AuthService {
         resetUrl: resetUrl.toString(),
         expiresInMinutes: Math.round(ttlSeconds / 60),
       }),
-    );
-    this.logger.log(`Password reset requested for ${realm} ${account.id}`);
+    )
+    this.logger.log(`Password reset requested for ${realm} ${account.id}`)
   }
 
   /** Reset links may only point at the configured web apps, so the email cannot be turned into a phishing link. */
   private resolveResetUrl(requested: string | undefined): URL {
-    const appWebUrl = this.config.get('APP_WEB_URL', { infer: true });
+    const appWebUrl = this.config.get('APP_WEB_URL', { infer: true })
     if (!requested) {
-      return new URL('/reset-password', appWebUrl);
+      return new URL('/reset-password', appWebUrl)
     }
-    const url = new URL(requested);
+    const url = new URL(requested)
     const trusted = new Set(
       [appWebUrl, ...this.config.get('CORS_ORIGINS', { infer: true })]
         .filter((origin) => URL.canParse(origin))
         .map((origin) => new URL(origin).origin),
-    );
+    )
     if (!trusted.has(url.origin)) {
-      throw new BadRequestException('resetUrl must point to a trusted web app');
+      throw new BadRequestException('resetUrl must point to a trusted web app')
     }
-    url.hash = '';
-    return url;
+    url.hash = ''
+    return url
   }
 
   /** Consumes a reset token, sets the new password and signs out every session. */
   async resetPassword(realm: Realm, dto: ResetPasswordDto): Promise<void> {
-    const { resetTokens } = REALM_TABLES[realm];
+    const { resetTokens } = REALM_TABLES[realm]
     const [consumed] = await this.db
       .update(resetTokens)
       .set({ usedAt: new Date() })
@@ -214,13 +214,13 @@ export class AuthService {
           gt(resetTokens.expiresAt, new Date()),
         ),
       )
-      .returning({ userId: resetTokens.userId });
+      .returning({ userId: resetTokens.userId })
     const account = consumed
       ? await this.accounts.findById(realm, consumed.userId)
-      : undefined;
+      : undefined
     if (!account || account.status !== 'active') {
-      throw new BadRequestException('Reset link is invalid or has expired');
+      throw new BadRequestException('Reset link is invalid or has expired')
     }
-    await this.accounts.setPassword(realm, account, dto.password);
+    await this.accounts.setPassword(realm, account, dto.password)
   }
 }

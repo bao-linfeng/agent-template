@@ -4,22 +4,22 @@ import {
   subject,
   type ForcedSubject,
   type MongoAbility,
-} from '@casl/ability';
+} from '@casl/ability'
 import {
   isPermission,
   parsePermission,
   type Action,
   type SubjectName,
-} from './permissions.js';
+} from './permissions.js'
 
 /** Subject types, or rows tagged with `asSubject()` when a rule needs conditions. */
 export type AppSubject =
-  SubjectName | ForcedSubject<Exclude<SubjectName, 'all'>>;
-export type AppAbility = MongoAbility<[Action, AppSubject]>;
+  SubjectName | ForcedSubject<Exclude<SubjectName, 'all'>>
+export type AppAbility = MongoAbility<[Action, AppSubject]>
 
 export interface AbilityAdmin {
-  id: string;
-  permissions: readonly string[];
+  id: string
+  permissions: readonly string[]
 }
 
 /**
@@ -28,14 +28,14 @@ export interface AbilityAdmin {
  * `assertCan(ability, action, asSubject(type, row))`.
  */
 export function defineAbilityFor(admin: AbilityAdmin): AppAbility {
-  const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
+  const { can, build } = new AbilityBuilder<AppAbility>(createMongoAbility)
   for (const permission of admin.permissions) {
     if (isPermission(permission)) {
-      const { action, subject: subjectType } = parsePermission(permission);
-      can(action, subjectType);
+      const { action, subject: subjectType } = parsePermission(permission)
+      can(action, subjectType)
     }
   }
-  return build();
+  return build()
 }
 
 /**
@@ -50,8 +50,8 @@ export function canAny(
 ): boolean {
   const rule = ability
     .rulesFor(action, subjectType)
-    .find((candidate) => !candidate.conditions);
-  return Boolean(rule && !rule.inverted);
+    .find((candidate) => !candidate.conditions)
+  return Boolean(rule && !rule.inverted)
 }
 
 /** Tags a database row with its CASL subject type for instance-level checks. */
@@ -59,5 +59,5 @@ export function asSubject<
   S extends Exclude<SubjectName, 'all'>,
   T extends object,
 >(type: S, row: T) {
-  return subject(type, row);
+  return subject(type, row)
 }

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config'
 
 // E2E tests boot the real Fastify app against throwaway Postgres/Redis/RustFS containers (Docker required).
 export default defineConfig({
@@ -13,4 +13,4 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 240_000,
   },
-});
+})

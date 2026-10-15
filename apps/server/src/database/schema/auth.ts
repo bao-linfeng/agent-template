@@ -6,8 +6,8 @@ import {
   uuid,
   varchar,
   type AnyPgColumn,
-} from 'drizzle-orm/pg-core';
-import { adminUsers, users } from './users.js';
+} from 'drizzle-orm/pg-core'
+import { adminUsers, users } from './users.js'
 
 /** One row per login. The refresh token is `<session id>.<secret>`; only the secret's hash is stored. */
 const sessionTable = <N extends string>(name: N, account: () => AnyPgColumn) =>
@@ -28,7 +28,7 @@ const sessionTable = <N extends string>(name: N, account: () => AnyPgColumn) =>
       createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [index().on(table.userId)],
-  );
+  )
 
 const passwordResetTable = <N extends string>(
   name: N,
@@ -46,22 +46,19 @@ const passwordResetTable = <N extends string>(
       createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [index().on(table.userId)],
-  );
+  )
 
-export const authSessions = sessionTable('auth_sessions', () => users.id);
+export const authSessions = sessionTable('auth_sessions', () => users.id)
 export const passwordResetTokens = passwordResetTable(
   'password_reset_tokens',
   () => users.id,
-);
+)
 
 /** Same shape as the client tables; `user_id` references `admin_users`. */
-export const adminSessions = sessionTable(
-  'admin_sessions',
-  () => adminUsers.id,
-);
+export const adminSessions = sessionTable('admin_sessions', () => adminUsers.id)
 export const adminPasswordResetTokens = passwordResetTable(
   'admin_password_reset_tokens',
   () => adminUsers.id,
-);
+)
 
-export type AuthSessionRow = typeof authSessions.$inferSelect;
+export type AuthSessionRow = typeof authSessions.$inferSelect

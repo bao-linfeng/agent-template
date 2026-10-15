@@ -1,9 +1,9 @@
-import { existsSync } from 'node:fs';
-import { defineConfig } from 'drizzle-kit';
+import { existsSync } from 'node:fs'
+import { defineConfig } from 'drizzle-kit'
 
 for (const file of ['.env.local', '.env']) {
   if (existsSync(file)) {
-    process.loadEnvFile(file);
+    process.loadEnvFile(file)
   }
 }
 
@@ -17,4 +17,4 @@ export default defineConfig({
   },
   strict: true,
   verbose: true,
-});
+})

@@ -8,10 +8,10 @@ import {
   timestamp,
   uuid,
   varchar,
-} from 'drizzle-orm/pg-core';
-import { embeddingModels } from './ai.js';
-import { timestamps, vector } from './columns.js';
-import { users } from './users.js';
+} from 'drizzle-orm/pg-core'
+import { embeddingModels } from './ai.js'
+import { timestamps, vector } from './columns.js'
+import { users } from './users.js'
 
 export const knowledgeBases = pgTable(
   'rag_knowledge_bases',
@@ -31,15 +31,15 @@ export const knowledgeBases = pgTable(
     ...timestamps,
   },
   (table) => [index().on(table.ownerId)],
-);
+)
 
 export const documentStatus = pgEnum('rag_document_status', [
   'pending',
   'processing',
   'ready',
   'failed',
-]);
-export const documentSource = pgEnum('rag_document_source', ['file', 'text']);
+])
+export const documentSource = pgEnum('rag_document_source', ['file', 'text'])
 
 export const documents = pgTable(
   'rag_documents',
@@ -61,7 +61,7 @@ export const documents = pgTable(
     ...timestamps,
   },
   (table) => [index().on(table.knowledgeBaseId)],
-);
+)
 
 export const chunks = pgTable(
   'rag_chunks',
@@ -84,8 +84,8 @@ export const chunks = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index().on(table.knowledgeBaseId), index().on(table.documentId)],
-);
+)
 
-export type KnowledgeBaseRow = typeof knowledgeBases.$inferSelect;
-export type DocumentRow = typeof documents.$inferSelect;
-export type DocumentStatus = (typeof documentStatus.enumValues)[number];
+export type KnowledgeBaseRow = typeof knowledgeBases.$inferSelect
+export type DocumentRow = typeof documents.$inferSelect
+export type DocumentStatus = (typeof documentStatus.enumValues)[number]

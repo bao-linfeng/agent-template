@@ -1,13 +1,13 @@
-import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../config/env.js';
+import { BullModule } from '@nestjs/bullmq'
+import { Module } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import type { Env } from '../../config/env.js'
 
 /** Queue names. Register a queue with `BullModule.registerQueue({ name })` in the feature module. */
 export const QUEUES = {
   mail: 'mail',
   ragIngest: 'rag-ingest',
-} as const;
+} as const
 
 @Module({
   imports: [

@@ -26,26 +26,26 @@ const SIGNATURES = [
       b.subarray(0, 4).toString('latin1') === 'RIFF' &&
       b.subarray(8, 12).toString('latin1') === 'WEBP',
   },
-] as const;
+] as const
 
-export type AvatarExtension = (typeof SIGNATURES)[number]['ext'];
+export type AvatarExtension = (typeof SIGNATURES)[number]['ext']
 
 export function detectImageType(
   buffer: Buffer,
 ): { ext: AvatarExtension; mime: string } | undefined {
   const match = SIGNATURES.find(
     (signature) => buffer.length >= 12 && signature.test(buffer),
-  );
-  return match ? { ext: match.ext, mime: match.mime } : undefined;
+  )
+  return match ? { ext: match.ext, mime: match.mime } : undefined
 }
 
-export const AVATAR_FILE_PATTERN = /^[0-9a-f-]{36}\.(png|jpg|gif|webp)$/;
+export const AVATAR_FILE_PATTERN = /^[0-9a-f-]{36}\.(png|jpg|gif|webp)$/
 
 export const AVATAR_MIME_BY_EXT: Record<AvatarExtension, string> =
   Object.fromEntries(
     SIGNATURES.map((signature) => [signature.ext, signature.mime]),
-  ) as Record<AvatarExtension, string>;
+  ) as Record<AvatarExtension, string>
 
 export function avatarKey(userId: string, fileName: string): string {
-  return `avatars/${userId}/${fileName}`;
+  return `avatars/${userId}/${fileName}`
 }

@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 /**
  * Loads `.env.local` and `.env` from the server root into `process.env` without overriding variables
@@ -8,14 +8,14 @@ import { resolve } from 'node:path';
  */
 export function loadEnvFiles(cwd = process.cwd()): void {
   if (process.env.NODE_ENV === 'test') {
-    return;
+    return
   }
   for (const file of ['.env.local', '.env']) {
-    const path = resolve(cwd, file);
+    const path = resolve(cwd, file)
     if (existsSync(path)) {
-      process.loadEnvFile(path);
+      process.loadEnvFile(path)
     }
   }
 }
 
-loadEnvFiles();
+loadEnvFiles()

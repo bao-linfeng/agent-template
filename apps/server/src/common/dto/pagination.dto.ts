@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Type } from 'class-transformer'
 import {
   IsInt,
   IsOptional,
@@ -6,7 +6,7 @@ import {
   Max,
   MaxLength,
   Min,
-} from 'class-validator';
+} from 'class-validator'
 
 export class PaginationQueryDto {
   /** 1-based page number. */
@@ -14,34 +14,34 @@ export class PaginationQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page: number = 1;
+  page: number = 1
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)
-  pageSize: number = 20;
+  pageSize: number = 20
 
   /** Free-text filter; each list endpoint documents which fields it matches. */
   @IsOptional()
   @IsString()
   @MaxLength(100)
-  keyword?: string;
+  keyword?: string
 }
 
 export interface Paginated<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export function pageOffset(query: PaginationQueryDto): number {
-  return (query.page - 1) * query.pageSize;
+  return (query.page - 1) * query.pageSize
 }
 
 /** Escapes `%`, `_` and `\` so user input is matched literally inside ILIKE patterns. */
 export function likePattern(keyword: string): string {
-  return `%${keyword.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+  return `%${keyword.replace(/[\\%_]/g, (char) => `\\${char}`)}%`
 }

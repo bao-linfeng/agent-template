@@ -1,11 +1,11 @@
-import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
-import type { Queue } from 'bullmq';
-import { QUEUES } from '../queue/queue.module.js';
-import type { RenderedMail } from './mail.templates.js';
+import { InjectQueue } from '@nestjs/bullmq'
+import { Injectable } from '@nestjs/common'
+import type { Queue } from 'bullmq'
+import { QUEUES } from '../queue/queue.module.js'
+import type { RenderedMail } from './mail.templates.js'
 
 export interface MailJob extends RenderedMail {
-  to: string;
+  to: string
 }
 
 /** Sends mail asynchronously through the `mail` queue; delivery is retried by BullMQ. */
@@ -16,6 +16,6 @@ export class MailService {
   ) {}
 
   async send(to: string, mail: RenderedMail): Promise<void> {
-    await this.queue.add('send', { to, ...mail }, { attempts: 5 });
+    await this.queue.add('send', { to, ...mail }, { attempts: 5 })
   }
 }

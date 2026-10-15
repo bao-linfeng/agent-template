@@ -1,38 +1,35 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
-import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm';
-import type { Redis } from 'ioredis';
+import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { JwtService } from '@nestjs/jwt'
+import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm'
+import type { Redis } from 'ioredis'
 import {
   randomToken,
   safeEqualHex,
   sha256,
-} from '../../common/crypto/crypto.js';
-import type { RequestMeta } from '../../common/http/request.js';
-import type { Env } from '../../config/env.js';
-import type { Database, DbExecutor } from '../../database/database.js';
-import { InjectDb } from '../../database/database.module.js';
-import { InjectRedis } from '../../infra/redis/redis.module.js';
-import {
-  revokedSessionKey,
-  type AccessTokenPayload,
-} from './auth.constants.js';
-import { REALM_TABLES, type Realm } from './realms.js';
+} from '../../common/crypto/crypto.js'
+import type { RequestMeta } from '../../common/http/request.js'
+import type { Env } from '../../config/env.js'
+import type { Database, DbExecutor } from '../../database/database.js'
+import { InjectDb } from '../../database/database.module.js'
+import { InjectRedis } from '../../infra/redis/redis.module.js'
+import { revokedSessionKey, type AccessTokenPayload } from './auth.constants.js'
+import { REALM_TABLES, type Realm } from './realms.js'
 
 export interface IssuedTokens {
-  sessionId: string;
-  accessToken: string;
-  refreshToken: string;
+  sessionId: string
+  accessToken: string
+  refreshToken: string
 }
 
 /** Concurrent refreshes (several tabs) may present the just-rotated token for this long without being treated as theft. */
-const ROTATION_GRACE_MS = 30_000;
+const ROTATION_GRACE_MS = 30_000
 
 /** Login sessions of both realms; every method works on the session table of the given realm. */
 @Injectable()
 export class SessionsService {
-  readonly accessTtlSeconds: number;
-  readonly refreshTtlSeconds: number;
+  readonly accessTtlSeconds: number
+  readonly refreshTtlSeconds: number
 
   constructor(
     @InjectDb() private readonly db: Database,
@@ -42,10 +39,10 @@ export class SessionsService {
   ) {
     this.accessTtlSeconds = config.get('ACCESS_TOKEN_TTL_SECONDS', {
       infer: true,
-    });
+    })
     this.refreshTtlSeconds = config.get('REFRESH_TOKEN_TTL_SECONDS', {
       infer: true,
-    });
+    })
   }
 
   async create(
@@ -54,8 +51,8 @@ export class SessionsService {
     meta: RequestMeta,
     executor: DbExecutor = this.db,
   ): Promise<IssuedTokens> {
-    const { sessions } = REALM_TABLES[realm];
-    const secret = randomToken();
+    const { sessions } = REALM_TABLES[realm]
+    const secret = randomToken()
     const [session] = await executor
       .insert(sessions)
       .values({
@@ -66,8 +63,8 @@ export class SessionsService {
         expiresAt: new Date(Date.now() + this.refreshTtlSeconds * 1000),
         lastUsedAt: new Date(),
       })
-      .returning({ id: sessions.id });
-    return this.issue(realm, user, session!.id, secret);
+      .returning({ id: sessions.id })
+    return this.issue(realm, user, session!.id, secret)
   }
 
   /** Exchanges a refresh token for a new pair; the old refresh token stops working. */
@@ -79,41 +76,41 @@ export class SessionsService {
       userId: string,
     ) => Promise<{ id: string; email: string } | undefined>,
   ): Promise<IssuedTokens> {
-    const { sessions } = REALM_TABLES[realm];
-    const [sessionId, secret] = refreshToken.split('.');
+    const { sessions } = REALM_TABLES[realm]
+    const [sessionId, secret] = refreshToken.split('.')
     if (!sessionId || !secret || !/^[0-9a-f-]{36}$/.test(sessionId)) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException('Invalid refresh token')
     }
     const [session] = await this.db
       .select()
       .from(sessions)
       .where(eq(sessions.id, sessionId))
-      .limit(1);
+      .limit(1)
     if (!session || session.revokedAt || session.expiresAt <= new Date()) {
-      throw new UnauthorizedException('Session expired, please sign in again');
+      throw new UnauthorizedException('Session expired, please sign in again')
     }
 
-    const presentedHash = sha256(secret);
+    const presentedHash = sha256(secret)
     if (!safeEqualHex(presentedHash, session.refreshTokenHash)) {
       const withinGrace =
         session.previousRefreshTokenHash &&
         safeEqualHex(presentedHash, session.previousRefreshTokenHash) &&
         session.rotatedAt &&
-        Date.now() - session.rotatedAt.getTime() < ROTATION_GRACE_MS;
+        Date.now() - session.rotatedAt.getTime() < ROTATION_GRACE_MS
       if (!withinGrace) {
         // A rotated-out token was replayed: assume it leaked and kill the session.
-        await this.revoke(realm, session.id);
+        await this.revoke(realm, session.id)
       }
-      throw new UnauthorizedException('Refresh token is no longer valid');
+      throw new UnauthorizedException('Refresh token is no longer valid')
     }
 
-    const user = await loadUser(session.userId);
+    const user = await loadUser(session.userId)
     if (!user) {
-      await this.revoke(realm, session.id);
-      throw new UnauthorizedException('Account is not available');
+      await this.revoke(realm, session.id)
+      throw new UnauthorizedException('Account is not available')
     }
 
-    const nextSecret = randomToken();
+    const nextSecret = randomToken()
     const rotated = await this.db
       .update(sessions)
       .set({
@@ -130,20 +127,20 @@ export class SessionsService {
           eq(sessions.refreshTokenHash, session.refreshTokenHash),
         ),
       )
-      .returning({ id: sessions.id });
+      .returning({ id: sessions.id })
     if (rotated.length === 0) {
-      throw new UnauthorizedException('Refresh token is no longer valid');
+      throw new UnauthorizedException('Refresh token is no longer valid')
     }
-    return this.issue(realm, user, session.id, nextSecret);
+    return this.issue(realm, user, session.id, nextSecret)
   }
 
   async revoke(realm: Realm, sessionId: string): Promise<void> {
-    const { sessions } = REALM_TABLES[realm];
+    const { sessions } = REALM_TABLES[realm]
     await this.db
       .update(sessions)
       .set({ revokedAt: new Date() })
-      .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)));
-    await this.markRevoked(realm, [sessionId]);
+      .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)))
+    await this.markRevoked(realm, [sessionId])
   }
 
   /** Revokes the session of a refresh token when the token matches; never throws (used by logout). */
@@ -151,18 +148,18 @@ export class SessionsService {
     realm: Realm,
     refreshToken: string | undefined,
   ): Promise<void> {
-    const [sessionId, secret] = refreshToken?.split('.') ?? [];
+    const [sessionId, secret] = refreshToken?.split('.') ?? []
     if (!sessionId || !secret || !/^[0-9a-f-]{36}$/.test(sessionId)) {
-      return;
+      return
     }
-    const { sessions } = REALM_TABLES[realm];
+    const { sessions } = REALM_TABLES[realm]
     const [session] = await this.db
       .select({ id: sessions.id, refreshTokenHash: sessions.refreshTokenHash })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
-      .limit(1);
+      .limit(1)
     if (session && safeEqualHex(sha256(secret), session.refreshTokenHash)) {
-      await this.revoke(realm, session.id);
+      await this.revoke(realm, session.id)
     }
   }
 
@@ -172,27 +169,24 @@ export class SessionsService {
     userId: string,
     options: { exceptSessionId?: string } = {},
   ): Promise<void> {
-    const { sessions } = REALM_TABLES[realm];
-    const conditions = [
-      eq(sessions.userId, userId),
-      isNull(sessions.revokedAt),
-    ];
+    const { sessions } = REALM_TABLES[realm]
+    const conditions = [eq(sessions.userId, userId), isNull(sessions.revokedAt)]
     if (options.exceptSessionId) {
-      conditions.push(ne(sessions.id, options.exceptSessionId));
+      conditions.push(ne(sessions.id, options.exceptSessionId))
     }
     const revoked = await this.db
       .update(sessions)
       .set({ revokedAt: new Date() })
       .where(and(...conditions))
-      .returning({ id: sessions.id });
+      .returning({ id: sessions.id })
     await this.markRevoked(
       realm,
       revoked.map((row) => row.id),
-    );
+    )
   }
 
   listActive(realm: Realm, userId: string) {
-    const { sessions } = REALM_TABLES[realm];
+    const { sessions } = REALM_TABLES[realm]
     return this.db
       .select({
         id: sessions.id,
@@ -210,7 +204,7 @@ export class SessionsService {
           gt(sessions.expiresAt, new Date()),
         ),
       )
-      .orderBy(desc(sessions.lastUsedAt));
+      .orderBy(desc(sessions.lastUsedAt))
   }
 
   async revokeOwn(
@@ -218,17 +212,17 @@ export class SessionsService {
     userId: string,
     sessionId: string,
   ): Promise<boolean> {
-    const { sessions } = REALM_TABLES[realm];
+    const { sessions } = REALM_TABLES[realm]
     const [session] = await this.db
       .select({ id: sessions.id })
       .from(sessions)
       .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)))
-      .limit(1);
+      .limit(1)
     if (!session) {
-      return false;
+      return false
     }
-    await this.revoke(realm, session.id);
-    return true;
+    await this.revoke(realm, session.id)
+    return true
   }
 
   private async issue(
@@ -242,27 +236,27 @@ export class SessionsService {
       email: user.email,
       sid: sessionId,
       realm,
-    };
+    }
     const accessToken = await this.jwt.signAsync(payload, {
       expiresIn: this.accessTtlSeconds,
-    });
-    return { sessionId, accessToken, refreshToken: `${sessionId}.${secret}` };
+    })
+    return { sessionId, accessToken, refreshToken: `${sessionId}.${secret}` }
   }
 
   /** Access tokens live at most `accessTtlSeconds`, so the revocation marker can expire with them. */
   private async markRevoked(realm: Realm, sessionIds: string[]): Promise<void> {
     if (sessionIds.length === 0) {
-      return;
+      return
     }
-    const pipeline = this.redis.pipeline();
+    const pipeline = this.redis.pipeline()
     for (const id of sessionIds) {
       pipeline.set(
         revokedSessionKey(realm, id),
         '1',
         'EX',
         this.accessTtlSeconds,
-      );
+      )
     }
-    await pipeline.exec();
+    await pipeline.exec()
   }
 }

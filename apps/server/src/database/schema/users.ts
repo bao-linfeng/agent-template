@@ -5,10 +5,10 @@ import {
   timestamp,
   uuid,
   varchar,
-} from 'drizzle-orm/pg-core';
-import { timestamps } from './columns.js';
+} from 'drizzle-orm/pg-core'
+import { timestamps } from './columns.js'
 
-export const userStatus = pgEnum('user_status', ['active', 'disabled']);
+export const userStatus = pgEnum('user_status', ['active', 'disabled'])
 
 /**
  * Columns of an account table. Client users and admin console accounts are two separate populations
@@ -25,14 +25,14 @@ const accountColumns = () => ({
   status: userStatus().notNull().default('active'),
   lastLoginAt: timestamp({ withTimezone: true }),
   ...timestamps,
-});
+})
 
 /** Accounts of the client app (self-registered, no roles). */
-export const users = pgTable('users', accountColumns());
+export const users = pgTable('users', accountColumns())
 
 /** Accounts of the admin console (created by administrators, RBAC roles). Independent of `users`. */
-export const adminUsers = pgTable('admin_users', accountColumns());
+export const adminUsers = pgTable('admin_users', accountColumns())
 
-export type UserRow = typeof users.$inferSelect;
-export type NewUserRow = typeof users.$inferInsert;
-export type UserStatus = (typeof userStatus.enumValues)[number];
+export type UserRow = typeof users.$inferSelect
+export type NewUserRow = typeof users.$inferInsert
+export type UserStatus = (typeof userStatus.enumValues)[number]

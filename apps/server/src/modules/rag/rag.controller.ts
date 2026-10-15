@@ -10,24 +10,24 @@ import {
   Post,
   Query,
   Req,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { PaginationQueryDto } from '../../common/dto/pagination.dto.js';
-import { readSingleFile } from '../../common/http/multipart.js';
-import type { AuthUser, HttpRequest } from '../../common/http/request.js';
-import type { Env } from '../../config/env.js';
-import { CurrentUser } from '../auth/decorators.js';
-import { SUPPORTED_EXTENSIONS } from './document-parsers.js';
-import { DocumentsService } from './documents.service.js';
+} from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger'
+import { PaginationQueryDto } from '../../common/dto/pagination.dto.js'
+import { readSingleFile } from '../../common/http/multipart.js'
+import type { AuthUser, HttpRequest } from '../../common/http/request.js'
+import type { Env } from '../../config/env.js'
+import { CurrentUser } from '../auth/decorators.js'
+import { SUPPORTED_EXTENSIONS } from './document-parsers.js'
+import { DocumentsService } from './documents.service.js'
 import {
   CreateKnowledgeBaseDto,
   CreateTextDocumentDto,
   SearchKnowledgeBaseDto,
   UpdateKnowledgeBaseDto,
-} from './dto/rag.dto.js';
-import { KnowledgeBasesService } from './knowledge-bases.service.js';
-import { RetrievalService } from './retrieval.service.js';
+} from './dto/rag.dto.js'
+import { KnowledgeBasesService } from './knowledge-bases.service.js'
+import { RetrievalService } from './retrieval.service.js'
 
 /**
  * Knowledge bases of the signed-in client user. Every route only sees the user's own knowledge
@@ -46,17 +46,17 @@ export class RagController {
   /** `keyword` matches the name. */
   @Get()
   list(@CurrentUser() user: AuthUser, @Query() query: PaginationQueryDto) {
-    return this.knowledgeBases.list(query, user.id);
+    return this.knowledgeBases.list(query, user.id)
   }
 
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateKnowledgeBaseDto) {
-    return this.knowledgeBases.create(user.id, dto);
+    return this.knowledgeBases.create(user.id, dto)
   }
 
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
-    return this.knowledgeBases.getOwned(id, user.id);
+    return this.knowledgeBases.getOwned(id, user.id)
   }
 
   @Patch(':id')
@@ -68,7 +68,7 @@ export class RagController {
     return this.knowledgeBases.update(
       await this.knowledgeBases.getOwned(id, user.id),
       dto,
-    );
+    )
   }
 
   @Delete(':id')
@@ -79,7 +79,7 @@ export class RagController {
   ) {
     await this.knowledgeBases.remove(
       await this.knowledgeBases.getOwned(id, user.id),
-    );
+    )
   }
 
   /** Semantic search; returns the closest chunks with cosine similarity scores. */
@@ -90,11 +90,11 @@ export class RagController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SearchKnowledgeBaseDto,
   ) {
-    const kb = await this.knowledgeBases.getOwned(id, user.id);
+    const kb = await this.knowledgeBases.getOwned(id, user.id)
     return this.retrieval.retrieve(kb, dto.query, {
       topK: dto.topK,
       minScore: dto.minScore,
-    });
+    })
   }
 
   @Get(':id/documents')
@@ -106,7 +106,7 @@ export class RagController {
     return this.documents.list(
       await this.knowledgeBases.getOwned(id, user.id),
       query,
-    );
+    )
   }
 
   /** Upload a text file (multipart field `file`, optional field `title` sent before it). Indexing runs in the background. */
@@ -128,12 +128,12 @@ export class RagController {
     @Param('id', ParseUUIDPipe) id: string,
     @Req() request: HttpRequest,
   ) {
-    const kb = await this.knowledgeBases.getOwned(id, user.id);
+    const kb = await this.knowledgeBases.getOwned(id, user.id)
     const file = await readSingleFile(
       request,
       this.config.get('UPLOAD_MAX_BYTES', { infer: true }),
-    );
-    return this.documents.addFile(kb, user.id, file);
+    )
+    return this.documents.addFile(kb, user.id, file)
   }
 
   @Post(':id/documents/text')
@@ -142,8 +142,8 @@ export class RagController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateTextDocumentDto,
   ) {
-    const kb = await this.knowledgeBases.getOwned(id, user.id);
-    return this.documents.addText(kb, user.id, dto.title, dto.content);
+    const kb = await this.knowledgeBases.getOwned(id, user.id)
+    return this.documents.addText(kb, user.id, dto.title, dto.content)
   }
 
   @Get(':id/documents/:documentId')
@@ -155,7 +155,7 @@ export class RagController {
     return this.documents.get(
       await this.knowledgeBases.getOwned(id, user.id),
       documentId,
-    );
+    )
   }
 
   @Post(':id/documents/:documentId/reindex')
@@ -168,7 +168,7 @@ export class RagController {
     return this.documents.reindex(
       await this.knowledgeBases.getOwned(id, user.id),
       documentId,
-    );
+    )
   }
 
   @Delete(':id/documents/:documentId')
@@ -181,6 +181,6 @@ export class RagController {
     await this.documents.remove(
       await this.knowledgeBases.getOwned(id, user.id),
       documentId,
-    );
+    )
   }
 }

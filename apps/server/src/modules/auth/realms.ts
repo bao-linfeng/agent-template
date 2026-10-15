@@ -5,20 +5,20 @@ import {
   authSessions,
   passwordResetTokens,
   users,
-} from '../../database/schema/index.js';
+} from '../../database/schema/index.js'
 
 /**
  * Two separate account populations that never share credentials, sessions or cookies:
  * - `user`: client app accounts (`users`), self-registered, ownership-based access only;
  * - `admin`: admin console accounts (`admin_users`), created by administrators, RBAC roles.
  */
-export const REALMS = ['user', 'admin'] as const;
-export type Realm = (typeof REALMS)[number];
+export const REALMS = ['user', 'admin'] as const
+export type Realm = (typeof REALMS)[number]
 
 export interface RealmTables {
-  accounts: typeof users;
-  sessions: typeof authSessions;
-  resetTokens: typeof passwordResetTokens;
+  accounts: typeof users
+  sessions: typeof authSessions
+  resetTokens: typeof passwordResetTokens
 }
 
 /**
@@ -37,14 +37,14 @@ export const REALM_TABLES: Record<Realm, RealmTables> = {
     resetTokens:
       adminPasswordResetTokens as unknown as typeof passwordResetTokens,
   },
-};
+}
 
 export interface RealmCookies {
-  access: string;
-  refresh: string;
+  access: string
+  refresh: string
   /** Paths below the API prefix. Without `accessPath` the access token is sent site-wide (`/`). */
-  accessPath?: string;
-  refreshPath: string;
+  accessPath?: string
+  refreshPath: string
 }
 
 export const REALM_COOKIES: Record<Realm, RealmCookies> = {
@@ -59,4 +59,4 @@ export const REALM_COOKIES: Record<Realm, RealmCookies> = {
     accessPath: '/admin',
     refreshPath: '/admin/auth',
   },
-};
+}

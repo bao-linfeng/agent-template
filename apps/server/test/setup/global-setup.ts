@@ -1,14 +1,14 @@
-import { PostgreSqlContainer } from '@testcontainers/postgresql';
-import { GenericContainer, Wait } from 'testcontainers';
-import type { TestProject } from 'vitest/node';
+import { PostgreSqlContainer } from '@testcontainers/postgresql'
+import { GenericContainer, Wait } from 'testcontainers'
+import type { TestProject } from 'vitest/node'
 import {
   createDatabase,
   createPool,
   runMigrations,
-} from '../../src/database/database.js';
-import { seedDatabase } from '../../src/database/seed.js';
-import { E2E_ADMIN } from '../support/constants.js';
-import { startFakeEmbeddings } from '../support/fake-embeddings.js';
+} from '../../src/database/database.js'
+import { seedDatabase } from '../../src/database/seed.js'
+import { E2E_ADMIN } from '../support/constants.js'
+import { startFakeEmbeddings } from '../support/fake-embeddings.js'
 
 /** Starts throwaway Postgres (pgvector), Redis and RustFS containers plus a fake embeddings server. */
 export default async function setup(project: TestProject) {
@@ -31,7 +31,7 @@ export default async function setup(project: TestProject) {
       .withWaitStrategy(Wait.forListeningPorts())
       .start(),
     startFakeEmbeddings(),
-  ]);
+  ])
 
   const env = {
     NODE_ENV: 'test',
@@ -47,10 +47,10 @@ export default async function setup(project: TestProject) {
     THROTTLE_LIMIT: '10000',
     PUBLIC_URL: 'http://localhost:3100',
     FAKE_EMBEDDINGS_URL: embeddings.baseUrl,
-  };
+  }
 
-  await runMigrations(env.DATABASE_URL);
-  const pool = createPool(env.DATABASE_URL, 1);
+  await runMigrations(env.DATABASE_URL)
+  const pool = createPool(env.DATABASE_URL, 1)
   await seedDatabase(createDatabase(pool), {
     admin: E2E_ADMIN,
     embedding: {
@@ -61,19 +61,19 @@ export default async function setup(project: TestProject) {
     },
     encryptionKey: Buffer.alloc(32).toString('base64'),
     passwordHashRounds: 4,
-  });
-  await pool.end();
+  })
+  await pool.end()
 
-  project.provide('testEnv', env);
+  project.provide('testEnv', env)
 
   return async () => {
-    embeddings.server.close();
-    await Promise.all([postgres.stop(), redis.stop(), rustfs.stop()]);
-  };
+    embeddings.server.close()
+    await Promise.all([postgres.stop(), redis.stop(), rustfs.stop()])
+  }
 }
 
 declare module 'vitest' {
   export interface ProvidedContext {
-    testEnv: Record<string, string>;
+    testEnv: Record<string, string>
   }
 }

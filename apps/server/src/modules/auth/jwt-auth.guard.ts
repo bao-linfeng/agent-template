@@ -3,18 +3,15 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
-import type { Redis } from 'ioredis';
-import type { HttpRequest } from '../../common/http/request.js';
-import { InjectRedis } from '../../infra/redis/redis.module.js';
-import {
-  revokedSessionKey,
-  type AccessTokenPayload,
-} from './auth.constants.js';
-import { IS_PUBLIC_KEY, REALM_KEY } from './decorators.js';
-import { REALM_COOKIES, type Realm } from './realms.js';
+} from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
+import { JwtService } from '@nestjs/jwt'
+import type { Redis } from 'ioredis'
+import type { HttpRequest } from '../../common/http/request.js'
+import { InjectRedis } from '../../infra/redis/redis.module.js'
+import { revokedSessionKey, type AccessTokenPayload } from './auth.constants.js'
+import { IS_PUBLIC_KEY, REALM_KEY } from './decorators.js'
+import { REALM_COOKIES, type Realm } from './realms.js'
 
 /**
  * Global guard: every route requires a valid access token of its realm unless marked `@Public()`.
@@ -30,32 +27,30 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const targets = [context.getHandler(), context.getClass()];
+    const targets = [context.getHandler(), context.getClass()]
     if (
       this.reflector.getAllAndOverride<boolean | undefined>(
         IS_PUBLIC_KEY,
         targets,
       )
     ) {
-      return true;
+      return true
     }
     const realm =
       this.reflector.getAllAndOverride<Realm | undefined>(REALM_KEY, targets) ??
-      'user';
+      'user'
 
-    const request = context.switchToHttp().getRequest<HttpRequest>();
-    const token = request.cookies?.[REALM_COOKIES[realm].access];
+    const request = context.switchToHttp().getRequest<HttpRequest>()
+    const token = request.cookies?.[REALM_COOKIES[realm].access]
     if (!token) {
-      throw new UnauthorizedException('Authentication required');
+      throw new UnauthorizedException('Authentication required')
     }
 
-    let payload: AccessTokenPayload;
+    let payload: AccessTokenPayload
     try {
-      payload = await this.jwt.verifyAsync<AccessTokenPayload>(token);
+      payload = await this.jwt.verifyAsync<AccessTokenPayload>(token)
     } catch {
-      throw new UnauthorizedException(
-        'Invalid or expired authentication token',
-      );
+      throw new UnauthorizedException('Invalid or expired authentication token')
     }
     if (
       typeof payload.sub !== 'string' ||
@@ -63,10 +58,10 @@ export class JwtAuthGuard implements CanActivate {
       typeof payload.email !== 'string' ||
       payload.realm !== realm
     ) {
-      throw new UnauthorizedException('Invalid authentication token');
+      throw new UnauthorizedException('Invalid authentication token')
     }
     if (await this.redis.exists(revokedSessionKey(realm, payload.sid))) {
-      throw new UnauthorizedException('Session has been revoked');
+      throw new UnauthorizedException('Session has been revoked')
     }
 
     request.user = {
@@ -74,7 +69,7 @@ export class JwtAuthGuard implements CanActivate {
       email: payload.email,
       sessionId: payload.sid,
       realm,
-    };
-    return true;
+    }
+    return true
   }
 }

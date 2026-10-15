@@ -10,16 +10,16 @@ import {
   Post,
   Put,
   Req,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ApiBody, ApiConsumes } from '@nestjs/swagger';
-import { readSingleFile } from '../../common/http/multipart.js';
-import type { AuthUser, HttpRequest } from '../../common/http/request.js';
-import type { Env } from '../../config/env.js';
-import { CurrentUser } from '../auth/decorators.js';
-import { SessionsService } from '../auth/sessions.service.js';
-import { AccountsService } from './accounts.service.js';
-import { ChangePasswordDto, UpdateProfileDto } from './dto/account.dto.js';
+} from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { ApiBody, ApiConsumes } from '@nestjs/swagger'
+import { readSingleFile } from '../../common/http/multipart.js'
+import type { AuthUser, HttpRequest } from '../../common/http/request.js'
+import type { Env } from '../../config/env.js'
+import { CurrentUser } from '../auth/decorators.js'
+import { SessionsService } from '../auth/sessions.service.js'
+import { AccountsService } from './accounts.service.js'
+import { ChangePasswordDto, UpdateProfileDto } from './dto/account.dto.js'
 
 const fileUploadBody = {
   schema: {
@@ -27,7 +27,7 @@ const fileUploadBody = {
     properties: { file: { type: 'string', format: 'binary' } },
     required: ['file'],
   },
-};
+}
 
 /**
  * Self-service routes of the signed-in account (profile, avatar, password, sessions), shared by
@@ -42,11 +42,11 @@ export abstract class AccountMeController<Profile> {
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  protected abstract profile(user: AuthUser): Promise<Profile>;
+  protected abstract profile(user: AuthUser): Promise<Profile>
 
   @Get()
   me(@CurrentUser() user: AuthUser): Promise<Profile> {
-    return this.profile(user);
+    return this.profile(user)
   }
 
   @Patch()
@@ -54,8 +54,8 @@ export abstract class AccountMeController<Profile> {
     @CurrentUser() user: AuthUser,
     @Body() dto: UpdateProfileDto,
   ): Promise<Profile> {
-    await this.accounts.updateProfile(user.realm, user.id, dto);
-    return this.profile(user);
+    await this.accounts.updateProfile(user.realm, user.id, dto)
+    return this.profile(user)
   }
 
   @Put('avatar')
@@ -68,15 +68,15 @@ export abstract class AccountMeController<Profile> {
     const file = await readSingleFile(
       request,
       this.config.get('AVATAR_MAX_BYTES', { infer: true }),
-    );
-    await this.accounts.setAvatar(user.realm, user.id, file.buffer);
-    return this.profile(user);
+    )
+    await this.accounts.setAvatar(user.realm, user.id, file.buffer)
+    return this.profile(user)
   }
 
   @Delete('avatar')
   async removeAvatar(@CurrentUser() user: AuthUser): Promise<Profile> {
-    await this.accounts.removeAvatar(user.realm, user.id);
-    return this.profile(user);
+    await this.accounts.removeAvatar(user.realm, user.id)
+    return this.profile(user)
   }
 
   /** Signs out all other sessions on success. */
@@ -92,16 +92,16 @@ export abstract class AccountMeController<Profile> {
       user.sessionId,
       dto.currentPassword,
       dto.newPassword,
-    );
+    )
   }
 
   @Get('sessions')
   async listSessions(@CurrentUser() user: AuthUser) {
-    const sessions = await this.sessions.listActive(user.realm, user.id);
+    const sessions = await this.sessions.listActive(user.realm, user.id)
     return sessions.map((session) => ({
       ...session,
       current: session.id === user.sessionId,
-    }));
+    }))
   }
 
   @Delete('sessions/:id')
@@ -111,7 +111,7 @@ export abstract class AccountMeController<Profile> {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     if (!(await this.sessions.revokeOwn(user.realm, user.id, id))) {
-      throw new NotFoundException('Session not found');
+      throw new NotFoundException('Session not found')
     }
   }
 }

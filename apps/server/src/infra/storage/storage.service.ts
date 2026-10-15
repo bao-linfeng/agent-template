@@ -1,4 +1,4 @@
-import type { Readable } from 'node:stream';
+import type { Readable } from 'node:stream'
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
@@ -10,22 +10,22 @@ import {
   PutObjectCommand,
   S3Client,
   S3ServiceException,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import {
   Injectable,
   Logger,
   NotFoundException,
   OnModuleDestroy,
   OnModuleInit,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../config/env.js';
+} from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import type { Env } from '../../config/env.js'
 
 export interface StoredObject {
-  body: Readable;
-  contentType?: string;
-  contentLength?: number;
+  body: Readable
+  contentType?: string
+  contentLength?: number
 }
 
 /**
@@ -34,12 +34,12 @@ export interface StoredObject {
  */
 @Injectable()
 export class StorageService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(StorageService.name);
-  private readonly client: S3Client;
-  readonly bucket: string;
+  private readonly logger = new Logger(StorageService.name)
+  private readonly client: S3Client
+  readonly bucket: string
 
   constructor(private readonly config: ConfigService<Env, true>) {
-    this.bucket = config.get('STORAGE_BUCKET', { infer: true });
+    this.bucket = config.get('STORAGE_BUCKET', { infer: true })
     this.client = new S3Client({
       endpoint: config.get('STORAGE_ENDPOINT', { infer: true }),
       region: config.get('STORAGE_REGION', { infer: true }),
@@ -51,42 +51,40 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       // S3-compatible servers do not all support the SDK's default flexible checksums.
       requestChecksumCalculation: 'WHEN_REQUIRED',
       responseChecksumValidation: 'WHEN_REQUIRED',
-    });
+    })
   }
 
   async onModuleInit(): Promise<void> {
     if (!this.config.get('STORAGE_AUTO_CREATE_BUCKET', { infer: true })) {
-      return;
+      return
     }
     try {
-      await this.ensureBucket();
+      await this.ensureBucket()
     } catch (error) {
       // Storage being down must not block the API from starting; uploads will fail until it recovers.
       this.logger.warn(
         `Could not verify bucket "${this.bucket}": ${(error as Error).message}`,
-      );
+      )
     }
   }
 
   onModuleDestroy(): void {
-    this.client.destroy();
+    this.client.destroy()
   }
 
   async ensureBucket(): Promise<void> {
     try {
-      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
+      await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }))
     } catch (error) {
       if (
         error instanceof S3ServiceException &&
         error.$metadata.httpStatusCode === 404
       ) {
-        await this.client.send(
-          new CreateBucketCommand({ Bucket: this.bucket }),
-        );
-        this.logger.log(`Created bucket "${this.bucket}"`);
-        return;
+        await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }))
+        this.logger.log(`Created bucket "${this.bucket}"`)
+        return
       }
-      throw error;
+      throw error
     }
   }
 
@@ -102,47 +100,45 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
         Body: body,
         ContentType: contentType,
       }),
-    );
+    )
   }
 
   async getObject(key: string): Promise<StoredObject> {
     try {
       const result = await this.client.send(
         new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-      );
+      )
       return {
         body: result.Body as Readable,
         contentType: result.ContentType,
         contentLength: result.ContentLength,
-      };
+      }
     } catch (error) {
       if (error instanceof NoSuchKey) {
-        throw new NotFoundException('File not found');
+        throw new NotFoundException('File not found')
       }
-      throw error;
+      throw error
     }
   }
 
   async getObjectBuffer(key: string): Promise<Buffer> {
-    const { body } = await this.getObject(key);
-    const parts: Buffer[] = [];
+    const { body } = await this.getObject(key)
+    const parts: Buffer[] = []
     for await (const part of body) {
-      parts.push(
-        Buffer.isBuffer(part) ? part : Buffer.from(part as Uint8Array),
-      );
+      parts.push(Buffer.isBuffer(part) ? part : Buffer.from(part as Uint8Array))
     }
-    return Buffer.concat(parts);
+    return Buffer.concat(parts)
   }
 
   async deleteObject(key: string): Promise<void> {
     await this.client.send(
       new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
+    )
   }
 
   /** Deletes every object under a prefix such as `rag/<kbId>/`. */
   async deletePrefix(prefix: string): Promise<void> {
-    let continuationToken: string | undefined;
+    let continuationToken: string | undefined
     do {
       const page = await this.client.send(
         new ListObjectsV2Command({
@@ -150,22 +146,22 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
           Prefix: prefix,
           ContinuationToken: continuationToken,
         }),
-      );
+      )
       const objects = (page.Contents ?? []).flatMap((item) =>
         item.Key ? [{ Key: item.Key }] : [],
-      );
+      )
       if (objects.length > 0) {
         await this.client.send(
           new DeleteObjectsCommand({
             Bucket: this.bucket,
             Delete: { Objects: objects },
           }),
-        );
+        )
       }
       continuationToken = page.IsTruncated
         ? page.NextContinuationToken
-        : undefined;
-    } while (continuationToken);
+        : undefined
+    } while (continuationToken)
   }
 
   /** Time-limited direct download URL (the storage endpoint must be reachable by the client). */
@@ -176,6 +172,6 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       {
         expiresIn: expiresInSeconds,
       },
-    );
+    )
   }
 }

@@ -1,25 +1,25 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
-import type { Database } from '../../database/database.js';
-import { InjectDb } from '../../database/database.module.js';
-import { toVectorLiteral } from '../../database/schema/columns.js';
-import { EmbeddingClient } from '../ai/embedding-client.js';
-import { EmbeddingModelsService } from '../ai/embedding-models.service.js';
+import { BadRequestException, Injectable } from '@nestjs/common'
+import { sql } from 'drizzle-orm'
+import type { Database } from '../../database/database.js'
+import { InjectDb } from '../../database/database.module.js'
+import { toVectorLiteral } from '../../database/schema/columns.js'
+import { EmbeddingClient } from '../ai/embedding-client.js'
+import { EmbeddingModelsService } from '../ai/embedding-models.service.js'
 
 export interface RetrievedChunk {
-  id: string;
-  documentId: string;
-  documentTitle: string;
-  chunkIndex: number;
-  content: string;
-  metadata: Record<string, unknown>;
+  id: string
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  content: string
+  metadata: Record<string, unknown>
   /** Cosine similarity in [-1, 1]; higher is closer. */
-  score: number;
+  score: number
 }
 
 export interface RetrieveOptions {
-  topK?: number;
-  minScore?: number;
+  topK?: number
+  minScore?: number
 }
 
 /**
@@ -39,37 +39,37 @@ export class RetrievalService {
     query: string,
     options: RetrieveOptions = {},
   ): Promise<RetrievedChunk[]> {
-    const topK = options.topK ?? 5;
-    const model = await this.models.get(kb.embeddingModelId);
+    const topK = options.topK ?? 5
+    const model = await this.models.get(kb.embeddingModelId)
     if (!model.enabled) {
       throw new BadRequestException(
         `Embedding model "${model.name}" is disabled`,
-      );
+      )
     }
     const [vector] = await this.embeddings.embed(this.models.toTarget(model), [
       query,
-    ]);
+    ])
 
     // The dimension is a validated integer from the database; it is inlined so the planner can match the
     // partial expression index `(embedding::vector(N)) ... WHERE dimensions = N`.
-    const dims = sql.raw(String(Math.trunc(model.dimensions)));
-    const queryVector = sql`${toVectorLiteral(vector!)}::vector(${dims})`;
-    const distance = sql`(c.embedding::vector(${dims}) <=> ${queryVector})`;
+    const dims = sql.raw(String(Math.trunc(model.dimensions)))
+    const queryVector = sql`${toVectorLiteral(vector!)}::vector(${dims})`
+    const distance = sql`(c.embedding::vector(${dims}) <=> ${queryVector})`
 
     return this.db.transaction(async (tx) => {
       // pgvector >= 0.8: keep scanning the HNSW index until enough rows pass the knowledge-base filter.
-      await tx.execute(sql`SET LOCAL hnsw.iterative_scan = relaxed_order`);
+      await tx.execute(sql`SET LOCAL hnsw.iterative_scan = relaxed_order`)
       await tx.execute(
         sql.raw(`SET LOCAL hnsw.ef_search = ${Math.max(100, topK * 2)}`),
-      );
+      )
       const result = await tx.execute<{
-        id: string;
-        document_id: string;
-        document_title: string;
-        chunk_index: number;
-        content: string;
-        metadata: Record<string, unknown>;
-        distance: number;
+        id: string
+        document_id: string
+        document_title: string
+        chunk_index: number
+        content: string
+        metadata: Record<string, unknown>
+        distance: number
       }>(sql`
         WITH nearest AS MATERIALIZED (
           SELECT c.id, c.document_id, c.chunk_index, c.content, c.metadata, ${distance} AS distance
@@ -83,7 +83,7 @@ export class RetrievalService {
         SELECT n.*, d.title AS document_title
         FROM nearest n
         JOIN rag_documents d ON d.id = n.document_id
-        ORDER BY n.distance`);
+        ORDER BY n.distance`)
 
       return result.rows
         .map((row) => ({
@@ -98,7 +98,7 @@ export class RetrievalService {
         .filter(
           (chunk) =>
             options.minScore === undefined || chunk.score >= options.minScore,
-        );
-    });
+        )
+    })
   }
 }

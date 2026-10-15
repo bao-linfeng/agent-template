@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { sql } from 'drizzle-orm'
 import {
   boolean,
   integer,
@@ -8,12 +8,12 @@ import {
   uniqueIndex,
   uuid,
   varchar,
-} from 'drizzle-orm/pg-core';
-import { timestamps } from './columns.js';
+} from 'drizzle-orm/pg-core'
+import { timestamps } from './columns.js'
 
 export const embeddingProvider = pgEnum('embedding_provider', [
   'openai_compatible',
-]);
+])
 
 /**
  * Embedding models managed from the admin console. `openai_compatible` covers any server exposing
@@ -41,6 +41,6 @@ export const embeddingModels = pgTable(
       .on(table.isDefault)
       .where(sql`${table.isDefault}`),
   ],
-);
+)
 
-export type EmbeddingModelRow = typeof embeddingModels.$inferSelect;
+export type EmbeddingModelRow = typeof embeddingModels.$inferSelect

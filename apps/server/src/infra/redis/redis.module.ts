@@ -4,22 +4,22 @@ import {
   Injectable,
   Module,
   OnApplicationShutdown,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Redis } from 'ioredis';
-import type { Env } from '../../config/env.js';
+} from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { Redis } from 'ioredis'
+import type { Env } from '../../config/env.js'
 
-export const REDIS = Symbol('REDIS');
+export const REDIS = Symbol('REDIS')
 
 /** Injects the shared ioredis client for caching, rate limiting and short-lived state. */
-export const InjectRedis = () => Inject(REDIS);
+export const InjectRedis = () => Inject(REDIS)
 
 @Injectable()
 class RedisShutdown implements OnApplicationShutdown {
   constructor(@Inject(REDIS) private readonly redis: Redis) {}
 
   async onApplicationShutdown(): Promise<void> {
-    await this.redis.quit();
+    await this.redis.quit()
   }
 }
 

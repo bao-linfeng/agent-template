@@ -7,9 +7,9 @@ import {
   timestamp,
   uuid,
   varchar,
-} from 'drizzle-orm/pg-core';
-import { timestamps } from './columns.js';
-import { adminUsers } from './users.js';
+} from 'drizzle-orm/pg-core'
+import { timestamps } from './columns.js'
+import { adminUsers } from './users.js'
 
 export const roles = pgTable('roles', {
   id: uuid().primaryKey().defaultRandom(),
@@ -22,7 +22,7 @@ export const roles = pgTable('roles', {
   /** Permission codes from `src/modules/rbac/permissions.ts`, e.g. `user:read`. */
   permissions: text().array().notNull().default([]),
   ...timestamps,
-});
+})
 
 /** Roles of admin console accounts. Client users have no roles. */
 export const adminUserRoles = pgTable(
@@ -40,6 +40,6 @@ export const adminUserRoles = pgTable(
     primaryKey({ columns: [table.adminUserId, table.roleId] }),
     index().on(table.roleId),
   ],
-);
+)
 
-export type RoleRow = typeof roles.$inferSelect;
+export type RoleRow = typeof roles.$inferSelect

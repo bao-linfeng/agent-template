@@ -1,4 +1,4 @@
-import { customType, timestamp } from 'drizzle-orm/pg-core';
+import { customType, timestamp } from 'drizzle-orm/pg-core'
 
 /** `created_at` / `updated_at` pair shared by mutable tables. */
 export const timestamps = {
@@ -7,7 +7,7 @@ export const timestamps = {
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
-};
+}
 
 /**
  * pgvector column without a fixed dimension, so one table can hold embeddings from models with
@@ -16,16 +16,16 @@ export const timestamps = {
  */
 export const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
-    return 'vector';
+    return 'vector'
   },
   toDriver(value) {
-    return toVectorLiteral(value);
+    return toVectorLiteral(value)
   },
   fromDriver(value) {
-    return JSON.parse(value) as number[];
+    return JSON.parse(value) as number[]
   },
-});
+})
 
 export function toVectorLiteral(value: readonly number[]): string {
-  return `[${value.join(',')}]`;
+  return `[${value.join(',')}]`
 }

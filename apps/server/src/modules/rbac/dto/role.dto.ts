@@ -7,32 +7,32 @@ import {
   Matches,
   MaxLength,
   MinLength,
-} from 'class-validator';
-import { PERMISSIONS, type Permission } from '../permissions.js';
+} from 'class-validator'
+import { PERMISSIONS, type Permission } from '../permissions.js'
 
-const PERMISSION_CODES = Object.keys(PERMISSIONS);
+const PERMISSION_CODES = Object.keys(PERMISSIONS)
 
 export class CreateRoleDto {
   /** Stable identifier, lower snake case. */
   @Matches(/^[a-z][a-z0-9_]{1,63}$/, {
     message: 'code must be lower snake case (2-64 chars)',
   })
-  code!: string;
+  code!: string
 
   @IsString()
   @MinLength(1)
   @MaxLength(100)
-  name!: string;
+  name!: string
 
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  description?: string;
+  description?: string
 
   @IsArray()
   @ArrayUnique()
   @IsIn(PERMISSION_CODES, { each: true })
-  permissions!: Permission[];
+  permissions!: Permission[]
 }
 
 export class UpdateRoleDto {
@@ -40,16 +40,16 @@ export class UpdateRoleDto {
   @IsString()
   @MinLength(1)
   @MaxLength(100)
-  name?: string;
+  name?: string
 
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  description?: string;
+  description?: string
 
   @IsOptional()
   @IsArray()
   @ArrayUnique()
   @IsIn(PERMISSION_CODES, { each: true })
-  permissions?: Permission[];
+  permissions?: Permission[]
 }

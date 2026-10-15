@@ -9,28 +9,28 @@ import {
   uniqueEmail,
   waitFor,
   type TestApp,
-} from './support/test-app.js';
+} from './support/test-app.js'
 
-const ADMIN_LOGIN = { email: E2E_ADMIN.email, password: E2E_ADMIN.password };
+const ADMIN_LOGIN = { email: E2E_ADMIN.email, password: E2E_ADMIN.password }
 
 const PNG = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
   Buffer.alloc(64, 1),
-]);
+])
 
 describe('auth & account (e2e)', () => {
-  let t: TestApp;
+  let t: TestApp
 
   beforeAll(async () => {
-    t = await createTestApp();
-  });
+    t = await createTestApp()
+  })
 
   afterAll(async () => {
-    await t.close();
-  });
+    await t.close()
+  })
 
   it('registers a client user without roles, sets HttpOnly cookies and rejects duplicates', async () => {
-    const email = uniqueEmail('Reg');
+    const email = uniqueEmail('Reg')
     const response = await t
       .http()
       .post(`${API}/auth/register`)
@@ -39,37 +39,37 @@ describe('auth & account (e2e)', () => {
         password: 'password123',
         nickname: 'Reg',
       })
-      .expect(201);
+      .expect(201)
 
     expect(response.body).toMatchObject({
       email: email.toLowerCase(),
       nickname: 'Reg',
       avatarUrl: null,
-    });
-    expect(response.body).not.toHaveProperty('passwordHash');
-    expect(response.body).not.toHaveProperty('roles');
-    expect(response.body).not.toHaveProperty('permissions');
-    const cookies = response.headers['set-cookie'] as unknown as string[];
+    })
+    expect(response.body).not.toHaveProperty('passwordHash')
+    expect(response.body).not.toHaveProperty('roles')
+    expect(response.body).not.toHaveProperty('permissions')
+    const cookies = response.headers['set-cookie'] as unknown as string[]
     expect(cookies.find((c) => c.startsWith('access_token='))).toMatch(
       /Path=\/;.*HttpOnly/,
-    );
+    )
     expect(cookies.find((c) => c.startsWith('refresh_token='))).toMatch(
       /Path=\/api\/auth/,
-    );
+    )
 
     await t
       .http()
       .post(`${API}/auth/register`)
       .send({ email, password: 'password123', nickname: 'Dup' })
-      .expect(409);
-  });
+      .expect(409)
+  })
 
   it('validates input and rejects unknown fields', async () => {
     await t
       .http()
       .post(`${API}/auth/register`)
       .send({ email: 'nope', password: 'short', nickname: 'A' })
-      .expect(400);
+      .expect(400)
     await t
       .http()
       .post(`${API}/auth/register`)
@@ -79,179 +79,176 @@ describe('auth & account (e2e)', () => {
         nickname: 'Ok',
         isAdmin: true,
       })
-      .expect(400);
-  });
+      .expect(400)
+  })
 
   it('requires authentication by default and serves the profile with a session', async () => {
-    await t.http().get(`${API}/users/me`).expect(401);
-    const { agent, credentials } = await registerUser(t);
+    await t.http().get(`${API}/users/me`).expect(401)
+    const { agent, credentials } = await registerUser(t)
 
-    const me = await agent.get(`${API}/users/me`).expect(200);
-    expect(me.body).toMatchObject({ email: credentials.email });
-    expect(me.body).not.toHaveProperty('permissions');
+    const me = await agent.get(`${API}/users/me`).expect(200)
+    expect(me.body).toMatchObject({ email: credentials.email })
+    expect(me.body).not.toHaveProperty('permissions')
 
     await agent
       .patch(`${API}/users/me`)
       .send({ nickname: 'Renamed' })
-      .expect(200);
-    expect((await agent.get(`${API}/users/me`)).body.nickname).toBe('Renamed');
-  });
+      .expect(200)
+    expect((await agent.get(`${API}/users/me`)).body.nickname).toBe('Renamed')
+  })
 
   it('logs in with the right password only', async () => {
-    const { credentials } = await registerUser(t);
+    const { credentials } = await registerUser(t)
     await t
       .http()
       .post(`${API}/auth/login`)
       .send({ email: credentials.email, password: 'wrong-password' })
-      .expect(401);
+      .expect(401)
     await t
       .http()
       .post(`${API}/auth/login`)
       .send({ email: uniqueEmail(), password: 'whatever1' })
-      .expect(401);
-    await t.http().post(`${API}/auth/login`).send(credentials).expect(200);
-  });
+      .expect(401)
+    await t.http().post(`${API}/auth/login`).send(credentials).expect(200)
+  })
 
   it('rotates refresh tokens and revokes the session when an old token is replayed', async () => {
-    const { credentials } = await registerUser(t);
+    const { credentials } = await registerUser(t)
     const login = await t
       .http()
       .post(`${API}/auth/login`)
       .send(credentials)
-      .expect(200);
+      .expect(200)
     const firstRefresh = cookieValue(
       login.headers['set-cookie'],
       'refresh_token',
-    )!;
+    )!
 
     const refreshed = await t
       .http()
       .post(`${API}/auth/refresh`)
       .set('Cookie', `refresh_token=${firstRefresh}`)
-      .expect(204);
+      .expect(204)
     const secondRefresh = cookieValue(
       refreshed.headers['set-cookie'],
       'refresh_token',
-    )!;
-    const access = cookieValue(
-      refreshed.headers['set-cookie'],
-      'access_token',
-    )!;
-    expect(secondRefresh).not.toBe(firstRefresh);
+    )!
+    const access = cookieValue(refreshed.headers['set-cookie'], 'access_token')!
+    expect(secondRefresh).not.toBe(firstRefresh)
 
     // Concurrent refresh with the just-rotated token: rejected, but the session survives.
     await t
       .http()
       .post(`${API}/auth/refresh`)
       .set('Cookie', `refresh_token=${firstRefresh}`)
-      .expect(401);
+      .expect(401)
     await t
       .http()
       .get(`${API}/users/me`)
       .set('Cookie', `access_token=${access}`)
-      .expect(200);
+      .expect(200)
 
     // Outside the grace window the replay is treated as theft.
-    const sessionId = secondRefresh.split('.')[0];
+    const sessionId = secondRefresh.split('.')[0]
     await t.pool.query(
       `update auth_sessions set rotated_at = now() - interval '1 hour' where id = $1`,
       [sessionId],
-    );
+    )
     await t
       .http()
       .post(`${API}/auth/refresh`)
       .set('Cookie', `refresh_token=${firstRefresh}`)
-      .expect(401);
+      .expect(401)
     await t
       .http()
       .post(`${API}/auth/refresh`)
       .set('Cookie', `refresh_token=${secondRefresh}`)
-      .expect(401);
+      .expect(401)
     await t
       .http()
       .get(`${API}/users/me`)
       .set('Cookie', `access_token=${access}`)
-      .expect(401);
-  });
+      .expect(401)
+  })
 
   it('logout revokes the access token immediately', async () => {
-    const { credentials } = await registerUser(t);
+    const { credentials } = await registerUser(t)
     const login = await t
       .http()
       .post(`${API}/auth/login`)
       .send(credentials)
-      .expect(200);
-    const access = cookieValue(login.headers['set-cookie'], 'access_token')!;
+      .expect(200)
+    const access = cookieValue(login.headers['set-cookie'], 'access_token')!
 
     const logout = await t
       .http()
       .post(`${API}/auth/logout`)
       .set('Cookie', `access_token=${access}`)
-      .expect(204);
-    expect(cookieValue(logout.headers['set-cookie'], 'access_token')).toBe('');
+      .expect(204)
+    expect(cookieValue(logout.headers['set-cookie'], 'access_token')).toBe('')
     await t
       .http()
       .get(`${API}/users/me`)
       .set('Cookie', `access_token=${access}`)
-      .expect(401);
-  });
+      .expect(401)
+  })
 
   it('resets a forgotten password with a single-use emailed token', async () => {
-    const { agent, credentials } = await registerUser(t);
+    const { agent, credentials } = await registerUser(t)
 
     const unknown = await t
       .http()
       .post(`${API}/auth/forgot-password`)
       .send({ email: uniqueEmail() })
-      .expect(202);
+      .expect(202)
     const known = await t
       .http()
       .post(`${API}/auth/forgot-password`)
       .send({ email: credentials.email })
-      .expect(202);
-    expect(known.body).toEqual(unknown.body);
+      .expect(202)
+    expect(known.body).toEqual(unknown.body)
 
     const mail = await waitFor(() =>
       t.mailbox
         .to(credentials.email)
         .find((m) => m.text.includes('reset-password')),
-    );
+    )
     const token = new URL(
       mail.text.match(/https?:\/\/\S+/)![0],
-    ).searchParams.get('token')!;
+    ).searchParams.get('token')!
 
     await t
       .http()
       .post(`${API}/auth/reset-password`)
       .send({ token, password: 'short' })
-      .expect(400);
+      .expect(400)
     await t
       .http()
       .post(`${API}/auth/reset-password`)
       .send({ token, password: 'brand-new-pass' })
-      .expect(204);
+      .expect(204)
     await t
       .http()
       .post(`${API}/auth/reset-password`)
       .send({ token, password: 'another-pass' })
-      .expect(400);
+      .expect(400)
 
-    await agent.get(`${API}/users/me`).expect(401);
-    await t.http().post(`${API}/auth/login`).send(credentials).expect(401);
+    await agent.get(`${API}/users/me`).expect(401)
+    await t.http().post(`${API}/auth/login`).send(credentials).expect(401)
     await t
       .http()
       .post(`${API}/auth/login`)
       .send({ email: credentials.email, password: 'brand-new-pass' })
-      .expect(200);
+      .expect(200)
     await waitFor(() =>
       t.mailbox
         .to(credentials.email)
         .find((m) => m.subject.includes('密码已修改')),
-    );
-  });
+    )
+  })
 
   it('sends reset links to the requesting web app only when it is trusted', async () => {
-    const { credentials } = await registerUser(t);
+    const { credentials } = await registerUser(t)
 
     await t
       .http()
@@ -260,7 +257,7 @@ describe('auth & account (e2e)', () => {
         email: credentials.email,
         resetUrl: 'https://evil.example/reset-password',
       })
-      .expect(400);
+      .expect(400)
     await t
       .http()
       .post(`${API}/auth/forgot-password`)
@@ -268,65 +265,65 @@ describe('auth & account (e2e)', () => {
         email: credentials.email,
         resetUrl: 'http://localhost:5174/account/reset?from=mail#top',
       })
-      .expect(202);
+      .expect(202)
 
     const mail = await waitFor(() =>
       t.mailbox
         .to(credentials.email)
         .find((m) => m.text.includes('/account/reset')),
-    );
-    const link = new URL(mail.text.match(/https?:\/\/\S+/)![0]);
-    expect(link.origin).toBe('http://localhost:5174');
-    expect(link.searchParams.get('from')).toBe('mail');
-    expect(link.searchParams.get('token')).toMatch(/.{20,}/);
-    expect(link.hash).toBe('');
-  });
+    )
+    const link = new URL(mail.text.match(/https?:\/\/\S+/)![0])
+    expect(link.origin).toBe('http://localhost:5174')
+    expect(link.searchParams.get('from')).toBe('mail')
+    expect(link.searchParams.get('token')).toMatch(/.{20,}/)
+    expect(link.hash).toBe('')
+  })
 
   it('changes the password and keeps only the current session', async () => {
-    const { agent, credentials } = await registerUser(t);
-    const other = t.agent();
-    await other.post(`${API}/auth/login`).send(credentials).expect(200);
+    const { agent, credentials } = await registerUser(t)
+    const other = t.agent()
+    await other.post(`${API}/auth/login`).send(credentials).expect(200)
 
     await agent
       .post(`${API}/users/me/password`)
       .send({ currentPassword: 'wrong', newPassword: 'new-password-1' })
-      .expect(400);
+      .expect(400)
     await agent
       .post(`${API}/users/me/password`)
       .send({
         currentPassword: credentials.password,
         newPassword: 'new-password-1',
       })
-      .expect(204);
+      .expect(204)
 
-    await agent.get(`${API}/users/me`).expect(200);
-    await other.get(`${API}/users/me`).expect(401);
-    const sessions = await agent.get(`${API}/users/me/sessions`).expect(200);
-    expect(sessions.body).toHaveLength(1);
-    expect(sessions.body[0].current).toBe(true);
-  });
+    await agent.get(`${API}/users/me`).expect(200)
+    await other.get(`${API}/users/me`).expect(401)
+    const sessions = await agent.get(`${API}/users/me/sessions`).expect(200)
+    expect(sessions.body).toHaveLength(1)
+    expect(sessions.body[0].current).toBe(true)
+  })
 
   it('stores avatars in object storage and serves them publicly', async () => {
-    const { agent } = await registerUser(t);
+    const { agent } = await registerUser(t)
 
     const uploaded = await agent
       .put(`${API}/users/me/avatar`)
       .attach('file', PNG, 'me.png')
-      .expect(200);
-    const avatarUrl = new URL(uploaded.body.avatarUrl as string);
+      .expect(200)
+    const avatarUrl = new URL(uploaded.body.avatarUrl as string)
     expect(avatarUrl.pathname).toMatch(
       /^\/api\/avatars\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.png$/,
-    );
+    )
 
-    const image = await t.http().get(avatarUrl.pathname).expect(200);
-    expect(image.headers['content-type']).toBe('image/png');
-    expect(image.headers['cache-control']).toContain('immutable');
-    expect(Buffer.compare(image.body as Buffer, PNG)).toBe(0);
+    const image = await t.http().get(avatarUrl.pathname).expect(200)
+    expect(image.headers['content-type']).toBe('image/png')
+    expect(image.headers['cache-control']).toContain('immutable')
+    expect(Buffer.compare(image.body as Buffer, PNG)).toBe(0)
 
     await agent
       .put(`${API}/users/me/avatar`)
       .attach('file', Buffer.from('<svg/>'), 'x.svg')
-      .expect(415);
+      .expect(415)
     await agent
       .put(`${API}/users/me/avatar`)
       .attach(
@@ -334,120 +331,116 @@ describe('auth & account (e2e)', () => {
         Buffer.concat([PNG, Buffer.alloc(2 * 1024 * 1024)]),
         'big.png',
       )
-      .expect(413);
-    await agent.put(`${API}/users/me/avatar`).send({}).expect(400);
+      .expect(413)
+    await agent.put(`${API}/users/me/avatar`).send({}).expect(400)
 
-    const removed = await agent.delete(`${API}/users/me/avatar`).expect(200);
-    expect(removed.body.avatarUrl).toBeNull();
-    await t.http().get(avatarUrl.pathname).expect(404);
-  });
+    const removed = await agent.delete(`${API}/users/me/avatar`).expect(200)
+    expect(removed.body.avatarUrl).toBeNull()
+    await t.http().get(avatarUrl.pathname).expect(404)
+  })
 
   it('keeps client users and admin accounts apart, even with the same email', async () => {
-    const { agent: user, credentials } = await registerUser(t);
-    const superAdmin = await loginAdmin(t, E2E_ADMIN);
+    const { agent: user, credentials } = await registerUser(t)
+    const superAdmin = await loginAdmin(t, E2E_ADMIN)
 
     // Client credentials do not work in the admin console and vice versa.
-    await t
-      .http()
-      .post(`${API}/admin/auth/login`)
-      .send(credentials)
-      .expect(401);
-    await t.http().post(`${API}/auth/login`).send(ADMIN_LOGIN).expect(401);
+    await t.http().post(`${API}/admin/auth/login`).send(credentials).expect(401)
+    await t.http().post(`${API}/auth/login`).send(ADMIN_LOGIN).expect(401)
     await t
       .http()
       .post(`${API}/admin/auth/register`)
       .send({ ...credentials, nickname: 'Nope' })
-      .expect(404);
+      .expect(404)
 
     // The same email can own an independent admin account with its own password.
     const { agent: admin, admin: adminAccount } = await createAdmin(
       t,
       superAdmin,
       { email: credentials.email },
-    );
-    const userMe = (await user.get(`${API}/users/me`).expect(200)).body;
-    const adminMe = (await admin.get(`${API}/admin/me`).expect(200)).body;
+    )
+    const userMe = (await user.get(`${API}/users/me`).expect(200)).body
+    const adminMe = (await admin.get(`${API}/admin/me`).expect(200)).body
     expect(adminMe).toMatchObject({
       id: adminAccount.id,
       email: credentials.email,
       roles: [],
       permissions: [],
-    });
-    expect(adminMe.id).not.toBe(userMe.id);
-    await t.http().post(`${API}/auth/login`).send(credentials).expect(200);
+    })
+    expect(adminMe.id).not.toBe(userMe.id)
+    await t.http().post(`${API}/auth/login`).send(credentials).expect(200)
     await t
       .http()
       .post(`${API}/admin/auth/login`)
       .send({ email: credentials.email, password: 'admin-password-1' })
-      .expect(200);
+      .expect(200)
 
     // Each session only opens the routes of its own realm.
-    await user.get(`${API}/admin/me`).expect(401);
-    await admin.get(`${API}/users/me`).expect(401);
-    await admin.get(`${API}/rag/knowledge-bases`).expect(401);
-  });
+    await user.get(`${API}/admin/me`).expect(401)
+    await admin.get(`${API}/users/me`).expect(401)
+    await admin.get(`${API}/rag/knowledge-bases`).expect(401)
+  })
 
   it('uses realm-specific cookies so both sessions live side by side', async () => {
-    const { credentials } = await registerUser(t);
-    const browser = t.agent();
-    await browser.post(`${API}/auth/login`).send(credentials).expect(200);
+    const { credentials } = await registerUser(t)
+    const browser = t.agent()
+    await browser.post(`${API}/auth/login`).send(credentials).expect(200)
     const adminLogin = await browser
       .post(`${API}/admin/auth/login`)
       .send(ADMIN_LOGIN)
-      .expect(200);
-    const cookies = adminLogin.headers['set-cookie'] as unknown as string[];
+      .expect(200)
+    const cookies = adminLogin.headers['set-cookie'] as unknown as string[]
     expect(cookies.find((c) => c.startsWith('admin_access_token='))).toMatch(
       /Path=\/api\/admin;.*HttpOnly/,
-    );
+    )
     expect(cookies.find((c) => c.startsWith('admin_refresh_token='))).toMatch(
       /Path=\/api\/admin\/auth/,
-    );
+    )
     expect(adminLogin.body).toMatchObject({
       email: E2E_ADMIN.email,
       roles: ['super_admin'],
       permissions: ['all:manage'],
-    });
+    })
 
-    await browser.get(`${API}/users/me`).expect(200);
-    await browser.get(`${API}/admin/me`).expect(200);
-    await browser.post(`${API}/admin/auth/refresh`).expect(204);
-    await browser.post(`${API}/admin/auth/logout`).expect(204);
-    await browser.get(`${API}/admin/me`).expect(401);
-    await browser.get(`${API}/users/me`).expect(200);
+    await browser.get(`${API}/users/me`).expect(200)
+    await browser.get(`${API}/admin/me`).expect(200)
+    await browser.post(`${API}/admin/auth/refresh`).expect(204)
+    await browser.post(`${API}/admin/auth/logout`).expect(204)
+    await browser.get(`${API}/admin/me`).expect(401)
+    await browser.get(`${API}/users/me`).expect(200)
 
     // A token presented under the other realm's cookie name is rejected.
     const userAccess = cookieValue(
       (await t.http().post(`${API}/auth/login`).send(credentials).expect(200))
         .headers['set-cookie'],
       'access_token',
-    )!;
+    )!
     const adminAccess = cookieValue(
       (await t.http().post(`${API}/admin/auth/login`).send(ADMIN_LOGIN))
         .headers['set-cookie'],
       'admin_access_token',
-    )!;
+    )!
     await t
       .http()
       .get(`${API}/admin/me`)
       .set('Cookie', `admin_access_token=${userAccess}`)
-      .expect(401);
+      .expect(401)
     await t
       .http()
       .get(`${API}/users/me`)
       .set('Cookie', `access_token=${adminAccess}`)
-      .expect(401);
-  });
+      .expect(401)
+  })
 
   it('resets admin passwords through the admin auth routes only', async () => {
-    const superAdmin = await loginAdmin(t, E2E_ADMIN);
-    const { agent, credentials } = await createAdmin(t, superAdmin);
+    const superAdmin = await loginAdmin(t, E2E_ADMIN)
+    const { agent, credentials } = await createAdmin(t, superAdmin)
 
     // The client flow does not know admin emails.
     await t
       .http()
       .post(`${API}/auth/forgot-password`)
       .send({ email: credentials.email })
-      .expect(202);
+      .expect(202)
     await t
       .http()
       .post(`${API}/admin/auth/forgot-password`)
@@ -455,42 +448,42 @@ describe('auth & account (e2e)', () => {
         email: credentials.email,
         resetUrl: 'http://localhost:5175/auth/reset-password',
       })
-      .expect(202);
+      .expect(202)
     const mails = await waitFor(() => {
-      const sent = t.mailbox.to(credentials.email);
-      return sent.length > 0 ? sent : undefined;
-    });
-    expect(mails).toHaveLength(1);
+      const sent = t.mailbox.to(credentials.email)
+      return sent.length > 0 ? sent : undefined
+    })
+    expect(mails).toHaveLength(1)
     const token = new URL(
       mails[0]!.text.match(/https?:\/\/\S+/)![0],
-    ).searchParams.get('token')!;
+    ).searchParams.get('token')!
 
     await t
       .http()
       .post(`${API}/auth/reset-password`)
       .send({ token, password: 'brand-new-pass' })
-      .expect(400);
+      .expect(400)
     await t
       .http()
       .post(`${API}/admin/auth/reset-password`)
       .send({ token, password: 'brand-new-pass' })
-      .expect(204);
-    await agent.get(`${API}/admin/me`).expect(401);
+      .expect(204)
+    await agent.get(`${API}/admin/me`).expect(401)
     await t
       .http()
       .post(`${API}/admin/auth/login`)
       .send({ email: credentials.email, password: 'brand-new-pass' })
-      .expect(200);
-  });
+      .expect(200)
+  })
 
   it('exposes health and OpenAPI docs', async () => {
-    const health = await t.http().get(`${API}/health`).expect(200);
+    const health = await t.http().get(`${API}/health`).expect(200)
     expect(health.body).toEqual({
       status: 'ok',
       checks: { database: 'up', redis: 'up' },
-    });
-    await t.http().get(`${API}/docs-json`).expect(200);
-  });
+    })
+    await t.http().get(`${API}/docs-json`).expect(200)
+  })
 
   it('allows credentialed cross-origin calls from the web apps only', async () => {
     for (const method of ['PATCH', 'PUT', 'DELETE']) {
@@ -500,22 +493,20 @@ describe('auth & account (e2e)', () => {
         .set('Origin', 'http://localhost:5174')
         .set('Access-Control-Request-Method', method)
         .set('Access-Control-Request-Headers', 'content-type')
-        .expect(204);
+        .expect(204)
       expect(preflight.headers['access-control-allow-origin']).toBe(
         'http://localhost:5174',
-      );
-      expect(preflight.headers['access-control-allow-credentials']).toBe(
-        'true',
-      );
+      )
+      expect(preflight.headers['access-control-allow-credentials']).toBe('true')
       expect(preflight.headers['access-control-allow-methods']).toContain(
         method,
-      );
+      )
     }
     const foreign = await t
       .http()
       .options(`${API}/users/me`)
       .set('Origin', 'https://evil.example')
-      .set('Access-Control-Request-Method', 'PATCH');
-    expect(foreign.headers['access-control-allow-origin']).toBeUndefined();
-  });
-});
+      .set('Access-Control-Request-Method', 'PATCH')
+    expect(foreign.headers['access-control-allow-origin']).toBeUndefined()
+  })
+})

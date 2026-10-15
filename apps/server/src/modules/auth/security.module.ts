@@ -1,10 +1,10 @@
-import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
-import type { Env } from '../../config/env.js';
-import { AuthCookies } from './auth-cookies.service.js';
-import { PasswordHasher } from './password-hasher.service.js';
-import { SessionsService } from './sessions.service.js';
+import { Global, Module } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { JwtModule } from '@nestjs/jwt'
+import type { Env } from '../../config/env.js'
+import { AuthCookies } from './auth-cookies.service.js'
+import { PasswordHasher } from './password-hasher.service.js'
+import { SessionsService } from './sessions.service.js'
 
 /** Token, session and password primitives shared by the auth and users modules. */
 @Global()

@@ -7,18 +7,18 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
-} from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { PaginationQueryDto } from '../../common/dto/pagination.dto.js';
-import { AdminController } from '../auth/decorators.js';
-import { RequirePermissions } from '../rbac/policies.js';
-import { DocumentsService } from './documents.service.js';
+} from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger'
+import { PaginationQueryDto } from '../../common/dto/pagination.dto.js'
+import { AdminController } from '../auth/decorators.js'
+import { RequirePermissions } from '../rbac/policies.js'
+import { DocumentsService } from './documents.service.js'
 import {
   AdminListKnowledgeBasesQueryDto,
   SearchKnowledgeBaseDto,
-} from './dto/rag.dto.js';
-import { KnowledgeBasesService } from './knowledge-bases.service.js';
-import { RetrievalService } from './retrieval.service.js';
+} from './dto/rag.dto.js'
+import { KnowledgeBasesService } from './knowledge-bases.service.js'
+import { RetrievalService } from './retrieval.service.js'
 
 /** Every client user's knowledge bases, for administrators (`knowledge-base:read` / `knowledge-base:manage`). */
 @ApiTags('admin / rag')
@@ -34,13 +34,13 @@ export class AdminRagController {
   @Get()
   @RequirePermissions('knowledge-base:read')
   list(@Query() query: AdminListKnowledgeBasesQueryDto) {
-    return this.knowledgeBases.list(query, query.ownerId);
+    return this.knowledgeBases.list(query, query.ownerId)
   }
 
   @Get(':id')
   @RequirePermissions('knowledge-base:read')
   get(@Param('id', ParseUUIDPipe) id: string) {
-    return this.knowledgeBases.get(id);
+    return this.knowledgeBases.get(id)
   }
 
   @Post(':id/search')
@@ -57,7 +57,7 @@ export class AdminRagController {
         topK: dto.topK,
         minScore: dto.minScore,
       },
-    );
+    )
   }
 
   @Get(':id/documents')
@@ -66,14 +66,14 @@ export class AdminRagController {
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: PaginationQueryDto,
   ) {
-    return this.documents.list(await this.knowledgeBases.get(id), query);
+    return this.documents.list(await this.knowledgeBases.get(id), query)
   }
 
   @Delete(':id')
   @HttpCode(204)
   @RequirePermissions('knowledge-base:manage')
   async remove(@Param('id', ParseUUIDPipe) id: string) {
-    await this.knowledgeBases.remove(await this.knowledgeBases.get(id));
+    await this.knowledgeBases.remove(await this.knowledgeBases.get(id))
   }
 
   @Delete(':id/documents/:documentId')
@@ -83,6 +83,6 @@ export class AdminRagController {
     @Param('id', ParseUUIDPipe) id: string,
     @Param('documentId', ParseUUIDPipe) documentId: string,
   ) {
-    await this.documents.remove(await this.knowledgeBases.get(id), documentId);
+    await this.documents.remove(await this.knowledgeBases.get(id), documentId)
   }
 }

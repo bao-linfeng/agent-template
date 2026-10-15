@@ -1,26 +1,26 @@
-import { hash } from 'bcryptjs';
-import { eq } from 'drizzle-orm';
-import { SecretBox } from '../common/crypto/crypto.js';
-import { SYSTEM_ROLES } from '../modules/rbac/permissions.js';
-import type { Database } from './database.js';
+import { hash } from 'bcryptjs'
+import { eq } from 'drizzle-orm'
+import { SecretBox } from '../common/crypto/crypto.js'
+import { SYSTEM_ROLES } from '../modules/rbac/permissions.js'
+import type { Database } from './database.js'
 import {
   adminUserRoles,
   adminUsers,
   embeddingModels,
   roles,
-} from './schema/index.js';
+} from './schema/index.js'
 
 export interface SeedOptions {
-  admin?: { email: string; password: string; nickname: string };
+  admin?: { email: string; password: string; nickname: string }
   embedding: {
-    name: string;
-    baseUrl: string;
-    model: string;
-    dimensions: number;
-    apiKey?: string;
-  };
-  encryptionKey: string;
-  passwordHashRounds: number;
+    name: string
+    baseUrl: string
+    model: string
+    dimensions: number
+    apiKey?: string
+  }
+  encryptionKey: string
+  passwordHashRounds: number
 }
 
 /** Idempotent: creates system roles, the first super admin (an admin console account) and the default embedding model when missing. */
@@ -28,30 +28,30 @@ export async function seedDatabase(
   db: Database,
   options: SeedOptions,
 ): Promise<string[]> {
-  const log: string[] = [];
+  const log: string[] = []
 
   for (const role of Object.values(SYSTEM_ROLES)) {
     const inserted = await db
       .insert(roles)
       .values({ ...role, permissions: [...role.permissions], isSystem: true })
       .onConflictDoNothing({ target: roles.code })
-      .returning({ id: roles.id });
+      .returning({ id: roles.id })
     if (inserted.length > 0) {
-      log.push(`role ${role.code} created`);
+      log.push(`role ${role.code} created`)
     }
   }
 
   if (options.admin) {
-    const email = options.admin.email.trim().toLowerCase();
+    const email = options.admin.email.trim().toLowerCase()
     const existing = await db.query.adminUsers.findFirst({
       where: eq(adminUsers.email, email),
-    });
+    })
     if (existing) {
-      log.push(`admin ${email} already exists`);
+      log.push(`admin ${email} already exists`)
     } else {
       const superAdmin = await db.query.roles.findFirst({
         where: eq(roles.code, SYSTEM_ROLES.superAdmin.code),
-      });
+      })
       await db.transaction(async (tx) => {
         const [admin] = await tx
           .insert(adminUsers)
@@ -63,29 +63,29 @@ export async function seedDatabase(
               options.passwordHashRounds,
             ),
           })
-          .returning({ id: adminUsers.id });
+          .returning({ id: adminUsers.id })
         await tx
           .insert(adminUserRoles)
-          .values({ adminUserId: admin!.id, roleId: superAdmin!.id });
-      });
-      log.push(`admin ${email} created with role super_admin`);
+          .values({ adminUserId: admin!.id, roleId: superAdmin!.id })
+      })
+      log.push(`admin ${email} created with role super_admin`)
     }
   }
 
-  const anyModel = await db.query.embeddingModels.findFirst();
+  const anyModel = await db.query.embeddingModels.findFirst()
   if (!anyModel) {
-    const { apiKey, ...embedding } = options.embedding;
+    const { apiKey, ...embedding } = options.embedding
     await db.insert(embeddingModels).values({
       ...embedding,
       apiKeyEncrypted: apiKey
         ? new SecretBox(options.encryptionKey).encrypt(apiKey)
         : null,
       isDefault: true,
-    });
+    })
     log.push(
       `default embedding model ${embedding.model} (${embedding.dimensions}d) created`,
-    );
+    )
   }
 
-  return log;
+  return log
 }

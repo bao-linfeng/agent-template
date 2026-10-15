@@ -1,5 +1,5 @@
-import type { ThrottlerStorage } from '@nestjs/throttler';
-import type { Redis } from 'ioredis';
+import type { ThrottlerStorage } from '@nestjs/throttler'
+import type { Redis } from 'ioredis'
 
 // KEYS[1] = hit counter, KEYS[2] = block flag; ARGV = ttl ms, limit, block duration ms.
 const INCREMENT_SCRIPT = `
@@ -17,7 +17,7 @@ if hits > tonumber(ARGV[2]) then
   return { hits, hitsTtl, 1, tonumber(ARGV[3]) }
 end
 return { hits, hitsTtl, 0, 0 }
-`;
+`
 
 /** Shared rate-limit counters so limits hold across multiple API instances. */
 export class RedisThrottlerStorage implements ThrottlerStorage {
@@ -33,7 +33,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
     blockDuration: number,
     throttlerName: string,
   ): ReturnType<ThrottlerStorage['increment']> {
-    const base = `${this.prefix}:${throttlerName}:${key}`;
+    const base = `${this.prefix}:${throttlerName}:${key}`
     const [totalHits, hitsTtl, isBlocked, blockTtl] = (await this.redis.eval(
       INCREMENT_SCRIPT,
       2,
@@ -42,12 +42,12 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
       ttl,
       limit,
       blockDuration > 0 ? blockDuration : ttl,
-    )) as [number, number, number, number];
+    )) as [number, number, number, number]
     return {
       totalHits,
       timeToExpire: Math.max(0, Math.ceil(hitsTtl / 1000)),
       isBlocked: isBlocked === 1,
       timeToBlockExpire: Math.max(0, Math.ceil(blockTtl / 1000)),
-    };
+    }
   }
 }

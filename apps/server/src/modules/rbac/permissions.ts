@@ -5,14 +5,8 @@
  *   1. add its subject to SUBJECTS and its codes to PERMISSIONS,
  *   2. guard `@AdminController` routes with `@RequirePermissions('<subject>:<action>')`.
  */
-export const ACTIONS = [
-  'manage',
-  'create',
-  'read',
-  'update',
-  'delete',
-] as const;
-export type Action = (typeof ACTIONS)[number];
+export const ACTIONS = ['manage', 'create', 'read', 'update', 'delete'] as const
+export type Action = (typeof ACTIONS)[number]
 
 /** Permission-code prefix → CASL subject type. */
 export const SUBJECTS = {
@@ -22,8 +16,8 @@ export const SUBJECTS = {
   role: 'Role',
   'embedding-model': 'EmbeddingModel',
   'knowledge-base': 'KnowledgeBase',
-} as const;
-export type SubjectName = (typeof SUBJECTS)[keyof typeof SUBJECTS];
+} as const
+export type SubjectName = (typeof SUBJECTS)[keyof typeof SUBJECTS]
 
 export const PERMISSIONS = {
   'all:manage': '全部权限（超级管理员）',
@@ -40,23 +34,23 @@ export const PERMISSIONS = {
   'embedding-model:manage': '管理 Embedding 模型配置',
   'knowledge-base:read': '查看所有用户的知识库',
   'knowledge-base:manage': '管理所有用户的知识库',
-} as const satisfies Record<string, string>;
-export type Permission = keyof typeof PERMISSIONS;
+} as const satisfies Record<string, string>
+export type Permission = keyof typeof PERMISSIONS
 
 export function isPermission(value: string): value is Permission {
-  return Object.hasOwn(PERMISSIONS, value);
+  return Object.hasOwn(PERMISSIONS, value)
 }
 
 export function parsePermission(permission: Permission): {
-  action: Action;
-  subject: SubjectName;
+  action: Action
+  subject: SubjectName
 } {
-  const separator = permission.lastIndexOf(':');
-  const subjectKey = permission.slice(0, separator) as keyof typeof SUBJECTS;
+  const separator = permission.lastIndexOf(':')
+  const subjectKey = permission.slice(0, separator) as keyof typeof SUBJECTS
   return {
     subject: SUBJECTS[subjectKey],
     action: permission.slice(separator + 1) as Action,
-  };
+  }
 }
 
 /** Roles created on startup when missing. `super_admin` permissions are always enforced. */
@@ -83,4 +77,4 @@ export const SYSTEM_ROLES = {
 } as const satisfies Record<
   string,
   { code: string; name: string; description: string; permissions: Permission[] }
->;
+>
