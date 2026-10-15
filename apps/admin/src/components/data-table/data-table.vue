@@ -3,11 +3,11 @@ import type { PaginationState, RowData, Updater } from '@tanstack/vue-table'
 import type { CSSProperties } from 'vue'
 
 import { FolderOpenIcon } from '@lucide/vue'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@repo/ui/components/empty'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@repo/ui/components/table'
 import { FlexRender } from '@tanstack/vue-table'
 import { toRef } from 'vue'
 
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DEFAULT_PAGE_SIZE } from '@/constants/app'
 
 import type { DataTableColumn, DataTableInstance, DataTableProps } from './table'

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@repo/ui/components/badge'
+import { cn } from '@repo/utils'
 
 interface Props {
   class?: HTMLAttributes['class']
@@ -15,7 +15,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  layout: 'default'
+  layout: 'default',
 })
 
 const placeholderLight = 'https://images.unsplash.com/photo-1542125387-c71274d94f0a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=560&q=80'
@@ -23,42 +23,54 @@ const placeholderDark = 'https://images.unsplash.com/photo-1542125387-c71274d94f
 </script>
 
 <template>
-  <div :class="cn(
-    'group relative overflow-hidden rounded-lg border-glow shadow hover:shadow-xl transition-all',
-    props.layout === 'horizontal' ? 'sm:flex' : '',
-    props.class
-  )">
-    <div :class="cn(
-      'overflow-hidden h-full',
-      props.layout === 'horizontal' ? 'sm:w-56 h-44 flex-shrink-0' : 'aspect-video w-full'
-    )">
-      <img 
-        :src="props.image || placeholderLight" 
+  <div
+    :class="cn(
+      'group relative overflow-hidden rounded-lg border-glow shadow-sm hover:shadow-xl transition-all',
+      props.layout === 'horizontal' ? 'sm:flex' : '',
+      props.class,
+    )"
+  >
+    <div
+      :class="cn(
+        'overflow-hidden h-full',
+        props.layout === 'horizontal' ? 'sm:w-56 h-44 shrink-0' : 'aspect-video w-full',
+      )"
+    >
+      <img
+        :src="props.image || placeholderLight"
         class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 dark:hidden"
         :alt="props.title"
-      />
-      <img 
+      >
+      <img
         :src="props.image || placeholderDark"
         class="hidden h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 dark:block"
         :alt="props.title"
-      />
+      >
     </div>
 
-    <div :class="cn(
-      'flex flex-col',
-      props.layout === 'horizontal' 
-        ? 'p-6' 
-        : 'absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/10 p-6'
-    )">
+    <div
+      :class="cn(
+        'flex flex-col',
+        props.layout === 'horizontal'
+          ? 'p-6'
+          : 'absolute inset-0 bg-linear-to-t from-black/90 via-black/45 to-black/10 p-6',
+      )"
+    >
       <div class="mb-2 flex items-center gap-2 mt-auto">
-        <Badge v-if="props.category" variant="secondary" class="text-black dark:text-white">{{ props.category }}</Badge>
+        <Badge v-if="props.category" variant="secondary" class="text-black dark:text-white">
+          {{ props.category }}
+        </Badge>
         <span v-if="props.date" class="text-sm text-white/80">{{ props.date }}</span>
       </div>
-      
-      <h3 class="text-xl font-semibold text-white group-hover:text-primary">{{ props.title }}</h3>
-      <p class="mt-2 text-white/90">{{ props.description }}</p>
-      
-      <a 
+
+      <h3 class="text-xl font-semibold text-white group-hover:text-primary">
+        {{ props.title }}
+      </h3>
+      <p class="mt-2 text-white/90">
+        {{ props.description }}
+      </p>
+
+      <a
         v-if="props.href"
         :href="props.href"
         class="mt-4 inline-flex items-center text-sm font-medium text-primary hover:text-white hover:underline"
@@ -79,4 +91,4 @@ const placeholderDark = 'https://images.unsplash.com/photo-1542125387-c71274d94f
       </a>
     </div>
   </div>
-</template> 
+</template>

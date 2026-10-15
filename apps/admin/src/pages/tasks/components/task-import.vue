@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { DownloadIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { Input as FileInput } from '@repo/ui/components/input'
+import { Label } from '@repo/ui/components/label'
 import { toast } from 'vue-sonner'
 
 import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle, ModalTrigger } from '@/components/prop-ui/modal'
-import { Button } from '@/components/ui/button'
-import { Input as FileInput } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 const isOpen = shallowRef(false)
 const file = shallowRef()

@@ -1,6 +1,0 @@
-[install]
-peer = true
-hoistPattern = ["*"]
-
-[install.cache]
-dir = ".bun/cache"

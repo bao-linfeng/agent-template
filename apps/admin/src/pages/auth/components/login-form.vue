@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Spinner } from '@/components/ui/spinner'
+import { Button } from '@repo/ui/components/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/card'
+import { Input } from '@repo/ui/components/input'
+import { Label } from '@repo/ui/components/label'
+import { Separator } from '@repo/ui/components/separator'
+import { Spinner } from '@repo/ui/components/spinner'
+
 import { useAuth } from '@/composables/use-auth'
 
 import GitHubButton from './github-button.vue'

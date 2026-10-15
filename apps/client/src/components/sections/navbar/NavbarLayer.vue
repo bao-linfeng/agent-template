@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
-import { navbarLayerVariants } from './variants'
 import type { HTMLAttributes } from 'vue'
+import { cn } from '@repo/utils'
+import { navbarLayerVariants } from './variants'
 
-type NavbarLayerProps = {
+interface NavbarLayerProps {
   class?: HTMLAttributes['class']
   position?: 'start' | 'center' | 'end'
 }
 
 const props = withDefaults(defineProps<NavbarLayerProps>(), {
-  position: 'start'
+  position: 'start',
 })
 </script>
 
@@ -17,4 +17,4 @@ const props = withDefaults(defineProps<NavbarLayerProps>(), {
   <div :class="cn(navbarLayerVariants({ position: props.position }), props.class)">
     <slot />
   </div>
-</template> 
+</template>

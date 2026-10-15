@@ -3,4 +3,4 @@ export function initializeTheme() {
   if (darkMode === 'true') {
     document.documentElement.classList.add('dark')
   }
-} 
+}

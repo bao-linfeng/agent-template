@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
+import { cn } from '@repo/utils'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -8,12 +8,12 @@ const props = defineProps<{
 </script>
 
 <template>
-  <div 
+  <div
     :class="cn(
       'flex flex-wrap items-center justify-center gap-4',
-      props.class
+      props.class,
     )"
   >
     <slot />
   </div>
-</template> 
+</template>

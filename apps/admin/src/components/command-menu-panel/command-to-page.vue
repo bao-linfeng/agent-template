@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { CommandGroup, CommandItem } from '@/components/ui/command'
+import { CommandGroup, CommandItem } from '@repo/ui/components/command'
+
 import { navData, otherPages } from '@/constants/sidebar-data'
 
 import type { NavGroup, NavItem } from '../app-sidebar/types'

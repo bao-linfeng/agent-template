@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ThumbsDownIcon } from '@lucide/vue'
-
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@repo/ui/components/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@repo/ui/components/tooltip'
 </script>
 
 <template>

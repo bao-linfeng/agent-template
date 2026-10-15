@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { PaintbrushIcon } from '@lucide/vue'
-
-import { Button } from '@/components/ui/button'
+import { Button } from '@repo/ui/components/button'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover'
+} from '@repo/ui/components/popover'
 
 import ContentLayout from './content-layout.vue'
 import CustomColor from './custom-color.vue'

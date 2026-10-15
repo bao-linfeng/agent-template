@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { PlusIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
 
 import { Modal, ModalContent, ModalTrigger } from '@/components/prop-ui/modal'
-import { Button } from '@/components/ui/button'
 
 import TaskResourceDialog from './task-resource-dialog.vue'
 

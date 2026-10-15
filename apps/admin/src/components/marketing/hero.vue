@@ -1,9 +1,8 @@
 <script setup lang="ts">
+import { Avatar, AvatarImage } from '@repo/ui/components/avatar'
+import { Button } from '@repo/ui/components/button'
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@repo/ui/components/carousel'
 import Autoplay from 'embla-carousel-autoplay'
-
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
 
 const images = [
   'https://picsum.photos/640/640?random=1',

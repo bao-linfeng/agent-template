@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
-import { navbarVariants } from './variants'
 import type { HTMLAttributes } from 'vue'
+import { cn } from '@repo/utils'
+import { navbarVariants } from './variants'
 
-type NavbarProps = {
+interface NavbarProps {
   class?: HTMLAttributes['class']
   position?: 'fixed' | 'sticky' | 'relative'
   size?: 'sm' | 'default' | 'lg'
@@ -11,7 +11,7 @@ type NavbarProps = {
 
 const props = withDefaults(defineProps<NavbarProps>(), {
   position: 'sticky',
-  size: 'default'
+  size: 'default',
 })
 </script>
 
@@ -21,4 +21,4 @@ const props = withDefaults(defineProps<NavbarProps>(), {
       <slot />
     </div>
   </header>
-</template> 
+</template>

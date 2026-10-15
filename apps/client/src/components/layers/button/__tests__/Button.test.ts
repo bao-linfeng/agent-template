@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import Button from '../Button.vue'
 
-describe('Button', () => {
+describe('button', () => {
   it('renders a button with default variant classes and slot content', () => {
     const wrapper = mount(Button, { slots: { default: 'Save' } })
 

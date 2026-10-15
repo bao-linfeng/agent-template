@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import { FieldDescription, FieldError } from '@/components/ui/field'
-import { FormItem } from '@/components/ui/form'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Spinner } from '@/components/ui/spinner'
+import { Button } from '@repo/ui/components/button'
+import { FieldDescription, FieldError } from '@repo/ui/components/field'
+import { FormItem } from '@repo/ui/components/form'
+import { Label } from '@repo/ui/components/label'
+import { RadioGroup, RadioGroupItem } from '@repo/ui/components/radio-group'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/select'
+import { Separator } from '@repo/ui/components/separator'
+import { Spinner } from '@repo/ui/components/spinner'
 
 import { appearanceValidator } from '../validators/appearance.validator'
 

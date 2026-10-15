@@ -1,4 +1,4 @@
-import type { ChartConfig } from '@/components/ui/chart'
+import type { ChartConfig } from '@repo/ui/components/chart'
 
 export const chartData = [
   { date: new Date('2024-04-01'), desktop: 222, mobile: 150 },

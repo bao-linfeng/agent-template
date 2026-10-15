@@ -2,9 +2,9 @@
 import type { RowData } from '@tanstack/vue-table'
 
 import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/select'
 
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { PAGE_SIZES } from '@/constants/app'
 
 import type { DataTableInstance } from './table'

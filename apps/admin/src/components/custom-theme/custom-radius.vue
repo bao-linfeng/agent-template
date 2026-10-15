@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Button } from '@repo/ui/components/button'
+import { Label } from '@repo/ui/components/label'
 import { storeToRefs } from 'pinia'
 
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { RADIUS } from '@/constants/themes'
 import { useThemeStore } from '@/stores/theme'
 

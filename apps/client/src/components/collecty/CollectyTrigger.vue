@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Bookmark } from 'lucide-vue-next'
-import { inject, computed } from 'vue'
 import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
-import { collectyVariants, type CollectyVariants } from '.'
+import type { CollectyVariants } from '.'
 import type { SectionData } from '@/types/collecty'
+import { Bookmark } from '@lucide/vue'
+import { cn } from '@repo/utils'
+import { computed, inject } from 'vue'
+import { collectyVariants } from '.'
 
 const props = withDefaults(defineProps<{
   variant?: CollectyVariants['variant']
@@ -12,7 +13,7 @@ const props = withDefaults(defineProps<{
   class?: HTMLAttributes['class']
 }>(), {
   variant: 'default',
-  size: 'md'
+  size: 'md',
 })
 
 const sectionData = inject<SectionData>('section-data')
@@ -20,8 +21,7 @@ const sectionData = inject<SectionData>('section-data')
 // Проверяем состояние в коллекции
 const isActive = computed(() => sectionData?.isInCollection.value || false)
 
-const handleClick = () => {
-  console.log('Current state:', isActive.value)
+function handleClick() {
   sectionData?.toggleCollection()
 }
 </script>
@@ -30,21 +30,21 @@ const handleClick = () => {
   <button
     type="button"
     :class="cn(
-      collectyVariants({ 
-        variant, 
-        size, 
-        state: isActive ? 'active' : 'inactive' 
-      }), 
-      props.class
+      collectyVariants({
+        variant,
+        size,
+        state: isActive ? 'active' : 'inactive',
+      }),
+      props.class,
     )"
     @click="handleClick"
   >
     <Bookmark
       :class="cn(
         'transition-transform duration-200',
-        { 'fill-current text-primary': isActive }
+        { 'fill-current text-primary': isActive },
       )"
       :aria-label="isActive ? 'Remove from collection' : 'Add to collection'"
     />
   </button>
-</template> 
+</template>

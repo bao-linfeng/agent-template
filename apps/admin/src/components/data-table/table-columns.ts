@@ -1,8 +1,7 @@
 import type { RowData } from '@tanstack/vue-table'
 
+import { Checkbox } from '@repo/ui/components/checkbox'
 import { h } from 'vue'
-
-import { Checkbox } from '@/components/ui/checkbox'
 
 import type { DataTableColumnDef } from './table'
 

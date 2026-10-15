@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ChevronsUpDownIcon } from '@lucide/vue'
-
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Button } from '@repo/ui/components/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 
 import type { TwoColAsideNavItem } from './types'
 

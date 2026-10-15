@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { XIcon } from '@lucide/vue'
-import { useForm } from '@tanstack/vue-form'
-import { toast } from 'vue-sonner'
-
-import { Button } from '@/components/ui/button'
-import { FieldDescription, FieldError } from '@/components/ui/field'
-import { FormItem } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Button } from '@repo/ui/components/button'
+import { FieldDescription, FieldError } from '@repo/ui/components/field'
+import { FormItem } from '@repo/ui/components/form'
+import { Input } from '@repo/ui/components/input'
+import { Label } from '@repo/ui/components/label'
 import {
   Select,
   SelectContent,
@@ -15,10 +12,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
-import { cn } from '@/lib/utils'
+} from '@repo/ui/components/select'
+import { Separator } from '@repo/ui/components/separator'
+import { Textarea } from '@repo/ui/components/textarea'
+import { cn } from '@repo/ui/lib/utils'
+import { useForm } from '@tanstack/vue-form'
+import { toast } from 'vue-sonner'
 
 import type { ProfileValidator } from '../validators/profile.validator'
 

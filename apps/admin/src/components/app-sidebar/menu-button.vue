@@ -1,7 +1,6 @@
 <script setup lang='ts'>
 import { ExternalLinkIcon } from '@lucide/vue'
-
-import { SidebarMenuButton } from '@/components/ui/sidebar'
+import { SidebarMenuButton } from '@repo/ui/components/sidebar'
 
 import type { NavSubItem } from './types'
 

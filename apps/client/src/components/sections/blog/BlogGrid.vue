@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
-import { blogVariants } from './variants'
+import { cn } from '@repo/utils'
 import Section from '@/components/layout/Section.vue'
+import { blogVariants } from './variants'
 
 interface Props {
   class?: HTMLAttributes['class']
@@ -15,23 +15,22 @@ const props = withDefaults(defineProps<Props>(), {
   layout: 'grid',
   padding: 'none',
   columns: 3,
-  class: 'm'
 })
 </script>
 
 <template>
   <Section>
-    <div 
+    <div
       :class="cn(
-        blogVariants({ 
+        blogVariants({
           layout: props.layout,
           padding: props.padding,
-          columns: props.columns
+          columns: props.columns,
         }),
-        props.class
+        props.class,
       )"
     >
       <slot />
     </div>
   </Section>
-</template> 
+</template>

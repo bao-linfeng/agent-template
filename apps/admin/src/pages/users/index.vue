@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { LoaderIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
 
 import type { DataTableToolbarFilter } from '@/components/data-table'
 
 import { DataTable, DataTableToolbar } from '@/components/data-table'
 import { BasicPage } from '@/components/global-layout'
-import { Button } from '@/components/ui/button'
 
 import { columns } from './components/columns'
 import UserCreate from './components/user-create.vue'

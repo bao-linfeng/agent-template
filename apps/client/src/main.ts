@@ -1,10 +1,13 @@
 import { createApp } from 'vue'
-import '@/assets/index.css'
+
+import { initializeTheme } from '@/components/theming/themeManager'
+import { useCollecty } from '@/composables/useCollecty'
+
 import App from './App.vue'
 import router from './router'
-import { initializeTheme } from '@/components/theming/themeManager'
+
+import '@/assets/index.css'
 import './components/theming/themes.css'
-import { useCollecty } from '@/composables/useCollecty'
 
 // Initialize theme and collecty store
 initializeTheme()

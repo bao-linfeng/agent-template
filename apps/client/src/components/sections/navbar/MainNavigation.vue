@@ -1,50 +1,44 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import Navbar from './Navbar.vue'
-import NavbarBrand from './NavbarBrand.vue'
-import NavbarLayer from './NavbarLayer.vue'
-import { DarkMode } from '@/components/darkMode'
-import { ThemingSettings } from '@/components/theming'
-import { Home, Layout, ChevronsRight, PackageCheck, AlignRight, Combine } from 'lucide-vue-next'
 import type { Component } from 'vue'
-import {
-  NavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItem,
-  NavigationMenuTrigger,
-  NavigationMenuContent,
-  NavigationMenuLink,
-} from '@/components/ui/navigation-menu'
-import { Button } from '@/components/ui/button'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetTrigger,
-} from '@/components/ui/sheet'
+import { AlignRight, ChevronsRight, Combine, Home, Layout, PackageCheck } from '@lucide/vue'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
-import { ref, watch } from 'vue'
+} from '@repo/ui/components/accordion'
+import { Button } from '@repo/ui/components/button'
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from '@repo/ui/components/navigation-menu'
+import { ScrollArea } from '@repo/ui/components/scroll-area'
+import { Separator } from '@repo/ui/components/separator'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@repo/ui/components/sheet'
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { DarkMode } from '@/components/darkMode'
+import { ThemingSettings } from '@/components/theming'
 import { useCollecty } from '@/composables/useCollecty'
+import Navbar from './Navbar.vue'
+import NavbarBrand from './NavbarBrand.vue'
+import NavbarLayer from './NavbarLayer.vue'
 
 const router = useRouter()
-// const route = useRoute()
 
 const { collection } = useCollecty()
-const isButtonVisible = ref(false)
-
-// Следим за изменениями в коллекции
-watch(() => collection.value, (newCollection) => {
-  isButtonVisible.value = newCollection.length > 0
-}, { immediate: true, deep: true })
+const isButtonVisible = computed(() => collection.value.length > 0)
 
 interface RouteChild {
   name: string
@@ -82,14 +76,14 @@ const parentRoutes = router.getRoutes()
       meta: {
         icon: child.meta?.icon as string,
         title: child.meta?.title as string,
-        description: child.meta?.description as string
-      }
-    }))
+        description: child.meta?.description as string,
+      },
+    })),
   })) as ParentRoute[]
 
 const routeIcons: Record<string, Component> = { Home, Layout, ChevronsRight }
 
-const getIcon = (iconName?: string) => {
+function getIcon(iconName?: string) {
   return (iconName && routeIcons[iconName]) || ChevronsRight
 }
 
@@ -107,7 +101,7 @@ const menuDescription = 'Main navigation menu with all available sections and pa
             <PackageCheck class="w-6 h-6" />
             <span class="font-semibold">BuildY</span>
           </NavbarBrand>
-          
+
           <!-- Обновляем десктопную навигацию -->
           <NavigationMenu class="hidden md:flex">
             <NavigationMenuList>
@@ -119,9 +113,11 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                       <NavigationMenuLink as-child>
                         <router-link
                           :to="`${parentRoute.path}/${child.path}`"
-                          class="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                          class="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-hidden transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                         >
-                          <div class="text-sm font-medium leading-none">{{ child.title }}</div>
+                          <div class="text-sm font-medium leading-none">
+                            {{ child.title }}
+                          </div>
                           <p v-if="child.description" class="line-clamp-2 text-sm leading-snug text-muted-foreground">
                             {{ child.description }}
                           </p>
@@ -139,8 +135,7 @@ const menuDescription = 'Main navigation menu with all available sections and pa
       <!-- Правая часть: кнопки -->
       <NavbarLayer position="end" data-navbar-end>
         <div class="flex items-center gap-1 md:gap-2">
-          
-          <Button 
+          <Button
             v-if="isButtonVisible"
             variant="default"
             size="sm"
@@ -148,29 +143,29 @@ const menuDescription = 'Main navigation menu with all available sections and pa
             aria-label="Go to builder"
             @click="router.push('/buildy')"
           >
-            <Combine :stroke-width="2.5" class="!w-3.5 !h-3.5" />
+            <Combine :stroke-width="2.5" class="w-3.5! h-3.5!" />
             <span class="font-base">BuildY</span>
           </Button>
-          
+
           <DarkMode data-dark-mode />
           <ThemingSettings />
 
-        <!-- Мобильное меню -->
-        <Sheet>
-          <SheetTrigger as-child>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              class="md:hidden"
-              :aria-controls="sheetId"
-              aria-label="Open navigation menu"
-            >
-            <AlignRight class="!w-[1.5rem] !h-[1.5rem]" />
-              <span class="sr-only">Toggle menu</span>
-            </Button>
-          </SheetTrigger>
-            
-            <SheetContent 
+          <!-- Мобильное меню -->
+          <Sheet>
+            <SheetTrigger as-child>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="md:hidden"
+                :aria-controls="sheetId"
+                aria-label="Open navigation menu"
+              >
+                <AlignRight class="w-[1.5rem]! h-[1.5rem]!" />
+                <span class="sr-only">Toggle menu</span>
+              </Button>
+            </SheetTrigger>
+
+            <SheetContent
               class="w-[300px] p-0 sheet-content border-r border-secondary-foreground/20 shadow-glow "
               side="left"
             >
@@ -185,31 +180,31 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                   {{ menuDescription }}
                 </SheetDescription>
               </SheetHeader>
-              
+
               <ScrollArea class="h-[calc(100vh-80px)]">
                 <div class="p-4">
-                  <router-link 
-                    to="/" 
+                  <router-link
+                    to="/"
                     class="flex items-center gap-2 px-2 py-1.5 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground"
                     aria-label="Go to home page"
                   >
                     <Home class="h-4 w-4" />
                     <span>Home</span>
                   </router-link>
-                  
+
                   <Separator class="my-4" />
-                  
-                  <Accordion 
-                    type="single" 
+
+                  <Accordion
+                    type="single"
                     collapsible
                     class="w-full"
                   >
-                    <AccordionItem 
-                      v-for="route in parentRoutes" 
-                      :key="route.path" 
+                    <AccordionItem
+                      v-for="route in parentRoutes"
+                      :key="route.path"
                       :value="route.path"
                     >
-                      <AccordionTrigger 
+                      <AccordionTrigger
                         class="text-sm no-underline"
                         :aria-label="`Toggle ${route.title} section`"
                       >
@@ -223,20 +218,20 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                             :to="`${route.path}/${child.path}`"
                             class="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md hover:bg-accent hover:text-accent-foreground"
                             :class="[
-                              route.path === $route.path ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'
+                              route.path === $route.path ? 'bg-accent text-accent-foreground' : 'text-muted-foreground',
                             ]"
                             :aria-label="`Go to ${child.title}`"
                             :aria-current="route.path === $route.path ? 'page' : undefined"
                           >
-                            <component 
-                              :is="getIcon(child.meta?.icon)" 
-                              class="h-4 w-4" 
+                            <component
+                              :is="getIcon(child.meta?.icon)"
+                              class="h-4 w-4"
                               aria-hidden="true"
                             />
                             <div>
                               <div>{{ child.title }}</div>
-                              <p 
-                                v-if="child.description" 
+                              <p
+                                v-if="child.description"
                                 class="text-xs text-muted-foreground line-clamp-1"
                               >
                                 {{ child.description }}
@@ -260,61 +255,63 @@ const menuDescription = 'Main navigation menu with all available sections and pa
 <style scoped>
 /* Активная ссылка */
 .router-link-active {
-  color: hsl(var(--primary));
+  color: var(--primary);
 }
 
 /* Градиентная граница */
 .border-gradient {
   border-image: linear-gradient(
-    to right,
-    hsl(var(--primary) / 0.1),
-    hsl(var(--primary) / 0.4),
-    hsl(var(--primary) / 0.1)
-  ) 1;
+      to right,
+      color-mix(in oklab, var(--primary) 10%, transparent),
+      color-mix(in oklab, var(--primary) 40%, transparent),
+      color-mix(in oklab, var(--primary) 10%, transparent)
+    )
+    1;
 }
 
 :global(.dark) .border-gradient {
   border-image: linear-gradient(
-    to right,
-    hsl(var(--primary) / 0.2),
-    hsl(var(--primary) / 0.5),
-    hsl(var(--primary) / 0.2)
-  ) 1;
+      to right,
+      color-mix(in oklab, var(--primary) 20%, transparent),
+      color-mix(in oklab, var(--primary) 50%, transparent),
+      color-mix(in oklab, var(--primary) 20%, transparent)
+    )
+    1;
 }
 
 /* Тень с подсветкой */
 .shadow-glow {
-  box-shadow: 
-    0 1px 2px -1px hsl(var(--primary) / 0.1),
-    0 0 0 1px hsl(var(--primary) / 0.05),
-    0 1px 2px 0 hsl(var(--primary) / 0.05);
+  box-shadow:
+    0 1px 2px -1px color-mix(in oklab, var(--primary) 10%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--primary) 5%, transparent),
+    0 1px 2px 0 color-mix(in oklab, var(--primary) 5%, transparent);
 }
 
 :global(.dark) .shadow-glow {
-  box-shadow: 
-    0 1px 2px -1px hsl(var(--primary) / 0.2),
-    0 0 0 1px hsl(var(--primary) / 0.1),
-    0 1px 2px 0 hsl(var(--primary) / 0.1);
+  box-shadow:
+    0 1px 2px -1px color-mix(in oklab, var(--primary) 20%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent),
+    0 1px 2px 0 color-mix(in oklab, var(--primary) 10%, transparent);
 }
 
 /* Эффект при наведении */
 .shadow-glow:hover {
-  box-shadow: 
-    0 2px 4px -2px hsl(var(--primary) / 0.15),
-    0 0 0 1px hsl(var(--primary) / 0.1),
-    0 1px 3px 0 hsl(var(--primary) / 0.1);
+  box-shadow:
+    0 2px 4px -2px color-mix(in oklab, var(--primary) 15%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--primary) 10%, transparent),
+    0 1px 3px 0 color-mix(in oklab, var(--primary) 10%, transparent);
   transition: all 0.3s ease;
 }
 
 :global(.dark) .shadow-glow:hover {
-  box-shadow: 
-    0 2px 4px -2px hsl(var(--primary) / 0.25),
-    0 0 0 1px hsl(var(--primary) / 0.15),
-    0 1px 3px 0 hsl(var(--primary) / 0.15);
+  box-shadow:
+    0 2px 4px -2px color-mix(in oklab, var(--primary) 25%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--primary) 15%, transparent),
+    0 1px 3px 0 color-mix(in oklab, var(--primary) 15%, transparent);
 }
 
 /* Разделители аккордеона */
-:deep([data-orientation="vertical"].border-b) {
-  border-bottom-color: hsl(var(--border) / 0.9) !important;
+:deep([data-orientation='vertical'].border-b) {
+  border-bottom-color: color-mix(in oklab, var(--border) 90%, transparent) !important;
 }
-</style> 
+</style>

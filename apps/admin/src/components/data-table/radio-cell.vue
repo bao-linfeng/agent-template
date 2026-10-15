@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { CircleIcon } from '@lucide/vue'
-
-import { cn } from '@/lib/utils'
+import { cn } from '@repo/ui/lib/utils'
 
 defineProps<{
   checked: boolean

@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { Alert, AlertDescription, AlertTitle } from '@repo/ui/components/alert'
+import { Input } from '@repo/ui/components/input'
+import { Label } from '@repo/ui/components/label'
 import { toast } from 'vue-sonner'
 
 import type { DataTableInstance } from '@/components/data-table'
 
 import ConfirmDialog from '@/components/confirm-dialog.vue'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 import type { Task } from '../data/schema'
 

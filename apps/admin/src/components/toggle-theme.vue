@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { MoonIcon, SunIcon, SunMoonIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 import { useColorMode } from '@vueuse/core'
-
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 const mode = useColorMode()
 </script>

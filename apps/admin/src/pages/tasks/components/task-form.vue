@@ -1,14 +1,13 @@
 <script setup lang="ts">
+import { Button } from '@repo/ui/components/button'
+import { FieldError } from '@repo/ui/components/field'
+import { FormItem } from '@repo/ui/components/form'
+import { Input } from '@repo/ui/components/input'
+import { Label } from '@repo/ui/components/label'
+import { RadioGroup, RadioGroupItem } from '@repo/ui/components/radio-group'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/select'
 import { useForm } from '@tanstack/vue-form'
 import { toast } from 'vue-sonner'
-
-import { Button } from '@/components/ui/button'
-import { FieldError } from '@/components/ui/field'
-import { FormItem } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import type { Task } from '../data/schema'
 import type { TaskValidator } from '../validators/task.validator'

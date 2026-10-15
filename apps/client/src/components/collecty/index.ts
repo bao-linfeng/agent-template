@@ -1,11 +1,12 @@
-import { cva, type VariantProps } from 'class-variance-authority'
+import type { VariantProps } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 
 export { default as Collecty } from './Collecty.vue'
-export { default as CollectyTrigger } from './CollectyTrigger.vue'
 export { default as CollectyIndicator } from './CollectyIndicator.vue'
+export { default as CollectyTrigger } from './CollectyTrigger.vue'
 
 export const collectyVariants = cva(
-  'inline-flex items-center justify-center transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none',
+  'inline-flex items-center justify-center transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none',
   {
     variants: {
       variant: {
@@ -21,14 +22,14 @@ export const collectyVariants = cva(
       state: {
         active: 'text-primary',
         inactive: 'opacity-70',
-      }
+      },
     },
     defaultVariants: {
       variant: 'default',
       size: 'md',
-      state: 'inactive'
-    }
-  }
+      state: 'inactive',
+    },
+  },
 )
 
-export type CollectyVariants = VariantProps<typeof collectyVariants> 
+export type CollectyVariants = VariantProps<typeof collectyVariants>

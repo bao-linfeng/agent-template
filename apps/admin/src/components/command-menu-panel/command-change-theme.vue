@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { MoonIcon, SunIcon, SunMoonIcon } from '@lucide/vue'
+import { CommandGroup, CommandItem } from '@repo/ui/components/command'
 import { useColorMode } from '@vueuse/core'
-
-import { CommandGroup, CommandItem } from '@/components/ui/command'
 
 import CommandItemHasIcon from './command-item-has-icon.vue'
 

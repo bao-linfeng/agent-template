@@ -1,13 +1,12 @@
 <script setup lang="ts">
+import { Button } from '@repo/ui/components/button'
+import { Checkbox } from '@repo/ui/components/checkbox'
+import { FieldDescription, FieldError } from '@repo/ui/components/field'
+import { FormItem } from '@repo/ui/components/form'
+import { Label } from '@repo/ui/components/label'
+import { Separator } from '@repo/ui/components/separator'
 import { useForm } from '@tanstack/vue-form'
 import { toast } from 'vue-sonner'
-
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { FieldDescription, FieldError } from '@/components/ui/field'
-import { FormItem } from '@/components/ui/form'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 
 const items = [
   {

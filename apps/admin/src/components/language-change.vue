@@ -2,12 +2,12 @@
 import type { AcceptableValue } from 'reka-ui'
 
 import { Icon } from '@iconify/vue'
+import { Button } from '@repo/ui/components/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 import { useI18n } from 'vue-i18n'
 
 import type { Language } from '@/plugins/i18n'
 
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { appLocale, DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/plugins/i18n'
 
 const { locale } = useI18n()

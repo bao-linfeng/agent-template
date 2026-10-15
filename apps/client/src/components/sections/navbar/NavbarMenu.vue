@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { 
+import { Menu } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import {
   Sheet,
   SheetContent,
-  SheetTrigger,
+  SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
-  SheetFooter
-} from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Menu } from 'lucide-vue-next'
+  SheetTrigger,
+} from '@repo/ui/components/sheet'
 import { ref } from 'vue'
 
 const isOpen = ref(false)
@@ -17,7 +17,7 @@ const isOpen = ref(false)
 
 <template>
   <Sheet v-model:open="isOpen">
-    <SheetTrigger asChild>
+    <SheetTrigger as-child>
       <Button variant="ghost" size="icon">
         <Menu class="h-5 w-5" />
         <span class="sr-only">Toggle menu</span>
@@ -26,10 +26,14 @@ const isOpen = ref(false)
     <SheetContent side="left" class="w-[280px] sm:w-[340px]">
       <SheetHeader>
         <SheetTitle>
-          <slot name="title">Menu</slot>
+          <slot name="title">
+            Menu
+          </slot>
         </SheetTitle>
         <SheetDescription>
-          <slot name="description">Navigation menu</slot>
+          <slot name="description">
+            Navigation menu
+          </slot>
         </SheetDescription>
       </SheetHeader>
       <div class="flex-1 overflow-y-auto px-4">
@@ -40,4 +44,4 @@ const isOpen = ref(false)
       </SheetFooter>
     </SheetContent>
   </Sheet>
-</template> 
+</template>

@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { Button } from '@repo/ui/components/button'
+import { Card } from '@repo/ui/components/card'
 import { useI18n } from 'vue-i18n'
-
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 
 const { t } = useI18n()
 

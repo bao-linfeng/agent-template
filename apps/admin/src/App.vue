@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Toaster } from '@repo/ui/components/sonner'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
 
 import Loading from '@/components/loading.vue'
-import { Toaster } from '@/components/ui/sonner'
 import { useSystemTheme } from '@/composables/use-system-theme'
 import { envError } from '@/utils/env'
 

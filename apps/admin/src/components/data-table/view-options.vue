@@ -2,9 +2,8 @@
 import type { RowData } from '@tanstack/vue-table'
 
 import { RefreshCcwIcon, Settings2Icon } from '@lucide/vue'
-
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Button } from '@repo/ui/components/button'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 
 import type { DataTableInstance } from './table'
 

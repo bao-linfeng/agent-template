@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ArrowUpIcon, PaperclipIcon } from '@lucide/vue'
-
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupTextarea } from '@/components/ui/input-group'
-import { Separator } from '@/components/ui/separator'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupText, InputGroupTextarea } from '@repo/ui/components/input-group'
+import { Separator } from '@repo/ui/components/separator'
 
 import type { TalkMode } from '../types'
 

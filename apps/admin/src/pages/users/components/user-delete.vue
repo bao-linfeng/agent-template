@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Button } from '@repo/ui/components/button'
 import { toast } from 'vue-sonner'
 
 import { ModalClose, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from '@/components/prop-ui/modal'
-import { Button } from '@/components/ui/button'
 
 import type { User } from '../data/schema'
 

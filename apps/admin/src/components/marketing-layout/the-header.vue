@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { Avatar, AvatarImage } from '@repo/ui/components/avatar'
 import { useColorMode } from '@vueuse/core'
 
 import LanguageChange from '@/components/language-change.vue'
 import SignInButton from '@/components/sign-in-button.vue'
 import SignUpButton from '@/components/sign-up-button.vue'
 import ToggleTheme from '@/components/toggle-theme.vue'
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { SITE_CONFIG } from '@/config/site'
 
 const mode = useColorMode()

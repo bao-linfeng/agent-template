@@ -1,4 +1,6 @@
-import { nextJsConfig } from "@repo/eslint-config/next-js";
+import { defineConfig } from '@repo/eslint-config'
 
-/** @type {import("eslint").Linter.Config[]} */
-export default nextJsConfig;
+export default defineConfig({
+  type: 'app',
+  ignores: ['.vitepress/cache/**'],
+})

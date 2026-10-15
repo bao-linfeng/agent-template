@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ArrowDownAZIcon, ArrowDownZAIcon, SlidersHorizontalIcon } from '@lucide/vue'
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/select'
 
 export type TSort = 'asc' | 'desc'
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useSidebar } from '@/components/ui/sidebar'
+import { useSidebar } from '@repo/ui/components/sidebar'
+
 import { useSidebarConfigStore } from '@/stores/sidebar-config'
 
 import type { NavGroup } from './types'

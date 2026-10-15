@@ -3,7 +3,8 @@ export function useFont() {
     try {
       await document.fonts.load(`1rem ${fontFamily}`)
       document.documentElement.style.setProperty('font-family', fontFamily)
-    } catch (error) {
+    }
+    catch (error) {
       console.error(`Failed to load font: ${fontFamily}`, error)
     }
   }
@@ -23,6 +24,6 @@ export function useFont() {
 
   return {
     loadFont,
-    updateFontLink
+    updateFontLink,
   }
-} 
+}

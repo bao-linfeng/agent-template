@@ -2,11 +2,16 @@ node_modules/
 .git/
 .turbo/
 **/dist/
-**/.next/
 **/coverage/
 **/*.tsbuildinfo
+**/.vitepress/cache/
 pnpm-lock.yaml
+
+# Formatted by their own tooling: Antfu ESLint (`lint:fix`) or the server's local Prettier
 apps/admin/
+apps/client/
+apps/docs/
 apps/server/
-apps/client/public/
-apps/client/src/components/ui/
+packages/eslint-config/
+packages/ui/
+packages/utils/

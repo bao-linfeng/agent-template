@@ -2,13 +2,12 @@
 import type { RowData } from '@tanstack/vue-table'
 
 import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, ChevronsUpDownIcon, EyeOffIcon, PinIcon, PinOffIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
+import { cn } from '@repo/ui/lib/utils'
 import { computed } from 'vue'
 
 import type { DataTableColumn } from '@/components/data-table/table'
-
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
 
 interface DataTableColumnHeaderProps {
   column: DataTableColumn<T>

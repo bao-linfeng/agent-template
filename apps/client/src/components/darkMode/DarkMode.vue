@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Sun, Moon } from 'lucide-vue-next'
-import { ref, type HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
-import { type DarkModeVariants, darkModeVariants } from '.'
+import type { HTMLAttributes } from 'vue'
+import type { DarkModeVariants } from '.'
+import { Moon, Sun } from '@lucide/vue'
+import { cn } from '@repo/utils'
+import { ref } from 'vue'
+import { darkModeVariants } from '.'
 
 interface Props extends /* @vue-ignore */ DarkModeVariants {
   class?: HTMLAttributes['class']
@@ -10,12 +12,12 @@ interface Props extends /* @vue-ignore */ DarkModeVariants {
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'ghost',
-  size: 'default'
+  size: 'default',
 })
 
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
-const toggleDarkMode = () => {
+function toggleDarkMode() {
   isDark.value = !isDark.value
   document.documentElement.classList.toggle('dark', isDark.value)
   localStorage.setItem('darkMode', String(isDark.value))
@@ -32,4 +34,4 @@ const toggleDarkMode = () => {
     <Moon v-else class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
     <span class="sr-only">Toggle theme</span>
   </button>
-</template> 
+</template>

@@ -1,9 +1,9 @@
+import { Badge } from '@repo/ui/components/badge'
 import { h } from 'vue'
 
 import type { DataTableColumnDef } from '@/components/data-table'
 
 import { createSelectColumn, DataTableColumnHeader } from '@/components/data-table'
-import { Badge } from '@/components/ui/badge'
 
 import type { Task } from '../data/schema'
 

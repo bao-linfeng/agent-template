@@ -2,12 +2,12 @@
 import type { Component } from 'vue'
 
 import { EllipsisIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuShortcut, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 
 import type { DataTableRow } from '@/components/data-table'
 
 import { Modal, ModalContent } from '@/components/prop-ui/modal'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuShortcut, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 import type { User } from '../data/schema'
 

@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { MainNavigation } from '@/components/sections/navbar'
+import { Button } from '@repo/ui/components/button'
 import {
   Hero,
+  HeroActions,
   HeroContent,
-  HeroTitle,
   HeroDescription,
-  HeroActions
+  HeroTitle,
 } from '@/components/sections/hero'
-import { Button } from '@/components/ui/button'
+import { MainNavigation } from '@/components/sections/navbar'
 </script>
 
 <template>
   <main>
     <MainNavigation />
     <router-view />
-    <Hero sectionKey="build_your_next_landing_page_with_shadcn_vue" layout="centered" height="nav">
+    <Hero section-key="build_your_next_landing_page_with_shadcn_vue" layout="centered" height="nav">
       <HeroContent class="container mx-auto" padding="md">
         <HeroTitle as="h1">
           Build your next <br>

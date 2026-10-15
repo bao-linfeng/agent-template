@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { Alert, AlertDescription, AlertTitle } from '@repo/ui/components/alert'
+
 import { BasicPage } from '@/components/global-layout'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 interface ISocialMediaAccount {
   title: string

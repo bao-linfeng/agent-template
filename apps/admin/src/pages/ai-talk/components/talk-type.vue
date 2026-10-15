@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { RadioTowerIcon, SparklesIcon } from '@lucide/vue'
-
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { ToggleGroup, ToggleGroupItem } from '@repo/ui/components/toggle-group'
 
 import type { TalkMode } from '../types'
 

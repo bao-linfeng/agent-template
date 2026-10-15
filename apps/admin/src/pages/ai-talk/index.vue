@@ -1,11 +1,10 @@
 <script setup lang="ts">
+import { Avatar, AvatarFallback } from '@repo/ui/components/avatar'
+import { Bubble, BubbleContent } from '@repo/ui/components/bubble'
+import { Marker, MarkerContent, MarkerIcon } from '@repo/ui/components/marker'
+import { Message, MessageAvatar, MessageContent, MessageFooter } from '@repo/ui/components/message'
+import { Spinner } from '@repo/ui/components/spinner'
 import { toast } from 'vue-sonner'
-
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Bubble, BubbleContent } from '@/components/ui/bubble'
-import { Marker, MarkerContent, MarkerIcon } from '@/components/ui/marker'
-import { Message, MessageAvatar, MessageContent, MessageFooter } from '@/components/ui/message'
-import { Spinner } from '@/components/ui/spinner'
 
 import type { IMessage } from './types'
 

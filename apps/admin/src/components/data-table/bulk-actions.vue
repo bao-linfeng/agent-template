@@ -2,12 +2,11 @@
 import type { RowData } from '@tanstack/vue-table'
 
 import { XIcon } from '@lucide/vue'
-
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
+import { Badge } from '@repo/ui/components/badge'
+import { Button } from '@repo/ui/components/button'
+import { Separator } from '@repo/ui/components/separator'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/components/tooltip'
+import { cn } from '@repo/ui/lib/utils'
 
 import type { DataTableInstance } from './table'
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Trash2Icon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@repo/ui/components/tooltip'
 
 import type { DataTableToolbarFilter } from '@/components/data-table'
 
 import { DataTable, DataTableBulkActions, DataTableToolbar } from '@/components/data-table'
 import { BasicPage } from '@/components/global-layout'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 import { columns } from './components/columns'
 import TaskCreate from './components/task-create.vue'

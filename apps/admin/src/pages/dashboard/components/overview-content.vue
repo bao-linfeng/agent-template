@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@repo/ui/components/card'
 
 import OverviewChart from './overview-chart.vue'
 import RecentSales from './recent-sales.vue'

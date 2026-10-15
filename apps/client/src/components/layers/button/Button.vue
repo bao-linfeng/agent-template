@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Button as BaseButton } from '@/components/ui/button'
+import { Button as BaseButton } from '@repo/ui/components/button'
+import { cn } from '@repo/utils'
 import { buttonVariants } from './button'
-import { cn } from '@/lib/utils'
 
 interface Props {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
@@ -11,7 +11,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
-  size: 'default'
+  size: 'default',
 })
 </script>
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { cn } from '@repo/ui/lib/utils'
 import { useI18n } from 'vue-i18n'
 
 import GlowingEffect from '@/components/inspira-ui/glowing-effect.vue'
-import { cn } from '@/lib/utils'
 
 const { t } = useI18n()
 

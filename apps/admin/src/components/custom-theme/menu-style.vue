@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ChevronRightIcon, LayoutListIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { Label } from '@repo/ui/components/label'
 import { storeToRefs } from 'pinia'
 
 import type { NavigationMode } from '@/stores/sidebar-config'
 
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { useSidebarConfigStore } from '@/stores/sidebar-config'
 
 const sidebarConfigStore = useSidebarConfigStore()

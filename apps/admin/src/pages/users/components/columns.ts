@@ -1,10 +1,10 @@
+import { Badge } from '@repo/ui/components/badge'
 import { h } from 'vue'
 
 import type { DataTableColumnDef } from '@/components/data-table'
 
 import { createSelectColumn, DataTableColumnHeader } from '@/components/data-table'
 import { Copy } from '@/components/prop-ui/copy'
-import Badge from '@/components/ui/badge/Badge.vue'
 
 import type { User } from '../data/schema'
 

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ArrowUpRightIcon, BadgeCheckIcon, ChevronRightIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@repo/ui/components/item'
 
 import { BasicPage } from '@/components/global-layout'
-import { Button } from '@/components/ui/button'
-import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from '@/components/ui/item'
 
 const components = [
   {

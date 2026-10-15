@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import type { BadgeVariants } from '@repo/ui/components/badge'
 import type { HTMLAttributes } from 'vue'
 
-import type { BadgeVariants } from '@/components/ui/badge'
-
-import { badgeVariants } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { badgeVariants } from '@repo/ui/components/badge'
+import { cn } from '@repo/ui/lib/utils'
 
 import type { StatusVariants } from '.'
 

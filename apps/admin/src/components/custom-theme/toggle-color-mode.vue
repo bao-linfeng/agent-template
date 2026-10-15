@@ -3,10 +3,9 @@ import type { BasicColorSchema } from '@vueuse/core'
 import type { Component } from 'vue'
 
 import { MoonIcon, SunIcon, SunMoonIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { Label } from '@repo/ui/components/label'
 import { useColorMode } from '@vueuse/core'
-
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 
 const mode = useColorMode()
 

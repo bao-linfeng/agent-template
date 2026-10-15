@@ -1,4 +1,4 @@
-import { ref, watch, computed } from 'vue'
+import { computed, effectScope, ref, watch } from 'vue'
 
 interface CollectyItem {
   id: string
@@ -6,73 +6,68 @@ interface CollectyItem {
   timestamp: number
 }
 
-// Создаем глобальное состояние вне функции
+// Global state shared by every caller
 const STORAGE_KEY = 'uiCollection'
+const SECTION_PREFIX = 'hero__'
 const globalCollection = ref<CollectyItem[]>([])
 let isInitialized = false
 
-// Функция для форматирования ID
-const formatCollectionId = (id: string): string => {
-  // Очищаем ID от префикса hero__
-  const cleanId = id.replace('hero__', '')
-  // Добавляем случайный суффикс для уникальности
+const toBaseId = (id: string) => id.replace(SECTION_PREFIX, '')
+
+// Stored ids carry a random suffix (`<baseId>_<suffix>`) to stay unique
+function formatCollectionId(id: string): string {
   const suffix = Math.random().toString(36).substring(2, 6)
-  return `${cleanId}_${suffix}`
+  return `${toBaseId(id)}_${suffix}`
+}
+
+function storedBaseId(item: CollectyItem) {
+  return item.id.split('_').slice(0, -1).join('_')
+}
+
+function loadCollection() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (!saved)
+      return
+
+    const items = JSON.parse(saved) as CollectyItem[]
+    if (Array.isArray(items) && items.every(item => item?.id)) {
+      globalCollection.value = items
+    }
+    else {
+      console.warn('Invalid collection format, resetting to empty array')
+      globalCollection.value = []
+    }
+  }
+  catch (error) {
+    console.error('Failed to load collection:', error)
+    globalCollection.value = []
+  }
+}
+
+function initialize() {
+  if (isInitialized)
+    return
+  isInitialized = true
+
+  loadCollection()
+  // A single, detached watcher: callers inside components must not add (or stop) one per instance
+  effectScope(true).run(() => {
+    watch(globalCollection, (items) => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+    }, { deep: true })
+  })
 }
 
 export function useCollecty() {
-  const loadCollection = () => {
-    if (isInitialized) {
-      console.log('Collection already initialized')
-      return
-    }
-
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const items = JSON.parse(saved) as CollectyItem[]
-        console.log('Loading collection:', items)
-        // Проверяем, что items это массив и все элементы имеют необходимые поля
-        if (Array.isArray(items) && items.every(item => item && item.id)) {
-          globalCollection.value = items
-        } else {
-          console.warn('Invalid collection format, resetting to empty array')
-          globalCollection.value = []
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load collection:', error)
-      globalCollection.value = []
-    }
-    isInitialized = true
-  }
-
-  const saveCollection = () => {
-    console.log('Saving collection:', globalCollection.value)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(globalCollection.value))
-  }
-
-  watch(
-    globalCollection,
-    () => {
-      saveCollection()
-    },
-    { deep: true }
-  )
+  initialize()
 
   const isInCollection = (id: string): boolean => {
-    if (!id) return false
-    
-    // Очищаем ID для сравнения
-    const cleanId = id.replace('hero__', '')
-    const exists = globalCollection.value.some(item => {
-      if (!item || !item.id) return false
-      // Очищаем ID элемента от суффикса для сравнения
-      const itemBaseId = item.id.split('_').slice(0, -1).join('_')
-      return itemBaseId === cleanId
-    })
-    console.log(`Checking if ${cleanId} is in collection:`, exists)
-    return exists
+    if (!id)
+      return false
+
+    const baseId = toBaseId(id)
+    return globalCollection.value.some(item => item?.id && storedBaseId(item) === baseId)
   }
 
   const addToCollection = (id: string, path: string) => {
@@ -80,49 +75,27 @@ export function useCollecty() {
       console.warn('Invalid id or path provided')
       return
     }
+    if (isInCollection(id))
+      return
 
-    console.log('Current collection:', [...globalCollection.value])
-    
-    const formattedId = formatCollectionId(id)
-    console.log(`Adding to collection:`, { id: formattedId, path })
-
-    if (!isInCollection(id)) {
-      globalCollection.value = [
-        ...globalCollection.value,
-        {
-          id: formattedId,
-          path,
-          timestamp: Date.now()
-        }
-      ]
-      console.log('Collection after add:', [...globalCollection.value])
-    } else {
-      console.log(`Item ${id} already exists in collection`)
-    }
+    globalCollection.value = [
+      ...globalCollection.value,
+      { id: formatCollectionId(id), path, timestamp: Date.now() },
+    ]
   }
 
   const removeFromCollection = (id: string) => {
-    if (!id) return
+    if (!id)
+      return
 
-    console.log('Current collection:', [...globalCollection.value])
-    console.log(`Removing from collection: ${id}`)
-    
-    const cleanId = id.replace('hero__', '')
-    globalCollection.value = globalCollection.value.filter(item => {
-      if (!item || !item.id) return false
-      const itemBaseId = item.id.split('_').slice(0, -1).join('_')
-      return itemBaseId !== cleanId
-    })
-    console.log('Collection after remove:', [...globalCollection.value])
+    const baseId = toBaseId(id)
+    globalCollection.value = globalCollection.value.filter(item => item?.id && storedBaseId(item) !== baseId)
   }
-
-  // Загружаем коллекцию при первой инициализации
-  loadCollection()
 
   return {
     collection: computed(() => globalCollection.value),
     isInCollection,
     addToCollection,
-    removeFromCollection
+    removeFromCollection,
   }
-} 
+}

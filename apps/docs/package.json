@@ -1,28 +1,22 @@
 {
   "name": "docs",
-  "version": "0.1.0",
   "type": "module",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint --max-warnings 0",
-    "check-types": "next typegen && tsc --noEmit"
-  },
-  "dependencies": {
-    "@repo/ui": "workspace:*",
-    "next": "16.3.8",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "dev": "vitepress dev --port 3001 --strictPort",
+    "build": "vitepress build",
+    "preview": "vitepress preview --port 3001",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check-types": "tsc --noEmit"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "26.4.1",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
-    "eslint": "10.9.1",
-    "typescript": "7.0.2"
+    "@types/node": "^26.5.1",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitepress": "^1.6.4"
   }
 }

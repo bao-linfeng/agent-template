@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { Input } from '@repo/ui/components/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/ui/components/select'
+
 import type { TSort } from '@/components/sort-select'
 
 import { BasicPage } from '@/components/global-layout'
 import { SortSelect } from '@/components/sort-select'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import AppCard from './components/app-card.vue'
 import apps from './data/apps'

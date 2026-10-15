@@ -1,16 +1,15 @@
 <script setup lang="ts">
+import { Button } from '@repo/ui/components/button'
+import { Checkbox } from '@repo/ui/components/checkbox'
+import { FieldDescription, FieldError } from '@repo/ui/components/field'
+import { FormItem } from '@repo/ui/components/form'
+import { Label } from '@repo/ui/components/label'
+import { RadioGroup, RadioGroupItem } from '@repo/ui/components/radio-group'
+import { Separator } from '@repo/ui/components/separator'
+import { Switch } from '@repo/ui/components/switch'
 import { useForm } from '@tanstack/vue-form'
 import { toast } from 'vue-sonner'
 import z from 'zod'
-
-import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import { FieldDescription, FieldError } from '@/components/ui/field'
-import { FormItem } from '@/components/ui/form'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
 
 const schema = z.object({
   type: z.enum(['all', 'mentions', 'none']),

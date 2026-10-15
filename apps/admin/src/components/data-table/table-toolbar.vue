@@ -2,9 +2,8 @@
 import type { RowData } from '@tanstack/vue-table'
 
 import { XIcon } from '@lucide/vue'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@repo/ui/components/button'
+import { Input } from '@repo/ui/components/input'
 
 import type { DataTableInstance, DataTableToolbarFilter } from './table'
 

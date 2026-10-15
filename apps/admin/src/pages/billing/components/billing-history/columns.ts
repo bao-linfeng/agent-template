@@ -1,7 +1,8 @@
+import { Badge } from '@repo/ui/components/badge'
+
 import type { DataTableColumnDef } from '@/components/data-table'
 
 import { DataTableColumnHeader } from '@/components/data-table'
-import { Badge } from '@/components/ui/badge'
 
 import type { Billing } from './data/schema'
 

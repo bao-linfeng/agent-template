@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
+import { cn } from '@repo/utils'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -13,9 +13,9 @@ const props = defineProps<{
     :is="props.as || 'p'"
     :class="cn(
       'text-lg text-muted-foreground dark:text-muted-foreground/90 sm:text-xl max-w-[42rem]',
-      props.class
+      props.class,
     )"
   >
     <slot />
   </component>
-</template> 
+</template>

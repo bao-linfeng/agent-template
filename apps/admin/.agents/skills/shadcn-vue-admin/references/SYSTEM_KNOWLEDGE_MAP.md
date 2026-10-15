@@ -73,7 +73,7 @@ Plugin initialization entry: `src/plugins/index.ts`
 
 ## UI Component Directories
 
-- Base UI: `src/components/ui/**`
+- Base UI: `@repo/ui/components/*` (shared package, source in `packages/ui/src/components/**`)
 - Layout components: `src/components/global-layout/**`
 - Sidebar: `src/components/app-sidebar/**`
 - Command palette: `src/components/command-menu-panel/**`

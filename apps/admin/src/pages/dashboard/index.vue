@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { Button } from '@repo/ui/components/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@repo/ui/components/tabs'
 import { toast } from 'vue-sonner'
 
 import { BasicPage } from '@/components/global-layout'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import OverviewContent from './components/overview-content.vue'
 

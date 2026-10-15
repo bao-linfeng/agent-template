@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { MenuIcon, SearchIcon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { CommandDialog, CommandEmpty, CommandInput, CommandList, CommandSeparator } from '@repo/ui/components/command'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@repo/ui/components/empty'
+import { Kbd, KbdGroup } from '@repo/ui/components/kbd'
 import { useEventListener } from '@vueuse/core'
-
-import { Button } from '@/components/ui/button'
-import { CommandDialog, CommandEmpty, CommandInput, CommandList, CommandSeparator } from '@/components/ui/command'
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Kbd, KbdGroup } from '@/components/ui/kbd'
 
 import CommandChangeTheme from './command-change-theme.vue'
 import CommandToPage from './command-to-page.vue'

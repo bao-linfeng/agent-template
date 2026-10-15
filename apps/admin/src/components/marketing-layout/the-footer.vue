@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
+import { Avatar, AvatarImage } from '@repo/ui/components/avatar'
+import { Button } from '@repo/ui/components/button'
 import { useColorMode } from '@vueuse/core'
 
-import { Avatar, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { SITE_CONFIG } from '@/config/site'
 
 const mode = useColorMode()

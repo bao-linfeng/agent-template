@@ -2,9 +2,8 @@
 import type { DialogContentEmits, DialogContentProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
 
+import { cn } from '@repo/ui/lib/utils'
 import { useForwardPropsEmits } from 'reka-ui'
-
-import { cn } from '@/lib/utils'
 
 import { useModal } from './use-modal'
 

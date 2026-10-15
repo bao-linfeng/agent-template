@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { VisArea, VisAxis, VisLine, VisXYContainer } from '@unovis/vue'
-
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from '@repo/ui/components/card'
 import {
   ChartContainer,
   ChartCrosshair,
@@ -15,14 +13,15 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   componentToString,
-} from '@/components/ui/chart'
+} from '@repo/ui/components/chart'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@repo/ui/components/select'
+import { VisArea, VisAxis, VisLine, VisXYContainer } from '@unovis/vue'
 
 import type { OverviewChartData } from './overview-chart.data'
 

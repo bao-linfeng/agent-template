@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { cn } from '@/lib/utils'
+import { cn } from '@repo/ui/lib/utils'
 
 import type { LayoutHeaderProps } from './types'
 

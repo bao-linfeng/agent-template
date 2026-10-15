@@ -2,12 +2,12 @@
 import type { Component } from 'vue'
 
 import { EllipsisIcon, FilePenLineIcon, Trash2Icon } from '@lucide/vue'
+import { Button } from '@repo/ui/components/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 
 import type { DataTableRow } from '@/components/data-table'
 
 import { Modal, ModalContent } from '@/components/prop-ui/modal'
-import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 import type { Task } from '../data/schema'
 

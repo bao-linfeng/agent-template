@@ -66,7 +66,7 @@ Requirements:
 
 ### Add a component
 
-1. Reuse `src/components/ui/` and existing shadcn-vue components first.
+1. Reuse the shared shadcn-vue components in `@repo/ui/components/*` (source: `packages/ui/src/components/`) first; add new base components there, not in the app.
 2. If it should be shared, place it under `src/components/` to avoid page-level duplication.
 
 ### Update theme/styles

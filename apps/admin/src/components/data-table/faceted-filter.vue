@@ -2,13 +2,12 @@
 import type { RowData } from '@tanstack/vue-table'
 
 import { CheckIcon, CirclePlusIcon } from '@lucide/vue'
-
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
+import { Badge } from '@repo/ui/components/badge'
+import { Button } from '@repo/ui/components/button'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@repo/ui/components/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui/components/popover'
+import { Separator } from '@repo/ui/components/separator'
+import { cn } from '@repo/ui/lib/utils'
 
 import type { DataTableColumn, FacetedFilterOption } from './table'
 

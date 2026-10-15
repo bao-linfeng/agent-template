@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
+import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from '@repo/ui/components/sidebar'
+import { isExternalUrl } from '@repo/utils'
 
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from '@/components/ui/sidebar'
 import { useSidebarNavigation } from '@/composables/use-sidebar-navigation'
-import { isExternalUrl } from '@/utils/is-external-url'
 
 import type { NavGroup } from './types'
 
