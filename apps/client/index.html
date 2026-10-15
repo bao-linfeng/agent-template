@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"
+      data-color-mode="light"
+      data-light-theme="light"
+      data-dark-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1, maximum-scale=5">
+    <title>Vite + Shadcn Vue</title>
+    <meta name="description" content="A starter project for Vue 3 with Shadcn UI and Tailwind CSS">
+    <script>
+      (function() {
+        const theme = localStorage.getItem('darkMode');
+        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (!theme && systemTheme) {
+          localStorage.setItem('darkMode', 'true');
+        }
+        if (theme === 'true' || (!theme && systemTheme)) {
+          document.documentElement.classList.add('dark');
+        }
+      })(); 
+    </script>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMmM1NWUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1wYWNrYWdlLWNoZWNrIj48cGF0aCBkPSJtMTYgMTYgMiAyIDQtNCIvPjxwYXRoIGQ9Ik0yMSAxMFY4YTIgMiAwIDAgMC0xLTEuNzNsLTctNGEyIDIgMCAwIDAtMiAwbC03IDRBMiAyIDAgMCAwIDMgOHY4YTIgMiAwIDAgMCAxIDEuNzNsNyA0YTIgMiAwIDAgMCAyIDBsMi0xLjE0Ii8+PHBhdGggZD0ibTcuNSA0LjI3IDkgNS4xNSIvPjxwb2x5bGluZSBwb2ludHM9IjMuMjkgNyAxMiAxMiAyMC43MSA3Ii8+PGxpbmUgeDE9IjEyIiB4Mj0iMTIiIHkxPSIyMiIgeTI9IjEyIi8+PC9zdmc+" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+  </head>
+  <body class="bg-background text-foreground antialiased">
+    <div id="app"></div>
+    <!-- <script type="module" src="/collecty/index.js"></script> -->
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

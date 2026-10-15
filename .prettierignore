@@ -1,0 +1,12 @@
+node_modules/
+.git/
+.turbo/
+**/dist/
+**/.next/
+**/coverage/
+**/*.tsbuildinfo
+pnpm-lock.yaml
+apps/admin/
+apps/server/
+apps/client/public/
+apps/client/src/components/ui/

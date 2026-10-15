@@ -1,0 +1,19 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+catalog:
+  "@vitest/coverage-v8": ^4.1.11
+  "@vue/test-utils": ^2.5.1
+  happy-dom: ^20.14.5
+  vitest: ^4.1.11
+
+minimumReleaseAge: 1440
+shellEmulator: true
+allowBuilds:
+  "@nestjs/core": true
+  "@swc/core": true
+  esbuild: true
+  maplibre-gl: true
+  sharp: true
+  vue-demi: true

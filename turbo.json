@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "check-types": {
+      "dependsOn": ["^check-types"],
+      "cache": false
+    },
+    "test": {
+      "cache": false,
+      "env": ["NODE_ENV", "JWT_SECRET"]
+    },
+    "test:coverage": {
+      "cache": false,
+      "env": ["NODE_ENV", "JWT_SECRET"]
+    },
+    "test:e2e": {
+      "cache": false,
+      "env": ["NODE_ENV", "JWT_SECRET"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["PORT", "JWT_SECRET", "NODE_ENV"]
+    }
+  }
+}
