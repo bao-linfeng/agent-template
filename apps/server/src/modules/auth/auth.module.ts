@@ -4,10 +4,11 @@ import { AdminsModule } from '../admins/admins.module.js'
 import { AdminAuthController } from './admin/auth.controller.js'
 import { AuthController } from './client/auth.controller.js'
 import { AuthService } from './auth.service.js'
+import { VerificationCodesService } from './verification-codes.service.js'
 
 @Module({
   imports: [AccountsModule, AdminsModule],
   controllers: [AuthController, AdminAuthController],
-  providers: [AuthService],
+  providers: [AuthService, VerificationCodesService],
 })
 export class AuthModule {}

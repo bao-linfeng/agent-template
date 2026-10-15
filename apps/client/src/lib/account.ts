@@ -21,6 +21,14 @@ export interface Credentials {
 
 export interface Registration extends Credentials {
   nickname: string
+  /** 6-digit code emailed by `sendRegisterCode`. */
+  code: string
+}
+
+/** `POST /auth/register/send-code`: seconds until the code expires and until another one may be requested. */
+export interface SentCode {
+  expiresIn: number
+  resendAfter: number
 }
 
 /** Page of this app that renders the reset form; the server appends `?token=`. */
@@ -31,6 +39,9 @@ export function resetPasswordPageUrl(origin = window.location.origin) {
 // Session cookies are set by the server on login/register/refresh.
 export const accountApi = {
   login: (body: Credentials) => api<UserProfile>('/auth/login', { method: 'POST', body }),
+  /** 409 when the email is already registered, 429 while the resend cooldown runs. */
+  sendRegisterCode: (email: string) =>
+    api<SentCode>('/auth/register/send-code', { method: 'POST', body: { email } }),
   register: (body: Registration) => api<UserProfile>('/auth/register', { method: 'POST', body }),
   logout: () => api<void>('/auth/logout', { method: 'POST' }),
   /** Always succeeds (202) whether or not the email is registered. */

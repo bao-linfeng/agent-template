@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { HTMLAttributes } from 'vue'
 import { Input } from '@repo/ui/components/input'
 import { Label } from '@repo/ui/components/label'
 import { useId } from 'vue'
@@ -8,6 +9,8 @@ defineProps<{
   type?: string
   placeholder?: string
   autocomplete?: string
+  inputmode?: HTMLAttributes['inputmode']
+  maxlength?: number
   error?: string
   hint?: string
   disabled?: boolean
@@ -31,6 +34,8 @@ const id = useId()
       :type="type ?? 'text'"
       :placeholder="placeholder"
       :autocomplete="autocomplete"
+      :inputmode="inputmode"
+      :maxlength="maxlength"
       :disabled="disabled"
       :aria-invalid="error ? true : undefined"
       :aria-describedby="error || hint ? `${id}-help` : undefined"

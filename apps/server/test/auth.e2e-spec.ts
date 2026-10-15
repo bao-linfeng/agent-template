@@ -1,3 +1,4 @@
+import { VERIFICATION_CODE_MAX_ATTEMPTS } from '../src/modules/auth/verification-codes.service.js'
 import {
   ADMIN_API,
   API,
@@ -8,6 +9,7 @@ import {
   E2E_ADMIN,
   loginAdmin,
   registerUser,
+  requestRegisterCode,
   uniqueEmail,
   waitFor,
   type TestApp,
@@ -33,6 +35,7 @@ describe('auth & account (e2e)', () => {
 
   it('registers a client user without roles, sets HttpOnly cookies and rejects duplicates', async () => {
     const email = uniqueEmail('Reg')
+    const code = await requestRegisterCode(t, email)
     const response = await t
       .http()
       .post(`${CLIENT_API}/auth/register`)
@@ -40,6 +43,7 @@ describe('auth & account (e2e)', () => {
         email: email.toUpperCase(),
         password: 'password123',
         nickname: 'Reg',
+        code,
       })
       .expect(201)
 
@@ -59,18 +63,26 @@ describe('auth & account (e2e)', () => {
       /Path=\/api\/v1\/client\/auth/,
     )
 
+    // Registered emails get no code, so a duplicate cannot get past registration.
+    const mailsBefore = t.mailbox.sent.length
     await t
       .http()
-      .post(`${CLIENT_API}/auth/register`)
-      .send({ email, password: 'password123', nickname: 'Dup' })
+      .post(`${CLIENT_API}/auth/register/send-code`)
+      .send({ email: email.toUpperCase() })
       .expect(409)
+    expect(t.mailbox.sent).toHaveLength(mailsBefore)
   })
 
   it('validates input and rejects unknown fields', async () => {
     await t
       .http()
       .post(`${CLIENT_API}/auth/register`)
-      .send({ email: 'nope', password: 'short', nickname: 'A' })
+      .send({ email: 'nope', password: 'short', nickname: 'A', code: '12' })
+      .expect(400)
+    await t
+      .http()
+      .post(`${CLIENT_API}/auth/register`)
+      .send({ email: uniqueEmail(), password: 'password123', nickname: 'Ok' })
       .expect(400)
     await t
       .http()
@@ -79,9 +91,66 @@ describe('auth & account (e2e)', () => {
         email: uniqueEmail(),
         password: 'password123',
         nickname: 'Ok',
+        code: '123456',
         isAdmin: true,
       })
       .expect(400)
+    await t
+      .http()
+      .post(`${CLIENT_API}/auth/register/send-code`)
+      .send({ email: 'nope' })
+      .expect(400)
+  })
+
+  it('emails a single-use code bound to the address and rate limits resends', async () => {
+    const email = uniqueEmail('code')
+    const register = (body: { email: string; code: string }) =>
+      t
+        .http()
+        .post(`${CLIENT_API}/auth/register`)
+        .send({ ...body, password: 'password123', nickname: 'Code' })
+
+    // No code requested yet.
+    await register({ email, code: '123456' }).expect(400)
+
+    const code = await requestRegisterCode(t, email)
+    const [mail] = t.mailbox.to(email)
+    expect(mail?.subject).toContain(code)
+    const resend = await t
+      .http()
+      .post(`${CLIENT_API}/auth/register/send-code`)
+      .send({ email })
+      .expect(429)
+    expect(resend.body.message).toMatch(/wait/)
+
+    // Codes only work for the address they were sent to.
+    await register({ email: uniqueEmail('other'), code }).expect(400)
+    const wrong = code === '000000' ? '111111' : '000000'
+    await register({ email, code: wrong }).expect(400)
+    await register({ email, code }).expect(201)
+    // Consumed: the same code cannot be used again (even after the account is deleted).
+    await t.pool.query('DELETE FROM users WHERE email = $1', [email])
+    await register({ email, code }).expect(400)
+  })
+
+  it('discards a code after too many wrong guesses', async () => {
+    const email = uniqueEmail('guess')
+    const code = await requestRegisterCode(t, email)
+    const wrong = code === '000000' ? '111111' : '000000'
+    const register = (value: string) =>
+      t
+        .http()
+        .post(`${CLIENT_API}/auth/register`)
+        .send({
+          email,
+          password: 'password123',
+          nickname: 'Guess',
+          code: value,
+        })
+    for (let i = 0; i < VERIFICATION_CODE_MAX_ATTEMPTS; i++) {
+      await register(wrong).expect(400)
+    }
+    await register(code).expect(400)
   })
 
   it('requires authentication by default and serves the profile with a session', async () => {

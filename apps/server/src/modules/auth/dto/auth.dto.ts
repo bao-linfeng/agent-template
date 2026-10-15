@@ -3,14 +3,26 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MaxLength,
   MinLength,
 } from 'class-validator'
+
+export class SendRegisterCodeDto {
+  @IsEmail()
+  @MaxLength(255)
+  email!: string
+}
 
 export class RegisterDto {
   @IsEmail()
   @MaxLength(255)
   email!: string
+
+  /** 6-digit code emailed by `POST /v1/client/auth/register/send-code`. */
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'code must be 6 digits' })
+  code!: string
 
   /** 8-72 characters (bcrypt limit). */
   @IsString()

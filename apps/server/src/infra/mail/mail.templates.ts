@@ -34,6 +34,28 @@ export const mailTemplates = {
     }
   },
 
+  verificationCode(input: {
+    code: string
+    expiresInMinutes: number
+  }): RenderedMail {
+    return {
+      subject: `${input.code} 是你的注册验证码 / Your verification code`,
+      text: [
+        '你好：',
+        '',
+        `你正在注册账号，验证码为：${input.code}`,
+        `验证码 ${input.expiresInMinutes} 分钟内有效，请勿告诉他人。`,
+        '',
+        '如果这不是你本人的操作，请忽略本邮件。',
+      ].join('\n'),
+      html: `<p>你好：</p>
+<p>你正在注册账号，验证码为：</p>
+<p style="font-size:24px;font-weight:bold;letter-spacing:4px">${escapeHtml(input.code)}</p>
+<p>验证码 ${input.expiresInMinutes} 分钟内有效，请勿告诉他人。</p>
+<p>如果这不是你本人的操作，请忽略本邮件。</p>`,
+    }
+  },
+
   passwordChanged(input: { nickname: string }): RenderedMail {
     const nickname = escapeHtml(input.nickname)
     return {

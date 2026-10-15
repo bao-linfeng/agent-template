@@ -1,4 +1,4 @@
-import { Body, Post, Req, Res } from '@nestjs/common'
+import { Body, HttpCode, Post, Req, Res } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import {
   requestMeta,
@@ -11,7 +11,7 @@ import {
   type PublicAccount,
 } from '../../accounts/accounts.service.js'
 import { AuthCookies } from '../auth-cookies.service.js'
-import { AuthService } from '../auth.service.js'
+import { AuthService, type SentCode } from '../auth.service.js'
 import { usesBearerTransport } from '../bearer.js'
 import {
   authTransportHeader,
@@ -19,7 +19,7 @@ import {
   type BearerSignIn,
 } from '../credentials.controller.js'
 import { AuthThrottle, ClientController, Public } from '../decorators.js'
-import { RegisterDto } from '../dto/auth.dto.js'
+import { RegisterDto, SendRegisterCodeDto } from '../dto/auth.dto.js'
 import { SessionsService } from '../sessions.service.js'
 
 /**
@@ -46,7 +46,19 @@ export class AuthController extends CredentialsController<PublicAccount> {
   }
 
   /**
-   * Registers a client account and signs in; returns the profile (or `{ account, tokens }` for bearer clients).
+   * Emails a 6-digit registration code (valid `EMAIL_CODE_TTL_SECONDS`, one per email at a time).
+   * 409 when the email is already registered, 429 within `EMAIL_CODE_RESEND_SECONDS` of the last code.
+   */
+  @Post('register/send-code')
+  @HttpCode(202)
+  @AuthThrottle()
+  sendRegisterCode(@Body() dto: SendRegisterCodeDto): Promise<SentCode> {
+    return this.auth.sendRegisterCode(dto)
+  }
+
+  /**
+   * Registers a client account with the emailed `code` and signs in; a wrong code counts against the
+   * code's attempt limit (400). Returns the profile (or `{ account, tokens }` for bearer clients).
    * Upload an avatar afterwards via `PUT /v1/client/users/me/avatar`.
    */
   @Post('register')

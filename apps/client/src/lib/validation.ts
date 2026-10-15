@@ -21,6 +21,15 @@ export function checkNewPassword(value: string) {
     return t('validation.passwordTooLong')
 }
 
+/** 6-digit code from the registration email. */
+export function checkCode(value: string) {
+  const code = value.trim()
+  if (!code)
+    return t('validation.codeRequired')
+  if (!/^\d{6}$/.test(code))
+    return t('validation.codeInvalid')
+}
+
 export function checkConfirmation(password: string, confirmation: string) {
   if (password !== confirmation)
     return t('validation.passwordMismatch')

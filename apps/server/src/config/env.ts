@@ -63,6 +63,14 @@ export const envSchema = z
       .int()
       .positive()
       .default(30 * 60),
+    /** Lifetime of emailed verification codes (registration). */
+    EMAIL_CODE_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(10 * 60),
+    /** Minimum wait before another code can be requested for the same email. */
+    EMAIL_CODE_RESEND_SECONDS: z.coerce.number().int().positive().default(60),
     PASSWORD_HASH_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
     COOKIE_SECURE: booleanString.optional(),
     COOKIE_DOMAIN: z.string().optional(),
@@ -71,7 +79,7 @@ export const envSchema = z
 
     THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
     THROTTLE_LIMIT: z.coerce.number().int().positive().default(120),
-    /** Stricter per-IP limit for credential endpoints (login, register, password reset). */
+    /** Stricter per-IP limit for credential endpoints (login, register, codes, password reset). */
     AUTH_THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
     AUTH_THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
 

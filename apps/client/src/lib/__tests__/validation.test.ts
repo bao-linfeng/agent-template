@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   AVATAR_MAX_BYTES,
   checkAvatar,
+  checkCode,
   checkConfirmation,
   checkEmail,
   checkNewPassword,
@@ -25,6 +26,13 @@ describe('form checks', () => {
     expect(checkConfirmation('a', 'b')).toMatch(/do not match/)
     expect(checkNickname(' a ')).toMatch(/at least 2/)
     expect(checkNickname('Ada')).toBeUndefined()
+  })
+
+  it('validates 6-digit verification codes', () => {
+    expect(checkCode(' 012345 ')).toBeUndefined()
+    expect(checkCode('')).toMatch(/enter the verification code/)
+    expect(checkCode('12345')).toMatch(/6 digits/)
+    expect(checkCode('12345a')).toMatch(/6 digits/)
   })
 
   it('validates avatar files', () => {

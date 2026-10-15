@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -28,10 +29,20 @@ import type {
   LoginDto,
   RegisterDto,
   ResetPasswordDto,
+  SendRegisterCodeDto,
 } from './dto/auth.dto.js'
 import { PasswordHasher } from './password-hasher.service.js'
 import { REALM_TABLES, type Realm } from './realms.js'
 import { SessionsService, type IssuedTokens } from './sessions.service.js'
+import { VerificationCodesService } from './verification-codes.service.js'
+
+/** Timing hints for the client's "send again" countdown. */
+export interface SentCode {
+  /** Seconds until the code expires. */
+  expiresIn: number
+  /** Seconds until another code may be requested. */
+  resendAfter: number
+}
 
 export interface AuthResult {
   tokens: IssuedTokens
@@ -55,12 +66,41 @@ export class AuthService {
     private readonly sessions: SessionsService,
     private readonly hasher: PasswordHasher,
     private readonly mail: MailService,
+    private readonly codes: VerificationCodesService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  /** Client self-registration; signs the new user in. Admin accounts are created by administrators. */
+  /**
+   * Emails a registration code to prove the client owns the address. Registered emails are a 409,
+   * like `register` itself, so the form can tell users to sign in instead.
+   */
+  async sendRegisterCode(dto: SendRegisterCodeDto): Promise<SentCode> {
+    const email = normalizeEmail(dto.email)
+    if (await this.accounts.findByEmail('user', email)) {
+      throw new ConflictException('Email is already registered')
+    }
+    const { code, expiresIn, resendAfter } = await this.codes.issue(
+      'user',
+      'register',
+      email,
+    )
+    await this.mail.send(
+      email,
+      mailTemplates.verificationCode({
+        code,
+        expiresInMinutes: Math.round(expiresIn / 60),
+      }),
+    )
+    return { expiresIn, resendAfter }
+  }
+
+  /**
+   * Client self-registration with an emailed code; signs the new user in. Admin accounts are created
+   * by administrators.
+   */
   async register(dto: RegisterDto, meta: RequestMeta): Promise<AuthResult> {
+    await this.codes.consume('user', 'register', dto.email, dto.code)
     const account = await this.accounts.create('user', dto, undefined, {
       lastLoginAt: new Date(),
     })

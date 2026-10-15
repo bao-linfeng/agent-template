@@ -4,6 +4,7 @@ import {
   cookieValue,
   createTestApp,
   E2E_ADMIN,
+  requestRegisterCode,
   uniqueEmail,
   type TestApp,
 } from './support/test-app.js'
@@ -31,11 +32,12 @@ describe('bearer transport for non-browser clients (e2e)', () => {
 
   async function signUp() {
     const credentials = { email: uniqueEmail('app'), password: 'password123' }
+    const code = await requestRegisterCode(t, credentials.email)
     const response = await t
       .http()
       .post(`${CLIENT_API}/auth/register`)
       .set(BEARER)
-      .send({ ...credentials, nickname: 'App' })
+      .send({ ...credentials, nickname: 'App', code })
       .expect(201)
     return {
       credentials,

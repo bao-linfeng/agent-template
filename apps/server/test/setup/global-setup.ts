@@ -43,7 +43,7 @@ export default async function setup(project: TestProject) {
     STORAGE_SECRET_KEY: 'e2e-secret-key',
     STORAGE_BUCKET: 'e2e',
     PASSWORD_HASH_ROUNDS: '4',
-    AUTH_THROTTLE_LIMIT: '60',
+    AUTH_THROTTLE_LIMIT: '150',
     THROTTLE_LIMIT: '10000',
     PUBLIC_URL: 'http://localhost:3100',
     FAKE_EMBEDDINGS_URL: embeddings.baseUrl,

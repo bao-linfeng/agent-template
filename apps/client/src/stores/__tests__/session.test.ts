@@ -60,7 +60,7 @@ describe('session store', () => {
     const session = useSessionStore()
     const avatar = new File(['x'], 'a.png', { type: 'image/png' })
 
-    await expect(session.register({ email: profile.email, password: 'password1', nickname: 'Ada' }, avatar))
+    await expect(session.register({ email: profile.email, password: 'password1', nickname: 'Ada', code: '123456' }, avatar))
       .resolves
       .toBeUndefined()
     expect(accountApi.uploadAvatar).toHaveBeenCalledWith(avatar, 'a.png')
@@ -72,7 +72,7 @@ describe('session store', () => {
     accountApi.uploadAvatar.mockRejectedValue(new Error('Unsupported image type'))
     const session = useSessionStore()
 
-    await expect(session.register({ email: profile.email, password: 'password1', nickname: 'Ada' }, new File(['x'], 'a.png')))
+    await expect(session.register({ email: profile.email, password: 'password1', nickname: 'Ada', code: '123456' }, new File(['x'], 'a.png')))
       .resolves
       .toBe('Unsupported image type')
     expect(session.user).toEqual(profile)

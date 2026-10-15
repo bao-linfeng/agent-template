@@ -74,7 +74,28 @@ export function uniqueEmail(prefix = 'user'): string {
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}@e2e.test`
 }
 
-/** Registers a client user through `/v1/client/auth/register` and returns a cookie-carrying agent. */
+/** Requests a registration code for `email` and returns it from the captured mail. */
+export async function requestRegisterCode(
+  testApp: TestApp,
+  email: string,
+): Promise<string> {
+  // Mail goes to the normalized address.
+  const address = email.trim().toLowerCase()
+  const before = testApp.mailbox.to(address).length
+  await testApp
+    .http()
+    .post(`${CLIENT_API}/auth/register/send-code`)
+    .send({ email })
+    .expect(202)
+  const mail = await waitFor(() => testApp.mailbox.to(address)[before])
+  const code = /\b(\d{6})\b/.exec(mail.text)?.[1]
+  if (!code) {
+    throw new Error(`No verification code in mail to ${email}`)
+  }
+  return code
+}
+
+/** Registers a client user through `/v1/client/auth/register` (with an emailed code) and returns a cookie-carrying agent. */
 export async function registerUser(
   testApp: TestApp,
   overrides: { email?: string; password?: string; nickname?: string } = {},
@@ -85,10 +106,11 @@ export async function registerUser(
     password: 'password123',
     ...rest,
   }
+  const code = await requestRegisterCode(testApp, credentials.email)
   const agent = testApp.agent()
   const response = await agent
     .post(`${CLIENT_API}/auth/register`)
-    .send({ ...credentials, nickname })
+    .send({ ...credentials, nickname, code })
     .expect(201)
   /** `credentials` is the login payload ({ email, password }). */
   return {
