@@ -54,14 +54,17 @@ pnpm -C apps/docs dev
 
 ### 环境变量与前后端联调
 
-管理端：复制 `apps/admin/.env.example` 为同目录 `.env`，配置 `VITE_SERVER_API_URL`、`VITE_SERVER_API_PREFIX` 和 `VITE_SERVER_API_TIMEOUT`。校验规则位于 `src/validators/env.validator.ts`。
+管理端：复制 `apps/admin/.env.example` 为同目录 `.env`（默认 `VITE_SERVER_API_URL=http://localhost:3100`、`VITE_SERVER_API_PREFIX=/api`），校验规则位于 `src/validators/env.validator.ts`。客户端：可选 `apps/client/.env` 中的 `VITE_API_BASE_URL`，未设置时使用 `http://localhost:3100/api`。
 
-当前各应用仍是独立模板，尚未完成前后端联调：
+管理端和客户端已对接后端的账号相关接口：
 
-- 管理端示例地址为 `http://localhost:3000/api`；后端默认监听 `3100`，没有全局 `/api` 前缀。
-- 后端未配置 CORS；管理端 API 客户端也未配置跨域 Cookie 发送。联调时需同时处理 URL、跨域与 Cookie 配置。
-- 后端已有注册、登录和用户资料接口，认证使用 HttpOnly `access_token` Cookie。用户数据保存在内存，重启即丢失；管理端的示例业务 API 不代表后端已实现。
-- 后端直接读取进程环境变量，不自动加载 `.env`。`NODE_ENV=production` 时必须设置 `JWT_SECRET`。`src/app.module.ts` 中 Nest Observe 的凭据仍是占位符。
+- 两端都实现了注册（可选头像，注册即登录后上传）、登录、退出、忘记密码、重置密码、个人资料（昵称、头像上传/删除）和修改密码；管理端另有会话列表与下线、用户管理（搜索、分页、编辑、禁用、分配角色）、角色管理和 Embedding 模型配置（新增、编辑、测试连通性、设为默认、删除）。
+- 请求统一带 Cookie（`credentials: 'include'`）；接口返回 401 时自动调用 `POST /api/auth/refresh` 并重试一次（并发请求共享同一次刷新），刷新失败则清空登录态并跳转登录页。
+- 找回密码时前端把自己的重置页地址作为 `resetUrl` 传给后端（管理端 `/auth/reset-password`，客户端 `/reset-password`），后端只接受 `APP_WEB_URL` 或 `CORS_ORIGINS` 中的来源。
+- 管理端按 `GET /api/users/me` 返回的权限码过滤侧边栏和命令面板，页面可在 `<route>` 中声明 `meta.permission`；使用默认布局的页面默认需要登录。管理端模板自带的其他示例页面（Tasks、Billing 等）仍是演示数据。
+- 后端依赖本地 Docker（PostgreSQL + pgvector、Redis、RustFS、Mailpit）：先在 `apps/server` 复制 `.env.example` 为 `.env`，再执行 `pnpm -C apps/server infra:up`、`db:migrate`、`db:seed`。详见 [apps/server/README.md](apps/server/README.md)。
+- 后端提供注册/登录/刷新/找回密码、用户与头像、RBAC 角色权限、Embedding 模型配置和 RAG 知识库接口，认证使用 HttpOnly Cookie；管理端自带的示例业务 API 不代表后端已实现。
+- 生产环境必须设置 `JWT_SECRET` 和 `ENCRYPTION_KEY`；Nest Observe 仅在配置 `OBSERVE_APP_KEY`/`OBSERVE_APP_SECRET` 时启用。
 
 ## 检查与测试
 
@@ -73,7 +76,7 @@ pnpm -C apps/docs dev
 | `pnpm check-types`   | admin、client、server、docs、ui、utils                       |
 | `pnpm test`          | admin、client、server、utils 的单元/组件测试，运行一次后退出 |
 | `pnpm test:coverage` | 同上的覆盖率报告（各自 `coverage/`）                         |
-| `pnpm test:e2e`      | server 的 E2E 测试                                           |
+| `pnpm test:e2e`      | server 的 E2E 测试（需要 Docker）                            |
 | `pnpm build`         | 四个应用；共享包直接导出源码，无独立构建                     |
 
 管理端、客户端代码变更后先运行各自的 `lint:fix`；修改 `packages/ui` 或 `packages/utils` 时 admin 和 client 都要验证；非简单文案变更需运行 build，核心逻辑变更需更新并运行相关测试。
@@ -85,14 +88,14 @@ pnpm -C apps/admin test src/utils/__tests__/env.test.ts
 pnpm -C apps/admin test:watch
 pnpm -C apps/client test src/composables/__tests__/useCollecty.test.ts
 pnpm -C packages/utils test
-pnpm -C apps/server exec vitest run src/app.controller.spec.ts
+pnpm -C apps/server exec vitest run src/modules/rbac/ability.spec.ts
 pnpm -C apps/server test:e2e
 pnpm -C apps/client build
 ```
 
 测试统一使用 Vitest，`vitest`、`@vitest/coverage-v8`、`happy-dom`、`@vue/test-utils` 的版本由根 `pnpm-workspace.yaml` 的 `catalog:` 统一管理，工作区内以 `catalog:` 引用。
 
-后端 E2E 当前通过默认 Express 适配器创建测试应用；通过这些测试并不等于验证了 Fastify 启动流程。
+后端 E2E 使用与生产相同的 Fastify 配置，并通过 testcontainers 启动临时 Postgres/Redis/RustFS，运行前需要启动 Docker。
 
 ### 格式化
 

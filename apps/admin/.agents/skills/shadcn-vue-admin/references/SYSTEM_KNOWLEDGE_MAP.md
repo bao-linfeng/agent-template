@@ -50,10 +50,17 @@ meta:
 
 ## Data Fetching / API
 
-- ofetch: `src/composables/use-fetch.ts`
-- Vue Query plugin: `src/plugins/tanstack-vue-query/setup.ts`
-- API modules: `src/services/api/*.api.ts`
-- Shared response types: `src/services/types/response.type.ts`
+- ofetch client: `src/lib/api-client.ts` (`apiFetch`: cookies via `credentials: 'include'`, shared `POST /auth/refresh` + one retry on 401, sign-out on failure; `getErrorMessage` for Nest errors)
+- Vue Query plugin: `src/plugins/tanstack-vue-query/setup.ts` (global error toasts for queries and mutations, 401 excluded)
+- API modules: `src/services/api/*.api.ts` — transport functions + query/mutation hooks. Real server APIs: `auth`, `me`, `admin-users`, `roles`, `embedding-models`; `example-*` are mocks.
+- Shared types: `src/services/types/response.type.ts` (`IPaginated`), `src/services/types/user.type.ts`
+
+## Auth & Permissions
+
+- The server session is HttpOnly cookies; `src/stores/auth.ts` only mirrors the profile (`user`, `isLogin`, `can()`), restored once per page load by the router guard via `GET /users/me`.
+- `src/router/guard/auth-guard.ts`: dashboard-layout pages require login unless `meta.auth: false`; `meta.permission: <code>` sends users without it to `/errors/403`.
+- `src/lib/permissions.ts`: `hasPermission` mirrors server CASL (`<subject>:manage`, `all:<action>`, `all:manage`); nav items with `permission` are filtered in the sidebar and command menu.
+- Auth pages: `src/pages/auth/*` (sign-in, sign-up with optional avatar, forgot-password, reset-password); account pages: `src/pages/settings/index.vue` (profile + avatar) and `account.vue` (password + sessions).
 
 ## Environment Variables
 

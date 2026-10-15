@@ -1,4 +1,4 @@
-import { BadgeHelpIcon, BellDotIcon, BirdIcon, BoxesIcon, BugIcon, ComponentIcon, CreditCardIcon, LayoutDashboardIcon, ListTodoIcon, PaletteIcon, PictureInPicture2Icon, PodcastIcon, SettingsIcon, SquareUserRoundIcon, UserIcon, UsersIcon, WrenchIcon } from '@lucide/vue'
+import { BadgeHelpIcon, BellDotIcon, BirdIcon, BoxesIcon, BrainCircuitIcon, BugIcon, ComponentIcon, CreditCardIcon, KeyRoundIcon, LayoutDashboardIcon, ListTodoIcon, PaletteIcon, PictureInPicture2Icon, PodcastIcon, SettingsIcon, ShieldCheckIcon, SquareUserRoundIcon, UserIcon, UsersIcon } from '@lucide/vue'
 
 import type { NavGroup, NavItem } from '@/components/app-sidebar/types'
 
@@ -6,7 +6,7 @@ type SidebarLink = Extract<NavItem, { url: string }>
 
 export const settingsNavItems: SidebarLink[] = [
   { title: 'Profile', url: '/settings/', icon: UserIcon },
-  { title: 'Account', url: '/settings/account', icon: WrenchIcon },
+  { title: 'Security', url: '/settings/account', icon: KeyRoundIcon },
   { title: 'Appearance', url: '/settings/appearance', icon: PaletteIcon },
   { title: 'Notifications', url: '/settings/notifications', icon: BellDotIcon },
   { title: 'Display', url: '/settings/display', icon: PictureInPicture2Icon },
@@ -19,8 +19,15 @@ export const navData: NavGroup[] = [
       { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboardIcon },
       { title: 'Tasks', url: '/tasks', icon: ListTodoIcon },
       { title: 'Apps', url: '/apps', icon: BoxesIcon },
-      { title: 'Users', url: '/users', icon: UsersIcon },
       { title: 'Ai Talk Example', url: '/ai-talk', icon: PodcastIcon },
+    ],
+  },
+  {
+    title: 'System',
+    items: [
+      { title: 'Users', url: '/users', icon: UsersIcon, permission: 'user:read' },
+      { title: 'Roles', url: '/roles', icon: ShieldCheckIcon, permission: 'role:read' },
+      { title: 'Embedding Models', url: '/ai/embedding-models', icon: BrainCircuitIcon, permission: 'embedding-model:read' },
     ],
   },
   {
@@ -34,6 +41,7 @@ export const navData: NavGroup[] = [
           { title: 'Sign In(2 Col)', url: '/auth/sign-in-2' },
           { title: 'Sign Up', url: '/auth/sign-up' },
           { title: 'Forgot Password', url: '/auth/forgot-password' },
+          { title: 'Reset Password', url: '/auth/reset-password' },
           { title: 'OTP', url: '/auth/otp' },
         ],
       },

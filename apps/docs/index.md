@@ -19,7 +19,7 @@ features:
   - title: 展示端 apps/client
     details: Vue 3 + Vite 8 + Tailwind 4 的落地页区块集合，手写路由，运行时主题切换。
   - title: 后端 apps/server
-    details: NestJS + Fastify，HttpOnly Cookie 认证，内存用户存储。
+    details: NestJS + Fastify，Drizzle + PostgreSQL/pgvector、Redis、BullMQ、RustFS，CASL 权限与 RAG 检索。
   - title: 共享包 packages/*
     details: "@repo/ui（shadcn-vue 组件）、@repo/utils（纯函数）以及共享的 ESLint、TypeScript 配置。"
 ---

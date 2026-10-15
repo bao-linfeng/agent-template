@@ -1,0 +1,76 @@
+# Local infrastructure for apps/server. The Nest app itself runs on the host (`pnpm -C apps/server dev`).
+# Compose reads variables from apps/server/.env, so ports and credentials stay in sync with the app config.
+#
+#   docker compose up -d                 # postgres + redis + rustfs + mailpit
+#   docker compose --profile ai up -d    # also start Ollama for local bge-m3 embeddings
+name: agent-template-server
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-app}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      # PostgreSQL 18 images keep PGDATA under /var/lib/postgresql/<major>/docker.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_KEY:-rustfsadmin}
+      RUSTFS_CONSOLE_ENABLE: 'true'
+    ports:
+      - '${RUSTFS_PORT:-9000}:9000' # S3 API
+      - '${RUSTFS_CONSOLE_PORT:-9001}:9001' # Web console
+    volumes:
+      - rustfs-data:/data
+
+  mailpit:
+    # Catches all outgoing mail in development; inbox UI at http://localhost:8025.
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '${MAILPIT_UI_PORT:-8025}:8025'
+
+  ollama:
+    # Optional local embedding server. After start: docker compose exec ollama ollama pull bge-m3
+    image: ollama/ollama:latest
+    profiles: ['ai']
+    restart: unless-stopped
+    ports:
+      - '${OLLAMA_PORT:-11434}:11434'
+    volumes:
+      - ollama-data:/root/.ollama
+
+volumes:
+  postgres-data:
+  redis-data:
+  rustfs-data:
+  ollama-data:

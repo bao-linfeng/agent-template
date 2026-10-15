@@ -1,55 +1,54 @@
 <script setup lang="ts">
-import { XIcon } from '@lucide/vue'
+import { Badge } from '@repo/ui/components/badge'
 import { Button } from '@repo/ui/components/button'
-import { FieldDescription, FieldError } from '@repo/ui/components/field'
+import { FieldDescription } from '@repo/ui/components/field'
 import { FormItem } from '@repo/ui/components/form'
 import { Input } from '@repo/ui/components/input'
 import { Label } from '@repo/ui/components/label'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@repo/ui/components/select'
 import { Separator } from '@repo/ui/components/separator'
-import { Textarea } from '@repo/ui/components/textarea'
-import { cn } from '@repo/ui/lib/utils'
+import { Spinner } from '@repo/ui/components/spinner'
 import { useForm } from '@tanstack/vue-form'
 import { toast } from 'vue-sonner'
+
+import AvatarInput from '@/components/avatar-input.vue'
+import FormTextField from '@/components/form-text-field.vue'
+import { useRemoveAvatarMutation, useUpdateMeMutation, useUploadAvatarMutation } from '@/services/api/me.api'
+import { useAuthStore } from '@/stores/auth'
 
 import type { ProfileValidator } from '../validators/profile.validator'
 
 import { profileValidator } from '../validators/profile.validator'
 
-const verifiedEmails = ['m@example.com', 'm@google.com', 'm@support.com']
+const authStore = useAuthStore()
+const user = computed(() => authStore.user)
 
-const defaultValues: ProfileValidator = {
-  username: '',
-  email: '',
-  bio: 'I own a computer.',
-  urls: [
-    { value: 'https://shadcn.com' },
-    { value: 'http://twitter.com/shadcn' },
-  ],
+const updateMe = useUpdateMeMutation()
+const uploadAvatar = useUploadAvatarMutation()
+const removeAvatar = useRemoveAvatarMutation()
+const avatarBusy = computed(() => uploadAvatar.isPending.value || removeAvatar.isPending.value)
+
+function onAvatarSelect(file: File) {
+  uploadAvatar.mutate(file, { onSuccess: () => toast.success('Avatar updated.') })
+}
+
+function onAvatarRemove() {
+  removeAvatar.mutate(undefined, { onSuccess: () => toast.success('Avatar removed.') })
 }
 
 const form = useForm({
-  defaultValues,
-  validators: {
-    onSubmit: profileValidator,
-    onBlur: profileValidator,
-  },
-  onSubmit: ({ value }) => {
-    toast('You submitted the following values:', {
-      description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' }, h('code', { class: 'text-white' }, JSON.stringify(value, null, 2))),
-    })
+  defaultValues: { nickname: user.value?.nickname ?? '' } satisfies ProfileValidator,
+  validators: { onSubmit: profileValidator },
+  onSubmit: async ({ value }) => {
+    await updateMe.mutateAsync({ nickname: value.nickname.trim() }).then(
+      () => toast.success('Profile updated.'),
+      () => {}, // Toasted by the global mutation handler.
+    )
   },
 })
-function isInvalid(field: any) {
-  return field.state.meta.isTouched && !field.state.meta.isValid
-}
+
+watch(() => user.value?.nickname, (nickname) => {
+  form.reset({ nickname: nickname ?? '' })
+})
 </script>
 
 <template>
@@ -62,141 +61,62 @@ function isInvalid(field: any) {
     </p>
   </div>
   <Separator orientation="horizontal" class="my-4" />
-  <form class="space-y-8" @submit.prevent="form.handleSubmit">
-    <form.Field name="username">
-      <template #default="{ field, state }">
-        <FormItem>
-          <Label :data-error="!!state.meta.errors?.length" class="data-[error=true]:text-destructive">
-            Username
-          </Label>
-          <Input
-            type="text"
-            placeholder="shadcn"
-            :model-value="field.state.value"
-            @input="field.handleChange($event.target.value)"
-            @blur="field.handleBlur"
+
+  <div v-if="user" class="space-y-8">
+    <FormItem>
+      <Label>Avatar</Label>
+      <AvatarInput
+        :src="user.avatarUrl"
+        :name="user.nickname"
+        :loading="avatarBusy"
+        removable
+        @select="onAvatarSelect"
+        @remove="onAvatarRemove"
+      />
+    </FormItem>
+
+    <form class="space-y-8" novalidate @submit.prevent="form.handleSubmit">
+      <form.Field name="nickname">
+        <template #default="{ field }">
+          <FormTextField
+            :field="field"
+            label="Nickname"
+            autocomplete="nickname"
+            description="This is your public display name."
           />
-          <FieldDescription>
-            This is your public display name. It can be your real name or a pseudonym. You can only change this once every 30 days.
-          </FieldDescription>
-          <FieldError :errors="state.meta.errors" />
-        </FormItem>
-      </template>
-    </form.Field>
-
-    <form.Field name="email">
-      <template #default="{ field, state }">
-        <FormItem :data-invalid="isInvalid(field)">
-          <Label :data-error="!!state.meta.errors?.length" class="data-[error=true]:text-destructive">
-            Email
-          </Label>
-
-          <Select
-            :name="field.name"
-            :model-value="field.state.value"
-            @update:model-value="($event) => {
-              field.handleChange($event as string),
-              field.handleBlur()
-            }"
-          >
-            <SelectTrigger :aria-invalid="isInvalid(field)">
-              <SelectValue placeholder="Select an email" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem v-for="email in verifiedEmails" :key="email" :value="email">
-                  {{ email }}
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <FieldDescription>
-            You can manage verified email addresses in your email settings.
-          </FieldDescription>
-          <FieldError :data-invalid="isInvalid(field)" :errors="state.meta.errors" />
-        </FormItem>
-      </template>
-    </form.Field>
-
-    <form.Field name="bio">
-      <template #default="{ field, state }">
-        <FormItem>
-          <Label :data-error="!!state.meta.errors?.length" class="data-[error=true]:text-destructive">
-            Bio
-          </Label>
-          <Textarea
-            placeholder="Tell us a little bit about yourself"
-            :model-value="field.state.value"
-            @input="field.handleChange($event.target.value)"
-            @blur="field.handleBlur"
-          />
-          <FieldDescription>
-            You can <span>@mention</span> other users and organizations to link to them.
-          </FieldDescription>
-          <FieldError :errors="state.meta.errors" />
-        </FormItem>
-      </template>
-    </form.Field>
-
-    <div>
-      <form.Field name="urls" mode="array">
-        <template #default="{ field, state }">
-          <div v-for="(_, index) in field.state.value" :key="`urls-${index}`" class="mb-2">
-            <form.Field :name="`urls[${index}].value`">
-              <template #default="{ field: subField, state: subState }">
-                <FormItem>
-                  <Label
-                    :class="cn(index !== 0 && 'sr-only')"
-                    :data-error="!!subState.meta.errors?.length"
-                    class="data-[error=true]:text-destructive"
-                  >
-                    URLs
-                  </Label>
-                  <p :class="cn(index !== 0 && 'sr-only')" class="text-muted-foreground text-sm">
-                    Add links to your website, blog, or social media profiles.
-                  </p>
-                  <div class="relative flex items-center">
-                    <Input
-                      type="url"
-                      :model-value="subField.state.value"
-                      @input="subField.handleChange($event.target.value)"
-                      @blur="subField.handleBlur"
-                    />
-                    <button type="button" class="absolute py-2 pe-3 end-0 text-muted-foreground" @click="field.removeValue(index)">
-                      <XIcon class="w-3" />
-                    </button>
-                  </div>
-                  <FieldError :errors="state.meta.errors" />
-                </FormItem>
-              </template>
-            </form.Field>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            class="w-20 mt-2 text-xs"
-            @click="field.pushValue({ value: '' })"
-          >
-            Add URL
-          </Button>
         </template>
       </form.Field>
-    </div>
 
-    <div class="flex justify-start gap-2">
-      <Button type="submit">
-        Update profile
-      </Button>
+      <FormItem>
+        <Label for="profile-email">Email</Label>
+        <Input id="profile-email" :model-value="user.email" disabled />
+        <FieldDescription>
+          Used to sign in and to receive password reset links.
+        </FieldDescription>
+      </FormItem>
 
-      <Button
-        type="button"
-        variant="outline"
-        @click="form.reset()"
-      >
-        Reset form
-      </Button>
-    </div>
-  </form>
+      <FormItem>
+        <Label>Roles</Label>
+        <div class="flex flex-wrap gap-2">
+          <Badge v-for="role in user.roles" :key="role" variant="secondary">
+            {{ role }}
+          </Badge>
+          <span v-if="!user.roles.length" class="text-sm text-muted-foreground">No roles</span>
+        </div>
+        <FieldDescription>
+          Roles are assigned by an administrator.
+        </FieldDescription>
+      </FormItem>
+
+      <div class="flex justify-start gap-2">
+        <Button type="submit" :disabled="updateMe.isPending.value">
+          <Spinner v-if="updateMe.isPending.value" class="mr-2" />
+          Update profile
+        </Button>
+        <Button type="button" variant="outline" @click="form.reset()">
+          Reset form
+        </Button>
+      </div>
+    </form>
+  </div>
 </template>

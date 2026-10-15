@@ -17,3 +17,11 @@ export type IRequestQuery<T extends Record<string, any>> = {
 } & {
   [K in keyof T]?: T[K]
 }
+
+/** List responses from the server: `{ items, total, page, pageSize }`. */
+export interface IPaginated<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}

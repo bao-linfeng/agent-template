@@ -33,8 +33,9 @@ Vite 与 VitePress 都使用固定端口（`strictPort`），端口被占用时�
 
 ## 前后端联调
 
-各应用仍是独立模板，尚未打通：
+管理端（5173）和客户端（5174）已对接后端（3100，`/api` 前缀，带凭证 CORS）的账号接口：注册、登录、忘记/重置密码、个人资料与头像、修改密码；管理端另有用户、角色和 Embedding 模型管理页面。
 
-- 管理端 `.env.example` 指向 `http://localhost:3000/api`，后端默认监听 `3100` 且没有全局 `/api` 前缀。
-- 后端未配置 CORS，管理端 API 客户端也未配置跨域 Cookie。联调时需要同时处理 URL、跨域与 Cookie。
-- 后端认证使用 HttpOnly `access_token` Cookie，用户数据保存在内存中，重启即丢失。
+- 管理端复制 `apps/admin/.env.example` 为 `.env` 即可使用；客户端默认请求 `http://localhost:3100/api`，可用 `VITE_API_BASE_URL` 覆盖。
+- 请求都带 Cookie，遇到 401 会先刷新会话再重试一次；刷新失败时跳转登录页。
+- 后端依赖本地 Docker：在 `apps/server` 复制 `.env.example` 为 `.env`，执行 `pnpm -C apps/server infra:up`、`db:migrate`、`db:seed` 后再 `dev`。
+- 后端认证使用 HttpOnly `access_token` / `refresh_token` Cookie，数据保存在 PostgreSQL。

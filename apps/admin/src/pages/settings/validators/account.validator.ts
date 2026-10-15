@@ -1,24 +1,20 @@
 import { z } from 'zod'
 
-export const accountValidator = z.object({
-  name: z
-    .string({
-      error: 'Required.',
-    })
-    .min(2, {
-      error: 'Name must be at least 2 characters.',
-    })
-    .max(30, {
-      error: 'Name must not be longer than 30 characters.',
-    }),
-  dob: z
-    .iso
-    .datetime()
-    .optional()
-    .refine(date => date !== undefined, 'Please select a valid date.'),
-  language: z
-    .string()
-    .min(1, 'Please select a language.'),
-})
+import { newPasswordField } from '@/pages/auth/validators/auth.validator'
 
-export type AccountValidator = z.infer<typeof accountValidator>
+export const changePasswordValidator = z
+  .object({
+    currentPassword: z.string().min(1, { error: 'Please enter your current password.' }).max(72),
+    newPassword: newPasswordField,
+    confirmPassword: z.string(),
+  })
+  .refine(value => value.newPassword === value.confirmPassword, {
+    error: 'Passwords do not match.',
+    path: ['confirmPassword'],
+  })
+  .refine(value => value.newPassword !== value.currentPassword, {
+    error: 'The new password must be different from the current one.',
+    path: ['newPassword'],
+  })
+
+export type ChangePasswordValidator = z.infer<typeof changePasswordValidator>

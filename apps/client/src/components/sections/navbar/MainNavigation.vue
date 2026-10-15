@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { AlignRight, ChevronsRight, Combine, Home, Layout, PackageCheck } from '@lucide/vue'
+import { AlignRight, ChevronsRight, CircleUser, Combine, Home, Layout, LogIn, PackageCheck } from '@lucide/vue'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@repo/ui/components/accordion'
+import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/components/avatar'
 import { Button } from '@repo/ui/components/button'
 import {
   NavigationMenu,
@@ -31,6 +32,7 @@ import { useRouter } from 'vue-router'
 import { DarkMode } from '@/components/darkMode'
 import { ThemingSettings } from '@/components/theming'
 import { useCollecty } from '@/composables/useCollecty'
+import { useSession } from '@/composables/useSession'
 import Navbar from './Navbar.vue'
 import NavbarBrand from './NavbarBrand.vue'
 import NavbarLayer from './NavbarLayer.vue'
@@ -39,6 +41,9 @@ const router = useRouter()
 
 const { collection } = useCollecty()
 const isButtonVisible = computed(() => collection.value.length > 0)
+
+const { user } = useSession()
+const initials = computed(() => [...(user.value?.nickname.trim() || '?')].slice(0, 2).join('').toUpperCase())
 
 interface RouteChild {
   name: string
@@ -150,6 +155,25 @@ const menuDescription = 'Main navigation menu with all available sections and pa
           <DarkMode data-dark-mode />
           <ThemingSettings />
 
+          <RouterLink
+            v-if="user"
+            to="/account"
+            class="ml-1 rounded-full focus-visible:outline-2 focus-visible:outline-primary"
+            :aria-label="`My account (${user.nickname})`"
+            :title="user.nickname"
+          >
+            <Avatar class="size-8">
+              <AvatarImage v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.nickname" class="object-cover" />
+              <AvatarFallback class="text-xs">
+                {{ initials }}
+              </AvatarFallback>
+            </Avatar>
+          </RouterLink>
+          <Button v-else variant="outline" size="sm" class="ml-1" @click="router.push({ path: '/login', query: { redirect: $route.fullPath } })">
+            <LogIn class="size-4" />
+            <span class="hidden sm:inline">Sign in</span>
+          </Button>
+
           <!-- Мобильное меню -->
           <Sheet>
             <SheetTrigger as-child>
@@ -190,6 +214,13 @@ const menuDescription = 'Main navigation menu with all available sections and pa
                   >
                     <Home class="h-4 w-4" />
                     <span>Home</span>
+                  </router-link>
+                  <router-link
+                    :to="user ? '/account' : '/login'"
+                    class="flex items-center gap-2 px-2 py-1.5 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <CircleUser class="h-4 w-4" />
+                    <span>{{ user ? 'My account' : 'Sign in' }}</span>
                   </router-link>
 
                   <Separator class="my-4" />

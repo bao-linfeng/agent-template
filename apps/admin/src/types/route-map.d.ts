@@ -45,6 +45,13 @@ declare module 'vue-router/auto-routes' {
       { path: ParamValue<false> },
       | never
     >,
+    '/ai/embedding-models/': RouteRecordInfo<
+      '/ai/embedding-models/',
+      '/ai/embedding-models',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/ai-talk/': RouteRecordInfo<
       '/ai-talk/',
       '/ai-talk',
@@ -67,6 +74,7 @@ declare module 'vue-router/auto-routes' {
       | '/auth/'
       | '/auth/forgot-password'
       | '/auth/otp'
+      | '/auth/reset-password'
       | '/auth/sign-in'
       | '/auth/sign-in-2'
       | '/auth/sign-up'
@@ -88,6 +96,13 @@ declare module 'vue-router/auto-routes' {
     '/auth/otp': RouteRecordInfo<
       '/auth/otp',
       '/auth/otp',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
+    '/auth/reset-password': RouteRecordInfo<
+      '/auth/reset-password',
+      '/auth/reset-password',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -177,6 +192,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/roles/': RouteRecordInfo<
+      '/roles/',
+      '/roles',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/settings/': RouteRecordInfo<
       '/settings/',
       '/settings',
@@ -255,6 +277,14 @@ declare module 'vue-router/auto-routes' {
       pathParamNames:
         | 'path'
     }
+    'src/pages/ai/embedding-models/index.vue': {
+      routes:
+        | '/ai/embedding-models/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
     'src/pages/ai-talk/index.vue': {
       routes:
         | '/ai-talk/'
@@ -277,6 +307,7 @@ declare module 'vue-router/auto-routes' {
         | '/auth/'
         | '/auth/forgot-password'
         | '/auth/otp'
+        | '/auth/reset-password'
         | '/auth/sign-in'
         | '/auth/sign-in-2'
         | '/auth/sign-up'
@@ -304,6 +335,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/auth/otp.vue': {
       routes:
         | '/auth/otp'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/auth/reset-password.vue': {
+      routes:
+        | '/auth/reset-password'
       views:
         | never
       pathParamNames:
@@ -402,6 +441,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/prop-components/index.vue': {
       routes:
         | '/prop-components/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/roles/index.vue': {
+      routes:
+        | '/roles/'
       views:
         | never
       pathParamNames:

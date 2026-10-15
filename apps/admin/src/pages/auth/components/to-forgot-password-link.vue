@@ -3,7 +3,7 @@ import { Button } from '@repo/ui/components/button'
 </script>
 
 <template>
-  <Button variant="link" class="text-muted-foreground" @click="$router.push('/auth/forgot-password')">
+  <Button type="button" variant="link" class="text-muted-foreground" @click="$router.push('/auth/forgot-password')">
     {{ $t('forgotPassword') }}
   </Button>
 </template>

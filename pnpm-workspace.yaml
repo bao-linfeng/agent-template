@@ -31,8 +31,13 @@ minimumReleaseAge: 1440
 shellEmulator: true
 allowBuilds:
   "@nestjs/core": true
+  "@scarf/scarf": false
   "@swc/core": true
+  cpu-features: false
   esbuild: true
   maplibre-gl: true
+  msgpackr-extract: true
+  protobufjs: false
   sharp: true
+  ssh2: false
   vue-demi: true

@@ -1,0 +1,49 @@
+import { validateEnv } from './env.js';
+
+describe('validateEnv', () => {
+  it('applies local defaults outside production', () => {
+    const env = validateEnv({});
+    expect(env.PORT).toBe(3100);
+    expect(env.API_PREFIX).toBe('api');
+    expect(env.CORS_ORIGINS).toEqual([
+      'http://localhost:5173',
+      'http://localhost:5174',
+    ]);
+    expect(env.COOKIE_SECURE).toBe(false);
+    expect(env.SWAGGER_ENABLED).toBe(true);
+    expect(env.JWT_SECRET.length).toBeGreaterThanOrEqual(32);
+    expect(Buffer.from(env.ENCRYPTION_KEY, 'base64')).toHaveLength(32);
+  });
+
+  it('coerces numbers, booleans and lists', () => {
+    const env = validateEnv({
+      PORT: '4000',
+      TRUST_PROXY: 'true',
+      CORS_ORIGINS: 'https://a.test, https://b.test',
+    });
+    expect(env.PORT).toBe(4000);
+    expect(env.TRUST_PROXY).toBe(true);
+    expect(env.CORS_ORIGINS).toEqual(['https://a.test', 'https://b.test']);
+  });
+
+  it('requires secrets in production and enables secure defaults', () => {
+    expect(() => validateEnv({ NODE_ENV: 'production' })).toThrow(
+      /JWT_SECRET must be set in production/,
+    );
+
+    const env = validateEnv({
+      NODE_ENV: 'production',
+      JWT_SECRET: 'x'.repeat(48),
+      ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
+    });
+    expect(env.COOKIE_SECURE).toBe(true);
+    expect(env.SWAGGER_ENABLED).toBe(false);
+  });
+
+  it('rejects malformed values with a readable message', () => {
+    expect(() => validateEnv({ ENCRYPTION_KEY: 'short' })).toThrow(
+      /ENCRYPTION_KEY/,
+    );
+    expect(() => validateEnv({ TRUST_PROXY: 'yes' })).toThrow(/TRUST_PROXY/);
+  });
+});

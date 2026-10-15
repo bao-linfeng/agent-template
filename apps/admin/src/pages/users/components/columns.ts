@@ -1,85 +1,82 @@
+import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/components/avatar'
 import { Badge } from '@repo/ui/components/badge'
+import dayjs from 'dayjs'
 import { h } from 'vue'
 
 import type { DataTableColumnDef } from '@/components/data-table'
+import type { IAdminUser } from '@/services/types/user.type'
 
-import { createSelectColumn, DataTableColumnHeader } from '@/components/data-table'
+import { DataTableColumnHeader } from '@/components/data-table'
 import { Copy } from '@/components/prop-ui/copy'
+import { initialsOf } from '@/lib/avatar'
 
-import type { User } from '../data/schema'
-
-import { callTypes, userTypes } from '../data/data'
+import { userStatuses } from '../data/data'
 import DataTableRowActions from './data-table-row-actions.vue'
 
-export const columns: DataTableColumnDef<User>[] = [
-  createSelectColumn<User>(),
-  {
-    accessorKey: 'username',
-    header: ({ column }) => h(DataTableColumnHeader<User>, { column, title: 'username' }),
-    cell: ({ row }) => h('div', { }, row.getValue('username')),
-    enableSorting: false,
-    enableHiding: false,
-    enableResizing: true,
-  },
+function formatDate(value: string | null) {
+  return value ? dayjs(value).format('YYYY-MM-DD HH:mm') : '—'
+}
 
-  {
-    accessorKey: 'email',
-    header: ({ column }) => h(DataTableColumnHeader<User>, { column, title: 'Email' }),
-    cell: ({ row }) => h('div', { }, [
-      h('span', {}, row.getValue('email')),
-      h(Copy, { class: 'ml-2', size: 'icon-xs', content: (row.getValue('email') || '') as string }),
-    ]),
-    enableSorting: false,
-    enableResizing: true,
-  },
-
-  {
-    accessorKey: 'phoneNumber',
-    header: ({ column }) => h(DataTableColumnHeader<User>, { column, title: 'PhoneNumber' }),
-    cell: ({ row }) => h('div', { }, row.getValue('phoneNumber')),
-    enableSorting: false,
-    enableResizing: true,
-  },
-
-  {
-    accessorKey: 'status',
-    header: ({ column }) => h(DataTableColumnHeader<User>, { column, title: 'Status' }),
-
-    cell: ({ row }) => {
-      const callType = callTypes.find(callType => callType.value === row.getValue('status'))
-
-      if (!callType)
-        return null
-
-      return h(Badge, { class: `${callType.style || ''}`, variant: 'outline' }, () => callType.label)
+export function createColumns(options: { canEdit: boolean }): DataTableColumnDef<IAdminUser>[] {
+  const columns: DataTableColumnDef<IAdminUser>[] = [
+    {
+      accessorKey: 'nickname',
+      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'User' }),
+      cell: ({ row }) => h('div', { class: 'flex items-center gap-2' }, [
+        h(Avatar, { class: 'size-8' }, () => [
+          row.original.avatarUrl && h(AvatarImage, { src: row.original.avatarUrl, alt: row.original.nickname }),
+          h(AvatarFallback, () => initialsOf(row.original.nickname)),
+        ]),
+        h('span', { class: 'font-medium' }, row.original.nickname),
+      ]),
+      enableSorting: false,
+      enableHiding: false,
     },
-    filterFn: 'arrHas',
-    enableResizing: true,
-  },
-
-  {
-    accessorKey: 'role',
-    header: ({ column }) => h(DataTableColumnHeader<User>, { column, title: 'Role' }),
-    cell: ({ row }) => {
-      const priority = userTypes.find(
-        priority => priority.value === row.getValue('role'),
-      )
-
-      if (!priority)
-        return null
-
-      return h('div', { class: 'flex items-center' }, [
-        priority.icon && h(priority.icon, { class: 'mr-2 h-4 w-4 text-muted-foreground' }),
-        h('span', {}, priority.label),
-      ])
+    {
+      accessorKey: 'email',
+      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Email' }),
+      cell: ({ row }) => h('div', {}, [
+        h('span', {}, row.original.email),
+        h(Copy, { class: 'ml-2', size: 'icon-xs', content: row.original.email }),
+      ]),
+      enableSorting: false,
     },
-    enableSorting: false,
-    enableResizing: true,
-    filterFn: 'arrHas',
-  },
+    {
+      id: 'roles',
+      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Roles' }),
+      cell: ({ row }) => h('div', { class: 'flex flex-wrap gap-1' }, row.original.roles.map(role =>
+        h(Badge, { key: role.id, variant: 'secondary', title: role.code }, () => role.name),
+      )),
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Status' }),
+      cell: ({ row }) => {
+        const status = userStatuses.find(item => item.value === row.original.status)
+        return status ? h(Badge, { class: status.style, variant: 'outline' }, () => status.label) : null
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'lastLoginAt',
+      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Last sign-in' }),
+      cell: ({ row }) => h('span', { class: 'text-muted-foreground' }, formatDate(row.original.lastLoginAt)),
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'createdAt',
+      header: ({ column }) => h(DataTableColumnHeader<IAdminUser>, { column, title: 'Registered' }),
+      cell: ({ row }) => h('span', { class: 'text-muted-foreground' }, formatDate(row.original.createdAt)),
+      enableSorting: false,
+    },
+  ]
 
-  {
-    id: 'actions',
-    cell: ({ row }) => h(DataTableRowActions, { row }),
-  },
-]
+  if (options.canEdit) {
+    columns.push({
+      id: 'actions',
+      cell: ({ row }) => h(DataTableRowActions, { row }),
+    })
+  }
+  return columns
+}

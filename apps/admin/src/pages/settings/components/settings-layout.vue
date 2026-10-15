@@ -6,7 +6,7 @@ import { settingsNavItems } from '@/constants/sidebar-data'
 <template>
   <BasicPage
     title="Settings"
-    description="Manage your store settings."
+    description="Manage your profile and account security."
   >
     <TwoColLayout>
       <template #aside>

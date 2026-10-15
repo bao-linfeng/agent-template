@@ -63,6 +63,7 @@ declare global {
   const ref: typeof import('vue').ref
   const resolveComponent: typeof import('vue').resolveComponent
   const resolveSystemConfigValue: typeof import('../composables/use-system-config-query').resolveSystemConfigValue
+  const safeRedirect: typeof import('../composables/use-auth').safeRedirect
   const settingsNavItems: typeof import('../constants/sidebar-data').settingsNavItems
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly

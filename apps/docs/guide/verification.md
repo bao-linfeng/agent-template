@@ -25,13 +25,14 @@ pnpm -C apps/client test src/composables/__tests__/useCollecty.test.ts
 pnpm -C packages/utils test
 pnpm -C packages/ui check-types
 
-pnpm -C apps/server exec vitest run src/app.controller.spec.ts
+pnpm -C apps/server exec vitest run src/modules/rbac/ability.spec.ts
+pnpm -C apps/server test:e2e   # 需要 Docker
 pnpm -C apps/docs build
 ```
 
 - 测试统一使用 Vitest；`vitest`、`@vitest/coverage-v8`、`happy-dom`、`@vue/test-utils` 的版本来自根 catalog。
 - 需要 DOM 的测试在文件顶部声明 `// @vitest-environment happy-dom`。
-- 后端 E2E 使用默认 Express 适配器创建测试应用，通过 E2E 不等于验证了 Fastify 启动流程。
+- 后端 E2E 使用与生产相同的 Fastify 配置，通过 testcontainers 启动临时 Postgres/Redis/RustFS。
 
 ## 格式化
 

@@ -2,6 +2,8 @@
 import { CommandGroup, CommandItem } from '@repo/ui/components/command'
 
 import { navData, otherPages } from '@/constants/sidebar-data'
+import { filterByPermission } from '@/lib/permissions'
+import { useAuthStore } from '@/stores/auth'
 
 import type { NavGroup, NavItem } from '../app-sidebar/types'
 
@@ -26,7 +28,11 @@ function getFlatNavItems(navData: NavGroup[]): NavItem[] {
   return flatItems
 }
 
-const commands = getFlatNavItems([...navData, ...otherPages])
+const authStore = useAuthStore()
+const commands = computed(() => getFlatNavItems([...navData, ...otherPages].map(group => ({
+  ...group,
+  items: filterByPermission(group.items, authStore.can),
+}))))
 
 const router = useRouter()
 const route = useRoute()

@@ -1,126 +1,64 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# apps/server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvector）、Redis、BullMQ、RustFS（S3 兼容对象存储）、CASL 权限、Swagger、pino 日志。开发约定见 [AGENTS.md](./AGENTS.md)。
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 功能
 
-## Description
+| 模块 | 能力 |
+| ---- | ---- |
+| 认证 `auth` | 注册即登录、登录、刷新令牌轮换（重放检测）、退出、忘记密码（邮件链接）、重置密码；HttpOnly Cookie；凭证接口独立限流 |
+| 用户 `users` | 个人资料、头像上传（RustFS，按文件头校验格式）、修改密码、会话列表与下线；后台用户列表/编辑/禁用/分配角色 |
+| 权限 `rbac` | 角色 + 权限码（`user:read` 等），CASL 规则支持“只能操作自己的数据”；系统角色 `super_admin` / `admin` / `user` |
+| AI `ai` | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型） |
+| RAG `rag` | 知识库、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索 |
+| 基础设施 | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Swagger、请求 ID 与结构化日志 |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 快速开始
 
-## Project setup
+需要 Node.js ≥ 24、pnpm 11 和 Docker。以下命令在 `apps/server` 目录执行；在仓库根目录则使用 `pnpm -C apps/server <脚本>`。
 
 ```bash
-# From the repository root (Node.js >=24, pnpm 11.25.0)
-$ pnpm install --frozen-lockfile
+cp .env.example .env     # 本地默认值即可直接使用
+pnpm infra:up            # 启动 postgres(pgvector) / redis / rustfs / mailpit
+pnpm db:migrate          # 应用 drizzle/ 下的迁移
+pnpm db:seed             # 系统角色、首个超级管理员（SEED_ADMIN_*）、默认 bge-m3 模型
+pnpm dev                 # http://localhost:3100/api
 ```
 
-This package uses the root workspace and lockfile. The commands below run inside `apps/server`; from the repository root use `pnpm -C apps/server ...`. See the [root README](../../README.md) for shared development and verification commands.
+- Swagger：<http://localhost:3100/api/docs>
+- Mailpit 收件箱（找回密码邮件）：<http://localhost:8025>
+- RustFS 控制台：<http://localhost:9001>（账号见 `.env` 中的 `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`）
 
-## Compile and run the project
+本地向量化（可选）：
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run dev
-
-# production mode
-$ pnpm run build
-$ pnpm run start:prod
+docker compose --profile ai up -d
+docker compose exec ollama ollama pull bge-m3
 ```
 
-The Fastify bootstrap listens on `PORT` (default `3100`). Environment variables must be supplied to the process; `.env` is not automatically loaded. Production requires `JWT_SECRET`. Auth uses an HttpOnly `access_token` cookie; users are stored in memory. CORS and a global `/api` prefix are not configured.
+默认模型指向 `http://localhost:11434/v1`。也可以在后台 `/api/admin/ai/embedding-models` 改成其他 OpenAI 兼容服务（vLLM、Xinference、TEI、SiliconFlow、OpenAI 等）。
 
-## Run tests
+## 常用脚本
 
-`pnpm check-types` checks TypeScript without emitting; `pnpm lint` runs Oxlint. E2E tests currently create an Express test app, so they do not verify the Fastify bootstrap.
+| 脚本 | 说明 |
+| ---- | ---- |
+| `dev` / `start:debug` | 监听模式启动 |
+| `build` / `start:prod` | 编译到 `dist/` 并运行 |
+| `infra:up` / `infra:down` | 启停本地 Docker 依赖 |
+| `db:generate` | 修改 `src/database/schema` 后生成迁移 SQL |
+| `db:migrate` / `db:migrate:prod` | 开发环境（drizzle-kit）/ 生产环境（`dist/scripts/migrate.js`）应用迁移 |
+| `db:seed` | 幂等初始化数据 |
+| `db:studio` | Drizzle Studio |
+| `lint` / `check-types` / `format` | oxlint / tsc / Prettier |
+| `test` | 单元测试（离线） |
+| `test:e2e` | 端到端测试，用 testcontainers 启动临时 Postgres / Redis / RustFS（需要 Docker） |
 
-```bash
-# unit tests
-$ pnpm run test
+## 前端对接要点
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:coverage
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Observability
-
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
-
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
-
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
-
-This project is already instrumented. Create a free account at [observe.nestjs.com](https://observe.nestjs.com), add an application, and paste the generated app key and secret into the `ObserveModule.forRoot()` call in `src/app.module.ts`.
-
-The free plan needs no payment details and covers 300,000 events a month. You can also browse the [live demo](https://www.observe-demo.nestjs.com/dashboard) first - the whole dashboard over a busy service's data, with nothing to install.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observe](https://observe.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- 所有接口都在 `/api` 前缀下，返回原始 JSON；列表接口返回 `{ items, total, page, pageSize }`。
+- 跨域请求需要带上 Cookie（`credentials: 'include'`），允许的来源由 `CORS_ORIGINS` 配置（默认 5173 / 5174）。
+- 接口返回 401 时先调用 `POST /api/auth/refresh`，刷新成功后重试原请求；刷新仍返回 401 时跳转登录页。
+- `GET /api/users/me` 会返回 `roles` 和 `permissions`，可用于渲染菜单和按钮权限。
+- 找回密码时可传 `resetUrl`（例如管理端的 `http://localhost:5173/auth/reset-password`），来源必须是 `APP_WEB_URL` 或 `CORS_ORIGINS` 之一，否则返回 400；不传时链接为 `APP_WEB_URL/reset-password?token=...`。前端页面拿到 token 后调用 `POST /api/auth/reset-password`。
+- 修改密码时当前密码错误返回 400（不是 401），以免前端误判为登录过期。
+- CORS 允许 `GET/HEAD/POST/PUT/PATCH/DELETE`；`@fastify/cors` 默认只放行前三种，新增方法时同步修改 `setup-app.ts`。

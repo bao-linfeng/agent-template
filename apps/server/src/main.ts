@@ -1,16 +1,27 @@
+// Must stay the first import: loads .env before any module reads process.env.
+import './config/load-env.js';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
-import { ValidationPipe } from '@nestjs/common';
-import { AppModule, ObserveInstrument } from './app.module.js';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { AppModule } from './app.module.js';
+import type { Env } from './config/env.js';
+import { observeEnabled, ObserveInstrument } from './observe.js';
+import { configureApp, createFastifyAdapter } from './setup-app.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter(), {
-    instrument: ObserveInstrument,
-  });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  await app.listen(process.env.PORT ?? 3100);
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    createFastifyAdapter(),
+    {
+      bufferLogs: true,
+      ...(observeEnabled ? { instrument: ObserveInstrument } : {}),
+    },
+  );
+  await configureApp(app);
+  const config = app.get<ConfigService<Env, true>>(ConfigService);
+  await app.listen(
+    config.get('PORT', { infer: true }),
+    config.get('HOST', { infer: true }),
+  );
 }
 await bootstrap();

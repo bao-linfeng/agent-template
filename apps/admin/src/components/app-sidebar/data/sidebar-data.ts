@@ -2,13 +2,7 @@ import { AudioWaveformIcon, CommandIcon, GalleryVerticalEndIcon } from '@lucide/
 
 import { navData } from '@/constants/sidebar-data'
 
-import type { SidebarData, Team, User } from '../types'
-
-const user: User = {
-  name: 'shadcn',
-  email: 'm@example.com',
-  avatar: '/avatars/shadcn.jpg',
-}
+import type { SidebarData, Team } from '../types'
 
 const teams: Team[] = [
   {
@@ -29,7 +23,6 @@ const teams: Team[] = [
 ]
 
 export const sidebarData: SidebarData = {
-  user,
   teams,
   navMain: navData,
 }

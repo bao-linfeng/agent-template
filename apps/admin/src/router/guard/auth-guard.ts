@@ -1,35 +1,48 @@
-import type { Router } from 'vue-router'
+import type { RouteLocationNormalized, RouteMeta, Router } from 'vue-router'
 
-import { storeToRefs } from 'pinia'
-
+import { HOME_PATH, LOGIN_PATH } from '@/constants/app'
 import pinia from '@/plugins/pinia/setup'
 import { useAuthStore } from '@/stores/auth'
 
+/** Pages for signed-out users; signed-in users are sent away from them. */
+const GUEST_ONLY_PATHS = new Set([LOGIN_PATH, '/auth/sign-in-2', '/auth/sign-up'])
+
+/**
+ * Pages rendered in the dashboard layout require a session unless they opt out with `meta.auth: false`;
+ * pages with their own layout (auth, errors, marketing) are public unless they set `meta.auth: true`.
+ */
+export function requiresAuth(meta: RouteMeta): boolean {
+  const layout = typeof meta.layout === 'object' && meta.layout !== null ? meta.layout.name : meta.layout
+  return meta.auth ?? (layout === undefined || layout === 'default')
+}
+
+export function resolveAuthRedirect(
+  to: Pick<RouteLocationNormalized, 'path' | 'fullPath' | 'meta'>,
+  from: Pick<RouteLocationNormalized, 'path'>,
+  auth: { isLogin: boolean, can: (permission: string) => boolean },
+) {
+  if (auth.isLogin && GUEST_ONLY_PATHS.has(to.path)) {
+    // Back to the previous page when it is a real page, otherwise home.
+    return from.path && from.path !== to.path && !GUEST_ONLY_PATHS.has(from.path) && from.path !== '/'
+      ? from.path
+      : HOME_PATH
+  }
+
+  if (!auth.isLogin && requiresAuth(to.meta)) {
+    return { path: LOGIN_PATH, query: { redirect: to.fullPath } }
+  }
+
+  if (auth.isLogin && to.meta.permission && !auth.can(to.meta.permission)) {
+    return { path: '/errors/403' }
+  }
+}
+
 export function setupAuthGuard(router: Router) {
-  router.beforeEach((to, from) => {
+  router.beforeEach(async (to, from) => {
     const authStore = useAuthStore(pinia)
-    const { isLogin } = storeToRefs(authStore)
+    if (!authStore.initialized)
+      await authStore.restore()
 
-    const authPaths = ['/auth/sign-in', '/auth/sign-up']
-    const isAuthPage = authPaths.includes(to.path)
-    const isFromAuthPage = authPaths.includes(from.path)
-
-    // If logged in, redirect from auth pages to the previous non-auth page (if valid), otherwise redirect to home
-    if (isLogin.value && isAuthPage) {
-      // Check if from route is valid (has path, is different from target, and is not an auth page)
-      if (from.path && from.path !== to.path && !isFromAuthPage) {
-        return from
-      }
-      // Fallback: redirect to home on first visit or invalid/unsafe source (including other auth pages)
-      return { path: '/' }
-    }
-
-    // If page requires auth but user is not logged in, redirect to sign-in page
-    if (to.meta.auth && !isLogin.value && !isAuthPage) {
-      return {
-        name: '/auth/sign-in',
-        query: { redirect: to.fullPath },
-      }
-    }
+    return resolveAuthRedirect(to, from, authStore)
   })
 }

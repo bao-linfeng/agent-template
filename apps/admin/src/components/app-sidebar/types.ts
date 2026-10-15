@@ -6,6 +6,8 @@ type NavIcon = FunctionalComponent<LucideProps, Record<any, any>, any, Record<an
 interface BaseNavItem {
   title: string
   icon?: NavIcon
+  /** Permission code required to see the entry (hidden otherwise), e.g. `user:read`. */
+  permission?: string
 }
 
 export type NavItem
@@ -35,7 +37,7 @@ export interface NavGroup {
 
 export interface User {
   name: string
-  avatar: string
+  avatar: string | null
   email: string
 }
 
@@ -46,7 +48,6 @@ export interface Team {
 }
 
 export interface SidebarData {
-  user: User
   teams: Team[]
   navMain: NavGroup[]
 }

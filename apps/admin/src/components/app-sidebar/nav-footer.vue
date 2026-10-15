@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { BadgeCheckIcon, BellIcon, ChevronsUpDownIcon, CreditCardIcon, LogOutIcon, SparklesIcon, UserRoundCogIcon } from '@lucide/vue'
+import { ChevronsUpDownIcon, KeyRoundIcon, LogOutIcon, UserRoundCogIcon } from '@lucide/vue'
 import { Avatar, AvatarFallback, AvatarImage } from '@repo/ui/components/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@repo/ui/components/sidebar'
+
+import { initialsOf } from '@/lib/avatar'
 
 import type { User } from './types'
 
@@ -12,6 +14,8 @@ const { user } = defineProps<
 
 const { logout } = useAuth()
 const { isMobile } = useSidebar()
+
+const initials = computed(() => initialsOf(user.name || user.email))
 </script>
 
 <template>
@@ -24,9 +28,9 @@ const { isMobile } = useSidebar()
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar class="size-8 rounded-lg">
-              <AvatarImage :src="user.avatar" :alt="user.name" />
+              <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
               <AvatarFallback class="rounded-lg">
-                CN
+                {{ initials }}
               </AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-sm leading-tight text-left">
@@ -45,9 +49,9 @@ const { isMobile } = useSidebar()
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="size-8 rounded-lg">
-                <AvatarImage :src="user.avatar" :alt="user.name" />
+                <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
                 <AvatarFallback class="rounded-lg">
-                  CN
+                  {{ initials }}
                 </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-sm leading-tight text-left">
@@ -59,33 +63,13 @@ const { isMobile } = useSidebar()
 
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem @click="$router.push('/billing/')">
-              <SparklesIcon />
-              Upgrade to Pro
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuItem @click="$router.push('/billing?type=billing')">
-              <CreditCardIcon />
-              Billing
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
             <DropdownMenuItem @click="$router.push('/settings/')">
               <UserRoundCogIcon />
               Profile
             </DropdownMenuItem>
             <DropdownMenuItem @click="$router.push('/settings/account')">
-              <BadgeCheckIcon />
-              Account
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="$router.push('/settings/notifications')">
-              <BellIcon />
-              Notifications
+              <KeyRoundIcon />
+              Security
             </DropdownMenuItem>
           </DropdownMenuGroup>
 

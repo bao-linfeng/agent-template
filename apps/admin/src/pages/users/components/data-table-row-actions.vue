@@ -1,73 +1,59 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
-
 import { EllipsisIcon } from '@lucide/vue'
 import { Button } from '@repo/ui/components/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuShortcut, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@repo/ui/components/dropdown-menu'
 
 import type { DataTableRow } from '@/components/data-table'
+import type { IAdminUser } from '@/services/types/user.type'
 
-import { Modal, ModalContent } from '@/components/prop-ui/modal'
+import { useUpdateAdminUserMutation } from '@/services/api/admin-users.api'
+import { useAuthStore } from '@/stores/auth'
 
-import type { User } from '../data/schema'
+import UserEditDialog from './user-edit-dialog.vue'
 
-import UserResource from './user-resource.vue'
+const props = defineProps<{
+  row: DataTableRow<IAdminUser>
+}>()
 
-interface DataTableRowActionsProps {
-  row: DataTableRow<User>
-}
-const props = defineProps<DataTableRowActionsProps>()
 const user = computed(() => props.row.original)
+const authStore = useAuthStore()
+const isSelf = computed(() => user.value.id === authStore.user?.id)
 const isOpen = shallowRef(false)
+// Mounted on first use so a page of rows does not create a form per row.
+const dialogMounted = shallowRef(false)
+watch(isOpen, (open) => {
+  if (open)
+    dialogMounted.value = true
+})
+const update = useUpdateAdminUserMutation()
 
-const showComponent = shallowRef<Component | null>(null)
-type TCommand = 'edit' | 'delete'
-
-async function loadComponent(command: TCommand): Promise<Component> {
-  if (command === 'edit')
-    return UserResource
-
-  const { default: component } = await import('./user-delete.vue')
-  return component
-}
-
-async function handleSelect(command: TCommand) {
-  try {
-    showComponent.value = await loadComponent(command)
-    isOpen.value = true
-  }
-  catch (e) {
-    console.error(`Failed to load component for "${command}"`, e)
-  }
+function toggleStatus() {
+  update.mutate({ id: user.value.id, status: user.value.status === 'active' ? 'disabled' : 'active' })
 }
 </script>
 
 <template>
-  <Modal v-model:open="isOpen">
-    <DropdownMenu>
-      <DropdownMenuTrigger as-child>
-        <Button
-          variant="ghost"
-          class="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
-        >
-          <EllipsisIcon class="size-4" />
-          <span class="sr-only">Open menu</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" class="w-[160px]">
-        <DropdownMenuItem @click.stop="handleSelect('edit')">
-          Edit
-        </DropdownMenuItem>
+  <DropdownMenu>
+    <DropdownMenuTrigger as-child>
+      <Button variant="ghost" class="flex h-8 w-8 p-0 data-[state=open]:bg-muted">
+        <EllipsisIcon class="size-4" />
+        <span class="sr-only">Open menu</span>
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end" class="w-[160px]">
+      <DropdownMenuItem @click="isOpen = true">
+        Edit
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem
+        :disabled="isSelf || update.isPending.value"
+        :class="user.status === 'active' ? 'text-destructive' : ''"
+        @click="toggleStatus"
+      >
+        {{ user.status === 'active' ? 'Disable' : 'Enable' }}
+      </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
 
-        <DropdownMenuItem @click.stop="handleSelect('delete')">
-          Delete
-          <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-
-    <ModalContent>
-      <component :is="showComponent" :user="user" @close="isOpen = false" />
-    </ModalContent>
-  </Modal>
+  <UserEditDialog v-if="dialogMounted" v-model:open="isOpen" :user="user" />
 </template>
