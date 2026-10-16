@@ -19,10 +19,10 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 
 ```bash
 cp .env.example .env     # 本地默认值即可直接使用
-pnpm infra:up            # 启动 postgres(pgvector) / redis / rustfs / mailpit
+pnpm infra:up            # 启动 postgres(pgvector) / redis / rustfs / mailpit，以及 COMPOSE_PROFILES 中的监控栈
 pnpm db:migrate          # 应用 drizzle/ 下的迁移
 pnpm db:seed             # 系统角色、首个超级管理员（SEED_ADMIN_*）、默认 bge-m3 模型
-pnpm dev                 # http://localhost:3100/api
+pnpm dev                 # 先 docker compose up（已运行则跳过），再监听启动 http://localhost:3100/api
 ```
 
 - Swagger：<http://localhost:3100/api/docs>，JSON：<http://localhost:3100/api/docs-json>
@@ -46,7 +46,7 @@ docker compose exec ollama ollama pull bge-m3
 
 | 脚本                                          | 说明                                                                            |
 | --------------------------------------------- | ------------------------------------------------------------------------------- |
-| `dev` / `start:debug`                         | 监听模式启动                                                                    |
+| `dev` / `start:debug`                         | 监听模式启动（`dev` 先启动 Docker 依赖并加载链路追踪预加载脚本）                |
 | `build` / `start:prod`                        | 编译到 `dist/` 并运行                                                           |
 | `infra:up` / `infra:down`                     | 启停本地 Docker 依赖                                                            |
 | `db:generate`                                 | 修改 `src/database/schema` 后生成迁移 SQL                                       |
@@ -120,7 +120,7 @@ pnpm -C apps/server start:prod
 
 ### 链路追踪
 
-`start:prod` 和 Docker 镜像通过 `node --import ./dist/tracing.js dist/main.js` 预加载 OpenTelemetry；设置 `OTEL_EXPORTER_OTLP_ENDPOINT`（OTLP http/protobuf，例如 Tempo 的 `http://tempo:4318`）后开始上报，未设置时不做任何事。`pnpm dev` 不加载预加载脚本，本地调试链路请用 `pnpm build && pnpm start:prod`。
+`start:prod` 和 Docker 镜像通过 `node --import ./dist/tracing.js dist/main.js` 预加载 OpenTelemetry；设置 `OTEL_EXPORTER_OTLP_ENDPOINT`（OTLP http/protobuf，例如 Tempo 的 `http://tempo:4318`）后开始上报，未设置时不做任何事。`pnpm dev` 通过 `nest start --exec "node --import ./dist/tracing.js"` 同样加载它；`start:debug` 和测试不加载。
 
 - 每个请求一条链路，span 名为 `<METHOD> <路由模板>`，响应头 `traceparent` 带链路 ID，可直接在 Tempo 中检索；`/health` 和 `/metrics` 不记录。
 - 子 span 覆盖 PostgreSQL 查询、Redis 命令、对外 HTTP / `fetch`（对象存储、Embedding 接口）；BullMQ 任务延续入队请求的链路（`add mail.send` → `process mail`）。
@@ -131,10 +131,10 @@ pnpm -C apps/server start:prod
 
 ### 本地监控
 
-本地 Compose 的 `observability` profile 启动同一套监控栈，复用 `deploy/observability/` 下的告警规则、仪表盘和 Tempo 配置，用于在开发时查看指标、查链路和调试告警：
+本地 Compose 的 `observability` profile 启动同一套监控栈，复用 `deploy/observability/` 下的告警规则、仪表盘和 Tempo 配置，用于在开发时查看指标、查链路和调试告警。`.env.example` 默认设置了 `COMPOSE_PROFILES=observability` 和 `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`，所以 `pnpm dev`（包括仓库根目录的 `pnpm dev`）会连同监控栈一起启动并上报链路；不需要时删掉这两行。手动启动：
 
 ```bash
-docker compose --profile observability up -d --wait   # 或在 .env 中设置 COMPOSE_PROFILES=observability 后执行 pnpm infra:up
+docker compose --profile observability up -d --wait   # .env 中已设置 COMPOSE_PROFILES 时等同于 pnpm infra:up
 ```
 
 | 服务         | 地址                            | 说明                                                                                            |
@@ -144,11 +144,11 @@ docker compose --profile observability up -d --wait   # 或在 .env 中设置 CO
 | Alertmanager | <http://localhost:9093>         | 告警邮件发到 Mailpit（<http://localhost:8025>，收件人 `ops@localhost`）；不含企业微信/飞书/钉钉 |
 | Tempo        | `http://localhost:4318`（OTLP） | 接收链路，保留 72 小时                                                                          |
 
-- 指标：`pnpm dev` 即可，Prometheus 15 秒内抓到。`METRICS_PORT` 不是 9464 时，同步修改 `deploy/observability/prometheus/prometheus.local.yml`。
-- 链路：`pnpm dev` 不加载预加载脚本，需要 `pnpm build` 后用 `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 pnpm start:prod` 启动（或把该变量写进 `.env`）。
+- 指标：Prometheus 每 15 秒抓取一次。`METRICS_PORT` 不是 9464 时，同步修改 `deploy/observability/prometheus/prometheus.local.yml`。
+- 链路：`pnpm dev` 和 `pnpm start:prod` 都会上报；请求的响应头 `traceparent` 带链路 ID，可在 Grafana 中直接查询。
 - 告警：开发中经常重启 API，`ApiDown` 等告警会出现在 Mailpit，属于正常现象。
 - 端口都只绑定 `127.0.0.1`；`GRAFANA_PORT`、`PROMETHEUS_PORT`、`ALERTMANAGER_PORT`、`TEMPO_OTLP_PORT` 可在 `.env` 中修改。
-- 停止：`docker compose --profile observability down`（未设置 `COMPOSE_PROFILES` 时，`pnpm infra:down` 不会停止这些容器）。
+- 停止 `pnpm dev` 不会停止容器；用 `pnpm infra:down` 停止（未设置 `COMPOSE_PROFILES` 时改用 `docker compose --profile observability down`）。
 
 首次部署需要种子数据时，在 `apps/server` 执行 `node dist/scripts/seed.js`。迁移文件在 `drizzle/`，数据库 schema 位于 `src/database/schema/`；修改 schema 后使用 `db:generate` 生成并提交迁移。
 
