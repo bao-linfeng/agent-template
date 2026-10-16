@@ -11,9 +11,10 @@ import {
 } from 'drizzle-orm/pg-core'
 
 /**
- * One row per audited API request (see `modules/audit`). Append-only: rows are never updated and are
- * only deleted by the retention job. Actor columns are copied instead of referenced, so the trail
- * survives renamed or deleted accounts.
+ * One row per audited API request (see `modules/audit`). Append-only: rows are only deleted by the
+ * retention job, and only updated by the account purge, which clears `actor_email` and `body` of rows
+ * about a deleted client user. Actor columns are copied instead of referenced, so the trail survives
+ * renamed or deleted accounts.
  */
 export const auditLogs = pgTable(
   'audit_logs',

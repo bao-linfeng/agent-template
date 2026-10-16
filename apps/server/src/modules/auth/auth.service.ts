@@ -102,11 +102,41 @@ export class AuthService {
     return { tokens, account }
   }
 
+  /**
+   * Accounts with a pending deletion answer `AUTH_ACCOUNT_PENDING_DELETION` (with `params.scheduledAt`),
+   * but only after the password matched, so the state of an account is not revealed to strangers.
+   */
   async login(
     realm: Realm,
     dto: LoginDto,
     meta: RequestMeta,
   ): Promise<AuthResult> {
+    const account = await this.verifyCredentials(realm, dto)
+    if (account.deletionScheduledAt) {
+      throw new AppException('AUTH_ACCOUNT_PENDING_DELETION', {
+        params: { scheduledAt: account.deletionScheduledAt.toISOString() },
+      })
+    }
+    return this.startSession(realm, account, meta)
+  }
+
+  /** Cancels a pending deletion with the account's credentials and signs in (plain login otherwise). */
+  async restore(
+    realm: Realm,
+    dto: LoginDto,
+    meta: RequestMeta,
+  ): Promise<AuthResult> {
+    const account = await this.verifyCredentials(realm, dto)
+    const restored = account.deletionScheduledAt
+      ? await this.accounts.cancelDeletion(realm, account.id)
+      : account
+    return this.startSession(realm, restored, meta)
+  }
+
+  private async verifyCredentials(
+    realm: Realm,
+    dto: LoginDto,
+  ): Promise<AccountRow> {
     const account = await this.accounts.findByEmail(realm, dto.email)
     const valid = account
       ? await this.hasher.verify(dto.password, account.passwordHash)
@@ -117,6 +147,14 @@ export class AuthService {
     if (account.status !== 'active') {
       throw new AppException('AUTH_ACCOUNT_DISABLED')
     }
+    return account
+  }
+
+  private async startSession(
+    realm: Realm,
+    account: AccountRow,
+    meta: RequestMeta,
+  ): Promise<AuthResult> {
     const tokens = await this.sessions.create(realm, account, meta)
     await this.accounts.touchLastLogin(realm, account.id)
     return { tokens, account }
@@ -132,7 +170,9 @@ export class AuthService {
     }
     return this.sessions.rotate(realm, refreshToken, meta, async (id) => {
       const account = await this.accounts.findById(realm, id)
-      return account?.status === 'active' ? account : undefined
+      return account?.status === 'active' && !account.deletionScheduledAt
+        ? account
+        : undefined
     })
   }
 
@@ -235,7 +275,10 @@ export class AuthService {
     return url
   }
 
-  /** Consumes a reset token, sets the new password and signs out every session. */
+  /**
+   * Consumes a reset token, sets the new password and signs out every session. Also works during a
+   * pending deletion, so owners who forgot their password can still restore the account.
+   */
   async resetPassword(realm: Realm, dto: ResetPasswordDto): Promise<void> {
     const { resetTokens } = REALM_TABLES[realm]
     const [consumed] = await this.db

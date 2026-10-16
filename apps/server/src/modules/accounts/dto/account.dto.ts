@@ -33,6 +33,19 @@ export class ListAccountsQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsIn(userStatus.enumValues)
   status?: UserStatus
+
+  /** `pending`: accounts scheduled for deletion; `none`: accounts without a pending deletion. */
+  @IsOptional()
+  @IsIn(['pending', 'none'])
+  deletion?: 'pending' | 'none'
+}
+
+export class DeleteAccountDto {
+  /** Current password, confirming that the owner requests the deletion. */
+  @IsString()
+  @MinLength(1)
+  @MaxLength(72)
+  password!: string
 }
 
 /** Fields an administrator may change on an account of either realm. */

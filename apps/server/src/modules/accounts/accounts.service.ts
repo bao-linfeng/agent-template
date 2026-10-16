@@ -1,7 +1,18 @@
 import { randomUUID } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { and, count, desc, eq, ilike, or, type SQL } from 'drizzle-orm'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  ilike,
+  isNotNull,
+  isNull,
+  or,
+  type SQL,
+} from 'drizzle-orm'
 import {
   likePattern,
   pageOffset,
@@ -37,8 +48,12 @@ export interface PublicAccount {
   avatarUrl: string | null
   status: UserStatus
   lastLoginAt: Date | null
+  /** When a pending deletion purges the account (signed out until restored); null for live accounts. */
+  deletionScheduledAt: Date | null
   createdAt: Date
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000
 
 /**
  * Account operations shared by both realms (client `users`, admin console `admin_users`). Every method
@@ -48,6 +63,7 @@ export interface PublicAccount {
 export class AccountsService {
   private readonly logger = new Logger(AccountsService.name)
   private readonly avatarBaseUrl: string
+  private readonly deletionGraceDays: number
 
   constructor(
     @InjectDb() private readonly db: Database,
@@ -61,6 +77,9 @@ export class AccountsService {
       .get('PUBLIC_URL', { infer: true })
       .replace(/\/$/, '')
     this.avatarBaseUrl = `${publicUrl}/${config.get('API_PREFIX', { infer: true })}/avatars`
+    this.deletionGraceDays = config.get('ACCOUNT_DELETION_GRACE_DAYS', {
+      infer: true,
+    })
   }
 
   async findById(
@@ -113,6 +132,7 @@ export class AccountsService {
         : null,
       status: account.status,
       lastLoginAt: account.lastLoginAt,
+      deletionScheduledAt: account.deletionScheduledAt,
       createdAt: account.createdAt,
     }
   }
@@ -231,9 +251,88 @@ export class AccountsService {
     )
   }
 
+  // ---- Deletion (soft delete with a grace period) ------------------------------------------
+
+  /** Self-service deletion: the password confirms it is the account owner, not a hijacked session. */
+  async requestDeletion(
+    realm: Realm,
+    id: string,
+    password: string,
+  ): Promise<AccountRow> {
+    const account = await this.getOrThrow(realm, id)
+    if (!(await this.hasher.verify(password, account.passwordHash))) {
+      throw new AppException('ACCOUNT_PASSWORD_INCORRECT')
+    }
+    return this.scheduleDeletion(realm, id)
+  }
+
+  /**
+   * Marks the account for deletion `ACCOUNT_DELETION_GRACE_DAYS` from now and signs it out everywhere.
+   * Until then it can be restored (`cancelDeletion`); afterwards the nightly purge
+   * (`modules/maintenance`) deletes it with all its data. Repeated calls keep the first schedule.
+   */
+  async scheduleDeletion(realm: Realm, id: string): Promise<AccountRow> {
+    const { accounts } = REALM_TABLES[realm]
+    const now = new Date()
+    const [scheduled] = await this.db
+      .update(accounts)
+      .set({
+        deletionRequestedAt: now,
+        deletionScheduledAt: new Date(
+          now.getTime() + this.deletionGraceDays * DAY_MS,
+        ),
+      })
+      .where(and(eq(accounts.id, id), isNull(accounts.deletionScheduledAt)))
+      .returning()
+    if (!scheduled) {
+      return this.getOrThrow(realm, id)
+    }
+    await this.sessions.revokeAllForUser(realm, id)
+    await this.mail.send(
+      scheduled.email,
+      mailTemplates.accountDeletionScheduled({
+        nickname: scheduled.nickname,
+        scheduledAt: scheduled.deletionScheduledAt!,
+      }),
+    )
+    this.logger.log(
+      `Deletion of ${realm} ${id} scheduled for ${scheduled.deletionScheduledAt!.toISOString()}`,
+    )
+    return scheduled
+  }
+
+  /**
+   * Restores an account with a pending deletion; a no-op for live accounts. Once `deletionScheduledAt`
+   * has passed the deletion is final (409 `ACCOUNT_DELETION_NOT_CANCELLABLE`), so the purge can remove
+   * the data in several steps without racing a restore.
+   */
+  async cancelDeletion(realm: Realm, id: string): Promise<AccountRow> {
+    const { accounts } = REALM_TABLES[realm]
+    const [restored] = await this.db
+      .update(accounts)
+      .set({ deletionRequestedAt: null, deletionScheduledAt: null })
+      .where(
+        and(eq(accounts.id, id), gt(accounts.deletionScheduledAt, new Date())),
+      )
+      .returning()
+    if (!restored) {
+      const account = await this.getOrThrow(realm, id)
+      if (account.deletionScheduledAt) {
+        throw new AppException('ACCOUNT_DELETION_NOT_CANCELLABLE')
+      }
+      return account
+    }
+    await this.mail.send(
+      restored.email,
+      mailTemplates.accountDeletionCancelled({ nickname: restored.nickname }),
+    )
+    this.logger.log(`Deletion of ${realm} ${id} cancelled`)
+    return restored
+  }
+
   // ---- Administration ----------------------------------------------------------------------
 
-  /** `keyword` matches email or nickname. */
+  /** `keyword` matches email or nickname; `deletion` filters by pending deletion. */
   async list(
     realm: Realm,
     query: ListAccountsQueryDto,
@@ -250,6 +349,13 @@ export class AccountsService {
     }
     if (query.status) {
       filters.push(eq(accounts.status, query.status))
+    }
+    if (query.deletion) {
+      filters.push(
+        query.deletion === 'pending'
+          ? isNotNull(accounts.deletionScheduledAt)
+          : isNull(accounts.deletionScheduledAt),
+      )
     }
     const where = filters.length > 0 ? and(...filters) : undefined
     const [items, [totals]] = await Promise.all([

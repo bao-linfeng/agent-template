@@ -108,6 +108,11 @@ export const ERRORS = {
     status: HttpStatus.UNAUTHORIZED,
     message: 'Session expired, please sign in again',
   },
+  AUTH_ACCOUNT_PENDING_DELETION: {
+    status: HttpStatus.FORBIDDEN,
+    message:
+      'This account is scheduled for deletion; restore it to sign in again',
+  },
   AUTH_ACCOUNT_UNAVAILABLE: {
     status: HttpStatus.UNAUTHORIZED,
     message: 'Account is not available',
@@ -162,6 +167,26 @@ export const ERRORS = {
   ACCOUNT_AVATAR_UNSUPPORTED: {
     status: HttpStatus.UNSUPPORTED_MEDIA_TYPE,
     message: 'Avatar must be a PNG, JPEG, GIF or WebP image',
+  },
+  ACCOUNT_DELETION_NOT_CANCELLABLE: {
+    status: HttpStatus.CONFLICT,
+    message: 'The grace period has ended and the account is being deleted',
+  },
+  ACCOUNT_EXPORT_IN_PROGRESS: {
+    status: HttpStatus.CONFLICT,
+    message: 'A data export is already being prepared',
+  },
+  ACCOUNT_EXPORT_NOT_FOUND: {
+    status: HttpStatus.NOT_FOUND,
+    message: 'Data export not found',
+  },
+  ACCOUNT_EXPORT_NOT_READY: {
+    status: HttpStatus.CONFLICT,
+    message: 'This data export is not ready for download',
+  },
+  ACCOUNT_EXPORT_EXPIRED: {
+    status: HttpStatus.GONE,
+    message: 'This data export has expired, please request a new one',
   },
   SESSION_NOT_FOUND: {
     status: HttpStatus.NOT_FOUND,

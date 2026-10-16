@@ -20,7 +20,7 @@ import {
   type BearerSignIn,
 } from '../credentials.controller.js'
 import { AuthThrottle, ClientController, Public } from '../decorators.js'
-import { RegisterDto, SendRegisterCodeDto } from '../dto/auth.dto.js'
+import { LoginDto, RegisterDto, SendRegisterCodeDto } from '../dto/auth.dto.js'
 import { SessionsService } from '../sessions.service.js'
 
 /**
@@ -73,6 +73,30 @@ export class AuthController extends CredentialsController<PublicAccount> {
   ): Promise<PublicAccount | BearerSignIn<PublicAccount>> {
     const bearer = usesBearerTransport(request, this.realm)
     const { tokens, account } = await this.auth.register(
+      dto,
+      requestMeta(request),
+    )
+    setAuditActor(request, account)
+    return this.signIn(bearer, reply, tokens, this.accounts.toPublic(account))
+  }
+
+  /**
+   * Cancels a pending account deletion and signs in, with the same body and response as `login`
+   * (which answers 403 `AUTH_ACCOUNT_PENDING_DELETION` with `params.scheduledAt` for such accounts).
+   * Signs in normally when no deletion is pending.
+   */
+  @Post('restore')
+  @HttpCode(200)
+  @AuthThrottle()
+  @authTransportHeader
+  async restore(
+    @Body() dto: LoginDto,
+    @Req() request: HttpRequest,
+    @Res({ passthrough: true }) reply: HttpReply,
+  ): Promise<PublicAccount | BearerSignIn<PublicAccount>> {
+    const bearer = usesBearerTransport(request, this.realm)
+    const { tokens, account } = await this.auth.restore(
+      this.realm,
       dto,
       requestMeta(request),
     )
