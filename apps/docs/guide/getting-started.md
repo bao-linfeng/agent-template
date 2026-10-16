@@ -37,5 +37,5 @@ Vite 与 VitePress 都使用固定端口（`strictPort`），端口被占用时�
 
 - 管理端复制 `apps/admin/.env.example` 为 `.env` 即可使用；客户端默认请求 `http://localhost:3100/api`，可用 `VITE_API_BASE_URL` 覆盖。
 - 请求都带 Cookie，遇到 401 会先刷新会话再重试一次；刷新失败时跳转登录页。
-- 后端依赖本地 Docker：在 `apps/server` 复制 `.env.example` 为 `.env`，执行 `pnpm -C apps/server infra:up`、`db:migrate`、`db:seed` 后再 `dev`。
+- 后端依赖本地 Docker：在 `apps/server` 复制 `.env.example` 为 `.env`，执行 `pnpm -C apps/server infra:up`、`db:migrate`、`db:seed` 后再 `dev`（`dev` 会自动启动 Docker 服务，包括 `.env` 中 `COMPOSE_PROFILES` 启用的本地监控栈）。
 - 后端认证：Web 端使用 HttpOnly Cookie（客户端与管理端各一套），小程序/原生 App 可通过 `X-Auth-Transport: bearer` 使用客户端账号的 Bearer Token；数据保存在 PostgreSQL。

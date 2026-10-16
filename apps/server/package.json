@@ -12,7 +12,7 @@
     "deploy": "nest deploy",
     "format": "prettier --write \"*.ts\" \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "dev": "nest start --watch",
+    "dev": "docker compose up -d --wait && nest start --watch --exec \"node --import ./dist/tracing.js\"",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node --import ./dist/tracing.js dist/main.js",
     "lint": "oxlint --type-aware src/ test/",

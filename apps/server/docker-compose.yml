@@ -3,6 +3,9 @@
 #
 #   docker compose up -d                 # postgres + redis + rustfs + mailpit
 #   docker compose --profile ai up -d    # also start Ollama for local bge-m3 embeddings
+#   docker compose --profile observability up -d   # also Prometheus, Alertmanager, Tempo and Grafana
+#
+# Profiles can also be set once in .env (COMPOSE_PROFILES=observability), then `pnpm infra:up`/`infra:down` include them.
 name: agent-template-server
 
 services:
@@ -69,8 +72,105 @@ services:
     volumes:
       - ollama-data:/root/.ollama
 
+  # --- Monitoring (profile `observability`): the production stack of deploy/observability, wired to the host API ---
+  # Same rules, dashboard and Tempo settings as deploy/docker-compose.yml (keep the image versions equal).
+  # Prometheus scrapes the API's METRICS_PORT on the host; alert mail goes to Mailpit; traces need the
+  # preload (pnpm build && pnpm start:prod) with OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318.
+  # Ports are bound to 127.0.0.1: Grafana signs everybody in as admin.
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    profiles: ['observability']
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.local.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '127.0.0.1:${PROMETHEUS_PORT:-9090}:9090'
+    volumes:
+      - ../../deploy/observability/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test: ['CMD', 'wget', '-qO', '/dev/null', 'http://127.0.0.1:9090/-/ready']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  alertmanager:
+    image: prom/alertmanager:v0.34.1
+    profiles: ['observability']
+    restart: unless-stopped
+    entrypoint: ['/bin/sh', '/etc/alertmanager/entrypoint.sh']
+    # Mail only (Mailpit); the IM bots go through alert-relay, which only the production stack runs.
+    environment:
+      ALERT_EMAIL_TO: ops@localhost
+      ALERT_EMAIL_FROM: Alertmanager <alertmanager@localhost>
+      SMTP_HOST: mailpit
+      SMTP_PORT: '1025'
+      SMTP_SECURE: 'false'
+      ALERT_SMTP_REQUIRE_TLS: 'false'
+    ports:
+      - '127.0.0.1:${ALERTMANAGER_PORT:-9093}:9093'
+    volumes:
+      - ../../deploy/observability/alertmanager:/etc/alertmanager:ro
+      - alertmanager-data:/alertmanager
+    depends_on:
+      - mailpit
+    healthcheck:
+      test: ['CMD', 'wget', '-qO', '/dev/null', 'http://127.0.0.1:9093/-/ready']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  tempo:
+    image: grafana/tempo:3.1.0
+    profiles: ['observability']
+    restart: unless-stopped
+    command: ['-config.file=/etc/tempo/tempo.yaml', '-config.expand-env=true']
+    environment:
+      TEMPO_RETENTION: 72h
+    ports:
+      - '127.0.0.1:${TEMPO_OTLP_PORT:-4318}:4318' # OTLP http
+    volumes:
+      - ../../deploy/observability/tempo:/etc/tempo:ro
+      - tempo-data:/var/tempo
+
+  grafana:
+    image: grafana/grafana:13.2.4
+    profiles: ['observability']
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${GRAFANA_PORT:-3300}:3000'
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: 'true'
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+      GF_ANALYTICS_CHECK_FOR_UPDATES: 'false'
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/api.json
+    volumes:
+      - ../../deploy/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../deploy/observability/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - tempo
+    healthcheck:
+      test:
+        ['CMD', 'wget', '-qO', '/dev/null', 'http://127.0.0.1:3000/api/health']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
 volumes:
   postgres-data:
   redis-data:
   rustfs-data:
   ollama-data:
+  prometheus-data:
+  alertmanager-data:
+  tempo-data:
+  grafana-data:

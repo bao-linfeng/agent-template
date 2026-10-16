@@ -92,11 +92,13 @@ pnpm -C apps/docs dev
 ```sh
 cd apps/server
 cp .env.example .env        # 本地默认值即可直接使用
-pnpm infra:up               # 启动 postgres(pgvector) / redis / rustfs / mailpit
+pnpm infra:up               # 启动 postgres(pgvector) / redis / rustfs / mailpit 和本地监控栈
 pnpm db:migrate             # 应用数据库迁移
 pnpm db:seed                # 初始化角色、超级管理员、默认 bge-m3 模型
-pnpm dev                    # http://localhost:3100/api
+pnpm dev                    # 自动启动上述 Docker 服务，http://localhost:3100/api
 ```
+
+本地监控（Grafana <http://localhost:3300>、Prometheus、Tempo、告警邮件进 Mailpit）由 `.env` 的 `COMPOSE_PROFILES=observability` 启用，见 [apps/server/README.md](apps/server/README.md) 的「本地监控」。
 
 种子管理员由 `SEED_ADMIN_EMAIL`、`SEED_ADMIN_PASSWORD`、`SEED_ADMIN_NICKNAME` 配置，在管理端 `/auth/sign-in` 登录。客户端账号需在 `/register` 自行注册，并从 Mailpit 获取验证码。
 
