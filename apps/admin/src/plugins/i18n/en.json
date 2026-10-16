@@ -306,6 +306,7 @@
   },
   "apiErrors": {
     "ACCOUNT_AVATAR_UNSUPPORTED": "Avatar must be a PNG, JPEG, GIF or WebP image.",
+    "ACCOUNT_DELETION_NOT_CANCELLABLE": "The grace period has ended; the account is being deleted and can no longer be restored.",
     "ACCOUNT_EMAIL_TAKEN": "This email is already registered.",
     "ACCOUNT_NOT_FOUND": "Account not found.",
     "ACCOUNT_PASSWORD_INCORRECT": "The current password is incorrect.",
@@ -383,7 +384,16 @@
     "total": "{count} users",
     "editTitle": "Edit user",
     "statusHint": "Disabling signs the user out of the client app everywhere.",
-    "updated": "User updated."
+    "updated": "User updated.",
+    "allAccounts": "All accounts",
+    "pendingDeletion": "Pending deletion",
+    "deletionOn": "Deletion on {date}",
+    "scheduleDeletion": "Schedule deletion",
+    "cancelDeletion": "Cancel deletion",
+    "deletionConfirmTitle": "Delete {email}?",
+    "deletionConfirmDescription": "The user is signed out everywhere. After the grace period the account and all of its data (knowledge bases, files, exports) are purged permanently. Until then the user can restore it from the sign-in page; disable the account as well to prevent that.",
+    "deletionScheduled": "Deletion scheduled.",
+    "deletionCancelled": "Deletion cancelled."
   },
   "admins": {
     "title": "Admins",

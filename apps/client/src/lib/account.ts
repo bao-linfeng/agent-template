@@ -11,7 +11,29 @@ export interface UserProfile {
   avatarUrl: string | null
   status: 'active' | 'disabled'
   lastLoginAt: string | null
+  /** Set while a deletion is pending; such accounts are signed out until restored. */
+  deletionScheduledAt: string | null
   createdAt: string
+}
+
+export type DataExportStatus = 'pending' | 'processing' | 'ready' | 'failed'
+
+/** `POST /users/me/exports`: a personal data export (one JSON file), built in the background. */
+export interface DataExport {
+  id: string
+  status: DataExportStatus
+  sizeBytes: number | null
+  createdAt: string
+  completedAt: string | null
+  /** Downloadable until then (ready exports only). */
+  expiresAt: string | null
+}
+
+export interface Page<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export interface Credentials {
@@ -38,7 +60,10 @@ export function resetPasswordPageUrl(origin = window.location.origin) {
 
 // Session cookies are set by the server on login/register/refresh.
 export const accountApi = {
+  /** 403 `AUTH_ACCOUNT_PENDING_DELETION` (with `params.scheduledAt`) while a deletion is pending. */
   login: (body: Credentials) => api<UserProfile>('/auth/login', { method: 'POST', body }),
+  /** Cancels a pending deletion and signs in; 409 once the grace period has ended. */
+  restoreAccount: (body: Credentials) => api<UserProfile>('/auth/restore', { method: 'POST', body }),
   /** 409 when the email is already registered, 429 while the resend cooldown runs. */
   sendRegisterCode: (email: string) =>
     api<SentCode>('/auth/register/send-code', { method: 'POST', body: { email } }),
@@ -62,4 +87,21 @@ export const accountApi = {
   /** Signs out every other session. */
   changePassword: (currentPassword: string, newPassword: string) =>
     api<void>('/users/me/password', { method: 'POST', body: { currentPassword, newPassword } }),
+  /** Signs out every session; the account is purged at `deletionScheduledAt` unless restored before. */
+  requestDeletion: (password: string) =>
+    api<{ deletionScheduledAt: string }>('/users/me/deletion', { method: 'POST', body: { password } }),
+
+  /** 409 `ACCOUNT_EXPORT_IN_PROGRESS` while another export is being built. */
+  requestExport: () => api<DataExport>('/users/me/exports', { method: 'POST', idempotencyKey: true }),
+  listExports: (pageSize = 5) => api<Page<DataExport>>('/users/me/exports', { query: { pageSize } }),
+  /** The export file as a JSON blob (kept as text, not parsed). */
+  downloadExport: async (id: string) => {
+    const text = await api<string>(`/users/me/exports/${id}/download`, { parseResponse: body => body })
+    return new Blob([text], { type: 'application/json' })
+  },
+}
+
+/** File name of a downloaded export, e.g. `account-export-2026-10-16.json`. */
+export function exportFileName(exported: Pick<DataExport, 'createdAt'>) {
+  return `account-export-${exported.createdAt.slice(0, 10)}.json`
 }

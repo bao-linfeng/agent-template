@@ -7,6 +7,8 @@ import { useSessionStore } from '../session'
 const accountApi = vi.hoisted(() => ({
   me: vi.fn(),
   login: vi.fn(),
+  restoreAccount: vi.fn(),
+  requestDeletion: vi.fn(),
   register: vi.fn(),
   logout: vi.fn(),
   uploadAvatar: vi.fn(),
@@ -22,6 +24,7 @@ const profile: UserProfile = {
   avatarUrl: null,
   status: 'active',
   lastLoginAt: null,
+  deletionScheduledAt: null,
   createdAt: '2026-01-01T00:00:00.000Z',
 }
 
@@ -87,6 +90,38 @@ describe('session store', () => {
     expect(session.isLoggedIn).toBe(true)
     await expect(session.logout()).rejects.toThrow('offline')
     expect(session.isLoggedIn).toBe(false)
+  })
+
+  it('signs in when a pending deletion is restored', async () => {
+    accountApi.restoreAccount.mockResolvedValue(profile)
+    const session = useSessionStore()
+
+    await session.restoreAccount({ email: profile.email, password: 'password1' })
+    expect(accountApi.restoreAccount).toHaveBeenCalledWith({ email: profile.email, password: 'password1' })
+    expect(session.user).toEqual(profile)
+  })
+
+  it('signs out locally after requesting deletion and returns the purge date', async () => {
+    accountApi.login.mockResolvedValue(profile)
+    accountApi.requestDeletion.mockResolvedValue({ deletionScheduledAt: '2026-11-01T00:00:00.000Z' })
+    const session = useSessionStore()
+
+    await session.login({ email: profile.email, password: 'password1' })
+    queryClient.setQueryData(['account', 'exports'], { items: [] })
+    await expect(session.requestDeletion('password1')).resolves.toBe('2026-11-01T00:00:00.000Z')
+    expect(accountApi.requestDeletion).toHaveBeenCalledWith('password1')
+    expect(session.isLoggedIn).toBe(false)
+    expect(queryClient.getQueryData(['account', 'exports'])).toBeUndefined()
+  })
+
+  it('keeps the session when the deletion request fails', async () => {
+    accountApi.login.mockResolvedValue(profile)
+    accountApi.requestDeletion.mockRejectedValue(new Error('wrong password'))
+    const session = useSessionStore()
+
+    await session.login({ email: profile.email, password: 'password1' })
+    await expect(session.requestDeletion('nope')).rejects.toThrow('wrong password')
+    expect(session.isLoggedIn).toBe(true)
   })
 
   it('drops cached server data when the user signs out, but not on profile updates', async () => {

@@ -306,6 +306,7 @@
   },
   "apiErrors": {
     "ACCOUNT_AVATAR_UNSUPPORTED": "头像必须是 PNG、JPEG、GIF 或 WebP 图片。",
+    "ACCOUNT_DELETION_NOT_CANCELLABLE": "冷静期已结束，账号正在删除中，无法再恢复。",
     "ACCOUNT_EMAIL_TAKEN": "该邮箱已被注册。",
     "ACCOUNT_NOT_FOUND": "账号不存在。",
     "ACCOUNT_PASSWORD_INCORRECT": "当前密码不正确。",
@@ -383,7 +384,16 @@
     "total": "共 {count} 个用户",
     "editTitle": "编辑用户",
     "statusHint": "禁用后，该用户在展示端的所有登录都会失效。",
-    "updated": "用户已更新。"
+    "updated": "用户已更新。",
+    "allAccounts": "全部账号",
+    "pendingDeletion": "待注销",
+    "deletionOn": "将于 {date} 删除",
+    "scheduleDeletion": "注销账号",
+    "cancelDeletion": "撤销注销",
+    "deletionConfirmTitle": "确定注销 {email}？",
+    "deletionConfirmDescription": "该用户会在所有设备上退出登录。冷静期结束后，账号及其全部数据（知识库、文件、导出）将被永久删除。在此之前用户可以在登录页撤销注销；如需阻止，请同时禁用该账号。",
+    "deletionScheduled": "已安排注销。",
+    "deletionCancelled": "已撤销注销。"
   },
   "admins": {
     "title": "管理员",

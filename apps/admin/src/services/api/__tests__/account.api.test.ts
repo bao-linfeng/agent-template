@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { compactQuery, fetchAdminUsers, updateAdminUser } from '../admin-users.api'
+import { cancelAdminUserDeletion, compactQuery, fetchAdminUsers, scheduleAdminUserDeletion, updateAdminUser } from '../admin-users.api'
 import { createAdmin, fetchAdmin, fetchAdmins, setAdminRoles, updateAdmin } from '../admins.api'
 import { forgotPassword, login, logout, resetPassword, resetPasswordPageUrl } from '../auth.api'
 import {
@@ -104,6 +104,16 @@ describe('admin transport', () => {
   it('updates client users', async () => {
     await updateAdminUser('u1', { status: 'disabled' })
     expect(apiFetch).toHaveBeenCalledWith('/users/u1', { method: 'patch', body: { status: 'disabled' } })
+  })
+
+  it('schedules and cancels client user deletions', async () => {
+    await scheduleAdminUserDeletion('u1')
+    expect(apiFetch).toHaveBeenCalledWith('/users/u1/deletion', { method: 'post' })
+    await cancelAdminUserDeletion('u1')
+    expect(apiFetch).toHaveBeenLastCalledWith('/users/u1/deletion', { method: 'delete' })
+
+    await fetchAdminUsers({ deletion: 'pending', keyword: '' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/users', { method: 'get', query: { deletion: 'pending' } })
   })
 
   it('manages admin accounts and their roles', async () => {

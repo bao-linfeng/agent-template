@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
+import { FetchError, getErrorCode } from '@repo/utils'
 import { useMutation } from '@tanstack/vue-query'
 import { computed, reactive, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -12,7 +13,7 @@ import { errorMessage } from '@/lib/api'
 import { checkEmail, collectErrors, safeRedirect } from '@/lib/validation'
 import { useSessionStore } from '@/stores/session'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
@@ -25,7 +26,27 @@ const { mutate: login, isPending: submitting, error } = useMutation({
   mutationFn: session.login,
   onSuccess: () => router.replace(safeRedirect(route.query.redirect)),
 })
-const failure = computed(() => (error.value ? errorMessage(error.value) : ''))
+
+/** Purge date when the credentials belong to an account with a pending deletion. */
+const pendingDeletion = computed(() => {
+  if (getErrorCode(error.value) !== 'AUTH_ACCOUNT_PENDING_DELETION')
+    return null
+  const scheduledAt = error.value instanceof FetchError ? error.value.data?.params?.scheduledAt : undefined
+  return typeof scheduledAt === 'string'
+    ? new Date(scheduledAt).toLocaleString(locale.value, { dateStyle: 'long', timeStyle: 'short' })
+    : ''
+})
+
+const { mutate: restore, isPending: restoring, error: restoreError, reset: resetRestore } = useMutation({
+  mutationFn: session.restoreAccount,
+  onSuccess: () => router.replace(safeRedirect(route.query.redirect)),
+})
+
+const failure = computed(() => {
+  if (restoreError.value)
+    return errorMessage(restoreError.value)
+  return error.value && pendingDeletion.value === null ? errorMessage(error.value) : ''
+})
 
 function submit() {
   errors.value = collectErrors({
@@ -34,6 +55,7 @@ function submit() {
   })
   if (Object.keys(errors.value).length)
     return
+  resetRestore()
   login({ email: form.email.trim(), password: form.password })
 }
 </script>
@@ -46,6 +68,14 @@ function submit() {
       </Alert>
       <Alert v-if="failure" variant="destructive">
         <AlertDescription>{{ failure }}</AlertDescription>
+      </Alert>
+      <Alert v-else-if="pendingDeletion !== null">
+        <AlertDescription class="grid gap-3">
+          <span>{{ t('account.login.pendingDeletion', { date: pendingDeletion }) }}</span>
+          <Button type="button" variant="outline" :disabled="restoring" @click="restore({ email: form.email.trim(), password: form.password })">
+            {{ restoring ? t('account.login.restoring') : t('account.login.restore') }}
+          </Button>
+        </AlertDescription>
       </Alert>
       <TextField v-model="form.email" :label="t('account.fields.email')" type="email" placeholder="you@example.com" autocomplete="username" :error="errors.email" />
       <TextField v-model="form.password" :label="t('account.fields.password')" type="password" autocomplete="current-password" :error="errors.password">
