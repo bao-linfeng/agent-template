@@ -8,6 +8,7 @@ export const QUEUES = {
   mail: 'mail',
   ragIngest: 'rag-ingest',
   audit: 'audit',
+  maintenance: 'maintenance',
 } as const
 
 @Module({

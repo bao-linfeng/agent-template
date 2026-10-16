@@ -22,6 +22,14 @@ import { ConfigService } from '@nestjs/config'
 import { AppException } from '../../common/errors/app.exception.js'
 import type { Env } from '../../config/env.js'
 
+/** S3 DeleteObjects accepts at most this many keys per request. */
+const DELETE_BATCH_SIZE = 1000
+
+export interface ObjectSummary {
+  key: string
+  lastModified?: Date
+}
+
 export interface StoredObject {
   body: Readable
   contentType?: string
@@ -138,6 +146,13 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
 
   /** Deletes every object under a prefix such as `rag/<kbId>/`. */
   async deletePrefix(prefix: string): Promise<void> {
+    for await (const page of this.listObjects(prefix)) {
+      await this.deleteObjects(page.map((item) => item.key))
+    }
+  }
+
+  /** Lists the objects under a prefix one page (at most 1000 keys) at a time. */
+  async *listObjects(prefix: string): AsyncGenerator<ObjectSummary[]> {
     let continuationToken: string | undefined
     do {
       const page = await this.client.send(
@@ -147,21 +162,33 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
           ContinuationToken: continuationToken,
         }),
       )
-      const objects = (page.Contents ?? []).flatMap((item) =>
-        item.Key ? [{ Key: item.Key }] : [],
+      yield (page.Contents ?? []).flatMap((item) =>
+        item.Key ? [{ key: item.Key, lastModified: item.LastModified }] : [],
       )
-      if (objects.length > 0) {
-        await this.client.send(
-          new DeleteObjectsCommand({
-            Bucket: this.bucket,
-            Delete: { Objects: objects },
-          }),
-        )
-      }
       continuationToken = page.IsTruncated
         ? page.NextContinuationToken
         : undefined
     } while (continuationToken)
+  }
+
+  /** Deletes the given keys (missing keys count as deleted); returns how many were removed. */
+  async deleteObjects(keys: readonly string[]): Promise<number> {
+    let deleted = 0
+    for (let offset = 0; offset < keys.length; offset += DELETE_BATCH_SIZE) {
+      const batch = keys.slice(offset, offset + DELETE_BATCH_SIZE)
+      const result = await this.client.send(
+        new DeleteObjectsCommand({
+          Bucket: this.bucket,
+          Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+        }),
+      )
+      const failed = result.Errors ?? []
+      for (const error of failed) {
+        this.logger.warn(`Failed to delete ${error.Key}: ${error.Message}`)
+      }
+      deleted += batch.length - failed.length
+    }
+    return deleted
   }
 
   /** Time-limited direct download URL (the storage endpoint must be reachable by the client). */

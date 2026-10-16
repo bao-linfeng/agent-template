@@ -1,17 +1,6 @@
 import { BeforeApplicationShutdown, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import {
-  and,
-  count,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  lt,
-  or,
-  type SQL,
-} from 'drizzle-orm'
+import { and, count, desc, eq, gte, ilike, lt, or, type SQL } from 'drizzle-orm'
 import {
   likePattern,
   pageOffset,
@@ -19,6 +8,7 @@ import {
 } from '../../common/dto/pagination.dto.js'
 import { AppException } from '../../common/errors/app.exception.js'
 import type { Env } from '../../config/env.js'
+import { deleteInBatches } from '../../database/batch-delete.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import {
@@ -32,7 +22,6 @@ import type { ListAuditLogsQueryDto } from './dto/audit-log.dto.js'
 const BATCH_SIZE = 100
 /** ...or after this delay, whichever comes first. */
 const FLUSH_DELAY_MS = 500
-const PRUNE_BATCH_SIZE = 5_000
 
 /**
  * Stores audit entries off the request path: `record` only buffers, batches are inserted after the
@@ -171,22 +160,12 @@ export class AuditService implements BeforeApplicationShutdown {
   }
 
   /** Deletes entries created before `before` in small batches (short locks); returns the count. */
-  async prune(before: Date): Promise<number> {
-    let total = 0
-    for (;;) {
-      const expired = this.db
-        .select({ id: auditLogs.id })
-        .from(auditLogs)
-        .where(lt(auditLogs.createdAt, before))
-        .limit(PRUNE_BATCH_SIZE)
-      const result = await this.db
-        .delete(auditLogs)
-        .where(inArray(auditLogs.id, expired))
-      const deleted = result.rowCount ?? 0
-      total += deleted
-      if (deleted < PRUNE_BATCH_SIZE) {
-        return total
-      }
-    }
+  prune(before: Date): Promise<number> {
+    return deleteInBatches(
+      this.db,
+      auditLogs,
+      auditLogs.id,
+      lt(auditLogs.createdAt, before),
+    )
   }
 }
