@@ -2,6 +2,7 @@ import {
   Global,
   Inject,
   Injectable,
+  Logger,
   Module,
   OnApplicationShutdown,
 } from '@nestjs/common'
@@ -31,11 +32,24 @@ class PoolShutdown implements OnApplicationShutdown {
     {
       provide: PG_POOL,
       inject: [ConfigService],
-      useFactory: (config: ConfigService<Env, true>) =>
-        createPool(
-          config.get('DATABASE_URL', { infer: true }),
-          config.get('DATABASE_POOL_MAX', { infer: true }),
-        ),
+      useFactory: (config: ConfigService<Env, true>) => {
+        const logger = new Logger('Database')
+        return createPool(config.get('DATABASE_URL', { infer: true }), {
+          max: config.get('DATABASE_POOL_MAX', { infer: true }),
+          statementTimeoutMs: config.get('DATABASE_STATEMENT_TIMEOUT_MS', {
+            infer: true,
+          }),
+          idleInTransactionTimeoutMs: config.get(
+            'DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS',
+            { infer: true },
+          ),
+          connectionTimeoutMs: config.get('DATABASE_CONNECTION_TIMEOUT_MS', {
+            infer: true,
+          }),
+          onError: (error) =>
+            logger.error(`PostgreSQL connection error: ${error.message}`),
+        })
+      },
     },
     {
       provide: DRIZZLE,

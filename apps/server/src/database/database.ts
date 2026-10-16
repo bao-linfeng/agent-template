@@ -16,16 +16,53 @@ export const MIGRATIONS_FOLDER = fileURLToPath(
   new URL('../../drizzle', import.meta.url),
 )
 
-export function createPool(connectionString: string, max = 10): Pool {
-  return new Pool({ connectionString, max })
+export interface PoolOptions {
+  max?: number
+  /** Server-side limit per statement (`statement_timeout`); 0 = none. */
+  statementTimeoutMs?: number
+  /** The server ends sessions idle inside an open transaction this long (`idle_in_transaction_session_timeout`); 0 = never. */
+  idleInTransactionTimeoutMs?: number
+  /** Max wait for a free pooled connection or a new one; 0 = forever. */
+  connectionTimeoutMs?: number
+  /** Connection errors outside a query (killed by the server, network loss). */
+  onError?: (error: Error) => void
+}
+
+/**
+ * Timeouts left at 0 are not sent, so the server defaults apply. The error listeners are required:
+ * pg emits `error` on connections that die while idle or checked out between queries (e.g. ended by
+ * `idle_in_transaction_session_timeout` or a database restart), and an unhandled `error` event would
+ * crash the process. Such connections are dropped from the pool on release.
+ */
+export function createPool(
+  connectionString: string,
+  options: PoolOptions = {},
+): Pool {
+  const onError =
+    options.onError ??
+    ((error: Error) =>
+      console.error(`PostgreSQL connection error: ${error.message}`))
+  const pool = new Pool({
+    connectionString,
+    max: options.max ?? 10,
+    statement_timeout: options.statementTimeoutMs ?? 0,
+    idle_in_transaction_session_timeout:
+      options.idleInTransactionTimeoutMs ?? 0,
+    connectionTimeoutMillis: options.connectionTimeoutMs ?? 0,
+  })
+  pool.on('connect', (client) => client.on('error', onError))
+  // The pool re-emits errors of idle connections, which the listener above already reported.
+  pool.on('error', () => {})
+  return pool
 }
 
 export function createDatabase(pool: Pool): Database {
   return drizzle({ client: pool, schema, casing: 'snake_case' })
 }
 
+/** Runs without statement timeout: migrations may rewrite large tables or build indexes. */
 export async function runMigrations(connectionString: string): Promise<void> {
-  const pool = createPool(connectionString, 1)
+  const pool = createPool(connectionString, { max: 1 })
   try {
     await migrate(createDatabase(pool), {
       migrationsFolder: MIGRATIONS_FOLDER,
