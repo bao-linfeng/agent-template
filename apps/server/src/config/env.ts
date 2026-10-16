@@ -122,6 +122,11 @@ export const envSchema = z
     /** Rows older than this are deleted daily; 0 keeps them forever. */
     AUDIT_LOG_RETENTION_DAYS: z.coerce.number().int().min(0).default(180),
 
+    /** Expired/revoked sessions and used/expired reset tokens are deleted daily this many days later; 0 keeps them forever. */
+    AUTH_RECORD_RETENTION_DAYS: z.coerce.number().int().min(0).default(30),
+    /** Daily sweep of avatar and RAG source objects that no database row references anymore. */
+    STORAGE_ORPHAN_SWEEP_ENABLED: booleanString.default(true),
+
     OBSERVE_APP_KEY: z.string().optional(),
     OBSERVE_APP_SECRET: z.string().optional(),
   })
