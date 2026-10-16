@@ -20,7 +20,7 @@ src/
   app.module.ts         module wiring + global guards: AuditGuard → ThrottlerGuard → JwtAuthGuard → PoliciesGuard (+ AuditInterceptor → IdempotencyInterceptor)
   config/               load-env.ts (.env.local, .env; skipped when NODE_ENV=test) and env.ts (zod schema = single source of env truth)
   database/             Drizzle schema (schema/*.ts), DatabaseModule (DRIZZLE / PG_POOL), migrations runner, seed, pg error helpers, deleteInBatches
-  infra/                redis (+ RedisLockService), storage (S3/RustFS), queue (BullMQ root + QUEUES names), mail (queue + processor + templates)
+  infra/                redis (+ RedisLockService), storage (S3/RustFS), queue (BullMQ root + QUEUES names), mail (queue + processor + templates), metrics (Prometheus registry + separate listener)
   common/               crypto (SecretBox, tokens), errors (error codes, AppException, global filter), http (request types, multipart), dto (pagination), throttling, idempotency (@Idempotent + interceptor)
   modules/              one folder per domain; realm controllers live in <module>/client/ and <module>/admin/, shared code at the module root
     auth/               realms (user/admin, API_VERSION, REALM_ROUTES, BEARER_REALMS), CredentialsController base + client/ and admin/ auth routes (login/refresh/logout/forgot/reset; register + register/send-code are client-only), VerificationCodesService (emailed codes), sessions, cookies, bearer transport, JwtAuthGuard, @Public/@ClientController/@AdminController/@CurrentUser/@AuthThrottle
@@ -92,6 +92,12 @@ test/                   e2e specs, setup (testcontainers global setup), support 
 - Ingestion: upload/text → object stored → `rag-ingest` job → `parseDocument` (UTF-8 text formats only: txt, md, csv, json, html; add PDF/DOCX parsers in `document-parsers.ts`) → `splitText` (recursive, CJK aware) → embed in `batchSize` batches → chunks replaced in one transaction. Document status: `pending → processing → ready | failed`.
 - Knowledge bases belong to client users (`ownerId` → `users`). Administrators list/inspect/delete every knowledge base via `/v1/admin/rag/knowledge-bases` (`knowledge-base:read` / `knowledge-base:manage`).
 - From code (agents, tools), call `RetrievalService.retrieve(kb, query, { topK, minScore })` after loading the knowledge base with `KnowledgeBasesService.getOwned(id, userId)` (or `get(id)` on admin paths).
+
+## Observability
+
+- Prometheus metrics live in `infra/metrics` (`MetricsModule`, global). `MetricsService` owns the `prom-client` registry and serves it on its own listener `METRICS_HOST:METRICS_PORT` (default `0.0.0.0:9464`, `GET /metrics` only); the API port never serves it and the gateway only proxies `PORT`, so do not add a `/metrics` route or publish the port. `METRICS_ENABLED=false` turns everything off; e2e uses `METRICS_PORT=0` (read the bound port with `MetricsService.address()`).
+- Recorded without extra code: `http_server_request_duration_seconds{method,route,status_code,realm}` from the `onResponse` hook `registerMetricsHook` (`setup-app.ts`; `route` is the Fastify route pattern, `unmatched` without one, `/health` skipped), BullMQ metrics from `QueueMetrics` (`bullmq_queue_jobs{queue,state}` for every name in `QUEUES`, read on scrape and cached 10 s, the same cluster-wide value on every instance; `bullmq_jobs_processed_total`, `bullmq_jobs_failed_final_total` (no retry left or `UnrecoverableError`), `bullmq_job_duration_seconds` and `bullmq_job_last_success_timestamp_seconds` per `queue`/job `name` for every `@Processor` found through discovery), pg pool gauges (`PoolMetrics`) and the `prom-client` default Node metrics.
+- New metrics: inject `MetricsService` and create the metric with `registers: [metrics.registry]` once (constructor or `onModuleInit`), only when `metrics.enabled`. Labels must have a small fixed set of values: never put ids, emails, raw paths or error messages into labels. Job names are labels too, so keep them constant (`'send'`, `'ingest'`, scheduler ids), not per-record.
 
 ## Tests
 

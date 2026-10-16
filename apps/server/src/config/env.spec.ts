@@ -26,6 +26,16 @@ describe('validateEnv', () => {
     expect(env.CORS_ORIGINS).toEqual(['https://a.test', 'https://b.test'])
   })
 
+  it('keeps the metrics listener off the API port', () => {
+    expect(validateEnv({}).METRICS_PORT).toBe(9464)
+    expect(() => validateEnv({ PORT: '9464' })).toThrow(
+      /METRICS_PORT must differ from PORT/,
+    )
+    expect(
+      validateEnv({ PORT: '9464', METRICS_ENABLED: 'false' }).METRICS_ENABLED,
+    ).toBe(false)
+  })
+
   it('requires secrets in production and enables secure defaults', () => {
     expect(() => validateEnv({ NODE_ENV: 'production' })).toThrow(
       /JWT_SECRET must be set in production/,

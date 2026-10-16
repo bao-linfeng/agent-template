@@ -18,6 +18,7 @@ import {
   validationException,
 } from './common/errors/exception.filter.js'
 import type { Env } from './config/env.js'
+import { registerMetricsHook } from './infra/metrics/http-metrics.js'
 import { registerAuditHook } from './modules/audit/audit.hook.js'
 import { REALM_COOKIES } from './modules/auth/realms.js'
 
@@ -99,6 +100,8 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
   app.useGlobalFilters(new AllExceptionsFilter())
   // Audit trail of API requests (see modules/audit), written after each response.
   registerAuditHook(app)
+  // Prometheus HTTP metrics (see infra/metrics), served on the separate METRICS_PORT listener.
+  registerMetricsHook(app)
 
   if (config.get('SWAGGER_ENABLED', { infer: true })) {
     const document = SwaggerModule.createDocument(
