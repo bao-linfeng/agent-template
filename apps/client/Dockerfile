@@ -15,7 +15,7 @@ WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 RUN pnpm fetch --store-dir /pnpm/store && rm -rf node_modules
 COPY . .
-RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm/store --filter vue-shadcn-starter...
+RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm/store --filter client...
 # API root including the prefix, e.g. https://api.example.com/api (src/lib/api.ts falls back to localhost).
 ARG VITE_API_BASE_URL
 RUN test -n "$VITE_API_BASE_URL" || { echo 'Build arg VITE_API_BASE_URL is required, e.g. https://api.example.com/api' >&2; exit 1; }

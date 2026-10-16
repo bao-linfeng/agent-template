@@ -1,12 +1,16 @@
 {
-  "name": "vue-shadcn-starter",
+  "name": "client",
   "type": "module",
-  "version": "1.0.5",
+  "version": "1.0.0",
   "private": true,
-  "description": "A starter project for Vue 3 with Shadcn UIKit and Tailwind CSS",
-  "author": "Alexy-OS",
+  "description": "Agent Template client app (Vue 3, shadcn-vue, Vite).",
+  "author": "baolf",
   "license": "MIT",
-  "repository": "https://github.com/alexy-os/vue-shadcn-starter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bao-linfeng/agent-template",
+    "directory": "apps/client"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",

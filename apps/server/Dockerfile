@@ -19,14 +19,14 @@ RUN pnpm fetch --store-dir /pnpm/store && rm -rf node_modules
 COPY . .
 
 FROM base AS build
-RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm/store --filter nest-agent...
+RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm/store --filter server...
 RUN pnpm -C apps/server build
 
 # Production dependencies only, in pnpm's regular layout (root node_modules/.pnpm + package symlinks).
 # `pnpm deploy` is not used: without injected workspace packages it re-resolves optional
 # dependencies from registry metadata, which breaks offline builds.
 FROM base AS prod-deps
-RUN pnpm install --prod --frozen-lockfile --offline --store-dir /pnpm/store --filter nest-agent
+RUN pnpm install --prod --frozen-lockfile --offline --store-dir /pnpm/store --filter server
 
 FROM node:${NODE_VERSION}-slim AS runtime
 ENV NODE_ENV=production \

@@ -1,15 +1,15 @@
 {
-  "name": "shadcn-vue-admin",
+  "name": "admin",
   "type": "module",
-  "version": "2.1.1",
-  "private": false,
-  "description": "Admin Dashboard UI crafted with Shadcn-vue, Vue3 and Vite. Built with responsiveness and accessibility in mind.",
-  "author": "Whbbit1999",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agent Template admin console (Vue 3, shadcn-vue, Vite).",
+  "author": "baolf",
   "license": "MIT",
-  "homepage": "https://shadcn-vue-admin.netlify.app/",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Whbbit1999/shadcn-vue-admin"
+    "url": "https://github.com/bao-linfeng/agent-template",
+    "directory": "apps/admin"
   },
   "keywords": [
     "vue",

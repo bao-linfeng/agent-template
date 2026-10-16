@@ -15,7 +15,7 @@ export const observeImports = observeEnabled
       ObserveModule.forRoot({
         appKey: process.env.OBSERVE_APP_KEY!,
         appSecret: process.env.OBSERVE_APP_SECRET!,
-        serviceId: 'nest-agent',
+        serviceId: 'agent-template-server',
       }),
     ]
   : []

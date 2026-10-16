@@ -16,7 +16,7 @@ const mode = useColorMode()
       <Avatar>
         <AvatarImage :src="`${mode === 'dark' ? SITE_CONFIG.logo.dark : SITE_CONFIG.logo.light}`" alt="Logo" />
       </Avatar>
-      <span class="text-base font-bold">Shadcn Vue Admin</span>
+      <span class="text-base font-bold">Agent Template Admin</span>
     </router-link>
 
     <div class="flex-1" />

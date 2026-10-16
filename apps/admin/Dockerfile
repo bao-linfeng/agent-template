@@ -15,7 +15,7 @@ WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 RUN pnpm fetch --store-dir /pnpm/store && rm -rf node_modules
 COPY . .
-RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm/store --filter shadcn-vue-admin...
+RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm/store --filter admin...
 # API origin without the prefix, e.g. https://api.example.com (validated by src/validators/env.validator.ts).
 ARG VITE_SERVER_API_URL
 ARG VITE_SERVER_API_PREFIX=/api

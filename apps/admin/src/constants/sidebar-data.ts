@@ -66,7 +66,7 @@ export const navData: NavGroup[] = [
       { title: 'nav.settings', items: settingsNavItems, icon: SettingsIcon },
       { title: 'nav.propComponents', url: '/prop-components', icon: ComponentIcon },
       { title: 'nav.helpCenter', url: '/help-center', icon: BadgeHelpIcon },
-      { title: 'nav.github', url: 'https://www.github.com/Whbbit1999/shadcn-vue-admin', icon: BirdIcon },
+      { title: 'nav.github', url: 'https://github.com/bao-linfeng/agent-template', icon: BirdIcon },
     ],
   },
 ]

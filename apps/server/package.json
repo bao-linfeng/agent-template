@@ -1,8 +1,8 @@
 {
-  "name": "nest-agent",
-  "version": "0.0.1",
+  "name": "server",
+  "version": "1.0.0",
   "description": "",
-  "author": "",
+  "author": "baolf",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",

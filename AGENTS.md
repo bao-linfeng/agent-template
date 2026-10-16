@@ -14,7 +14,7 @@
 
 ## Commands and verification
 
-Run these from the repository root; directory targeting avoids guessing package names (`shadcn-vue-admin`, `vue-shadcn-starter`, `nest-agent`, `docs`, `@repo/*`).
+Run these from the repository root; directory targeting avoids guessing package names (`admin`, `client`, `server`, `docs`, `@repo/*`).
 
 | Scope  | Development                         | Focused verification                                                                                                |
 | ------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |

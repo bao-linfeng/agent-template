@@ -10,19 +10,9 @@ const mode = useColorMode()
 
 const links = [
   {
-    name: 'bluesky',
-    icon: 'simple-icons:bluesky',
-    url: 'https://bsky.app/profile/bitmc.bsky.social',
-  },
-  {
     name: 'github',
     icon: 'simple-icons:github',
-    url: 'https://www.github.com/whbbit1999/shadcn-vue-admin',
-  },
-  {
-    name: 'bilibili',
-    icon: 'simple-icons:bilibili',
-    url: 'https://space.bilibili.com/104376935',
+    url: 'https://github.com/bao-linfeng/agent-template',
   },
 ]
 </script>
@@ -33,7 +23,7 @@ const links = [
       <AvatarImage :src="`${mode === 'dark' ? SITE_CONFIG.logo.dark : SITE_CONFIG.logo.light}`" alt="Logo" />
     </Avatar>
 
-    <div>© 2025 Whbbit1999</div>
+    <div>© Agent Template</div>
 
     <div class="flex items-center gap-2">
       <Button
