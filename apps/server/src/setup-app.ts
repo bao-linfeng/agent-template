@@ -12,6 +12,7 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { Logger } from 'nestjs-pino'
 import { ErrorResponseDto } from './common/errors/error-response.dto.js'
+import { IDEMPOTENT_REPLAYED_HEADER } from './common/idempotency/idempotency.js'
 import {
   AllExceptionsFilter,
   validationException,
@@ -75,6 +76,8 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
     credentials: true,
     // @fastify/cors only allows GET,HEAD,POST by default; the web apps also PATCH/PUT/DELETE.
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    // Readable by browser code; request headers such as Idempotency-Key are reflected from the preflight.
+    exposedHeaders: ['x-request-id', IDEMPOTENT_REPLAYED_HEADER],
   })
   app.setGlobalPrefix(prefix)
   // Realm controllers carry `version: API_VERSION` → `/<prefix>/v1/{client,admin}/...`; public routes stay unversioned.

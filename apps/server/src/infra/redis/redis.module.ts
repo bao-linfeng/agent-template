@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { Redis } from 'ioredis'
 import type { Env } from '../../config/env.js'
+import { RedisLockService } from './redis-lock.service.js'
 
 export const REDIS = Symbol('REDIS')
 
@@ -36,7 +37,12 @@ class RedisShutdown implements OnApplicationShutdown {
         }),
     },
     RedisShutdown,
+    {
+      provide: RedisLockService,
+      inject: [REDIS],
+      useFactory: (redis: Redis) => new RedisLockService(redis),
+    },
   ],
-  exports: [REDIS],
+  exports: [REDIS, RedisLockService],
 })
 export class RedisModule {}

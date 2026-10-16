@@ -52,6 +52,29 @@ export const ERRORS = {
     message: 'Service unavailable',
   },
 
+  // Concurrency and duplicate submissions
+  RESOURCE_LOCKED: {
+    status: HttpStatus.CONFLICT,
+    message:
+      'Another operation on this resource is in progress, please try again shortly',
+  },
+  IDEMPOTENCY_KEY_INVALID: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Idempotency-Key must be 1-255 printable ASCII characters',
+  },
+  IDEMPOTENCY_KEY_REQUIRED: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'This operation requires an Idempotency-Key header',
+  },
+  IDEMPOTENCY_KEY_IN_PROGRESS: {
+    status: HttpStatus.CONFLICT,
+    message: 'A request with this Idempotency-Key is still being processed',
+  },
+  IDEMPOTENCY_KEY_MISMATCH: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    message: 'This Idempotency-Key was already used for a different request',
+  },
+
   // Authentication and sessions
   AUTH_REQUIRED: {
     status: HttpStatus.UNAUTHORIZED,

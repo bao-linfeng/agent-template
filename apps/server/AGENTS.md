@@ -17,11 +17,11 @@ NestJS 12 + Fastify API that is meant to be built on, not a demo. Keep new code 
 src/
   main.ts               entry: imports config/load-env.js first, then boots Fastify via setup-app.ts
   setup-app.ts          every HTTP-level setting (cookie, helmet, multipart, CORS, /api prefix, ValidationPipe, exception filter, Swagger) — shared with e2e
-  app.module.ts         module wiring + global guards: AuditGuard → ThrottlerGuard → JwtAuthGuard → PoliciesGuard (+ AuditInterceptor)
+  app.module.ts         module wiring + global guards: AuditGuard → ThrottlerGuard → JwtAuthGuard → PoliciesGuard (+ AuditInterceptor → IdempotencyInterceptor)
   config/               load-env.ts (.env.local, .env; skipped when NODE_ENV=test) and env.ts (zod schema = single source of env truth)
   database/             Drizzle schema (schema/*.ts), DatabaseModule (DRIZZLE / PG_POOL), migrations runner, seed, pg error helpers
-  infra/                redis, storage (S3/RustFS), queue (BullMQ root + QUEUES names), mail (queue + processor + templates)
-  common/               crypto (SecretBox, tokens), errors (error codes, AppException, global filter), http (request types, multipart), dto (pagination), throttling
+  infra/                redis (+ RedisLockService), storage (S3/RustFS), queue (BullMQ root + QUEUES names), mail (queue + processor + templates)
+  common/               crypto (SecretBox, tokens), errors (error codes, AppException, global filter), http (request types, multipart), dto (pagination), throttling, idempotency (@Idempotent + interceptor)
   modules/              one folder per domain; realm controllers live in <module>/client/ and <module>/admin/, shared code at the module root
     auth/               realms (user/admin, API_VERSION, REALM_ROUTES, BEARER_REALMS), CredentialsController base + client/ and admin/ auth routes (login/refresh/logout/forgot/reset; register + register/send-code are client-only), VerificationCodesService (emailed codes), sessions, cookies, bearer transport, JwtAuthGuard, @Public/@ClientController/@AdminController/@CurrentUser/@AuthThrottle
     accounts/           AccountsService (realm-aware profile/avatar/password/listing), AccountMeController base, /avatars (public images, unversioned)
@@ -48,6 +48,11 @@ test/                   e2e specs, setup (testcontainers global setup), support 
 - Background work: register a queue name in `infra/queue/queue.module.ts` `QUEUES`, `BullModule.registerQueue` in the feature module, and a `@Processor` extending `WorkerHost`. Throw `UnrecoverableError` for permanent failures. Workers run inside the API process.
 - Files: use `StorageService` (`putObject`, `getObject`, `deletePrefix`, `getPresignedUrl`). Keys are server-generated (`avatars/<accountId>/<uuid>.<ext>` for both realms, `rag/<kbId>/<docId>/source.<ext>`), never raw user input. Read uploads with `readSingleFile(request, maxBytes)` (field `file`).
 - Mail: add a template function to `infra/mail/mail.templates.ts`, then `MailService.send(to, template(...))`. Never send synchronously.
+
+## Concurrency and duplicate submissions
+
+- Distributed locks: inject `RedisLockService` (global, from `RedisModule`) instead of writing ad-hoc `SET NX` code. `withLock(key, (signal) => task, { ttlMs?, waitMs?, retryDelayMs? })` holds `lock:<key>` while the task runs, renews the lease every `ttlMs / 3` (default lease 30 s, which only bounds how long a crashed holder blocks others), always releases it and answers 409 `RESOURCE_LOCKED` when the lock stays busy for `waitMs` (default 0 = fail fast). `signal` aborts if the lease is lost; long tasks (LLM streams) should stop on it. `acquire`/`tryAcquire` return a `Lock` with token-checked `extend`/`release` for manual control. Name keys `<domain>:<purpose>:<id>`: `rag:ingest:<documentId>` serializes ingest jobs of one document; a conversation module should run each reply under `chat:conversation:<id>` (fail fast → the client sees 409 while a reply is still being generated). Locks are leases, not fencing: invariants that must never break still need a DB constraint or transaction.
+- Idempotency keys: decorate retry-prone write routes with `@Idempotent({ required?, ttlSeconds? })` (`common/idempotency`); the global `IdempotencyInterceptor` ignores other routes. Clients send `Idempotency-Key: <uuid>` (1-255 printable ASCII, optionally quoted); it is scoped per account (`<realm>:<id>`, `ip:<ip>` on public routes) and fingerprinted by method + URL + parsed JSON body (key order ignored; multipart bodies are not included). Outcomes: first request runs; retries within `ttlSeconds` (default 24 h) get the stored JSON body with `Idempotent-Replayed: true` (exposed via CORS); a duplicate while the first is running is 409 `IDEMPOTENCY_KEY_IN_PROGRESS`; the same key for a different request is 422 `IDEMPOTENCY_KEY_MISMATCH`; a malformed header is 400 `IDEMPOTENCY_KEY_INVALID`, a missing one with `required: true` 400 `IDEMPOTENCY_KEY_REQUIRED`. Failed requests (including validation errors) are forgotten, so the same key can be retried. Only the body is replayed (status comes from the route), so do not use it on routes that set cookies/headers (auth). Used on the client RAG create routes (knowledge base, upload, text document).
 
 ## Audit log
 
