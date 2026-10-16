@@ -370,7 +370,7 @@ run.cancelled
 | 数据库连接防护 | 已完成：`createPool` 设置 `statement_timeout`（默认 30 s）、`idle_in_transaction_session_timeout`（默认 60 s）与取连接超时（默认 5 s），可通过 `DATABASE_*_TIMEOUT_MS` 调整；连接错误由监听器记录，不再因未处理的 `error` 事件导致进程退出；迁移与建向量索引不受语句超时限制 | P1 |
 | 上传内容校验 | 已完成：头像按文件头（magic bytes）识别 PNG/JPEG/GIF/WebP 并拒绝 SVG，文档上传时严格 UTF-8 解码；设置 `CLAMAV_HOST` 后头像与文档在写入存储前经 clamd 扫描（`apps/server/src/infra/antivirus`，fail closed：感染 422、扫描不可用 503），部署通过 `antivirus` profile 启用，指标 `upload_scans_total` 与告警 `UploadScanFailing` | P1，开放用户上传前补齐 |
 | 加密密钥轮换 | 已完成：`SecretBox` 用 `ENCRYPTION_KEY` 加密，同时可用 `ENCRYPTION_KEYS_PREVIOUS` 中的旧密钥解密；密文格式仍为 `v1`，上一版本可以读取；`reencrypt-secrets` 脚本（`apps/server/src/database/reencrypt-secrets.ts`，可 `--dry-run`）把模型 API Key 与管理员 TOTP 密钥改用新密钥加密，操作步骤见 `deploy/README.md`「加密密钥轮换」 | P1 |
-| 系统配置与功能开关 | 后端已完成：`apps/server/src/modules/settings`（`SETTINGS` 清单 + `system_settings` 表只存覆盖值，环境变量作默认值），各实例内存快照经 Redis 通知即时生效、无需重启；`/v1/admin/settings`（`setting:read`/`setting:manage`）与公开的 `/v1/client/settings`；已开放 `auth.registrationEnabled`（注册开关）、注销宽限期、会话与令牌保留天数、孤儿文件清扫。审计开关、密钥、Cookie/CORS 等仍只用环境变量。尚缺管理端设置页，限流、会话时长等参数尚未迁移 | 按需 |
+| 系统配置与功能开关 | 后端已完成：`apps/server/src/modules/settings`（`SETTINGS` 清单 + `system_settings` 表只存覆盖值，环境变量作默认值），各实例内存快照经 Redis 通知即时生效、无需重启；`/v1/admin/settings`（`setting:read`/`setting:manage`）与公开的 `/v1/client/settings`；已开放 `auth.registrationEnabled`（注册开关）、注销宽限期、会话与令牌保留天数、孤儿文件清扫。审计开关、密钥、Cookie/CORS 等仍只用环境变量；管理端设置页见 5.2。限流、会话时长等参数尚未迁移 | 按需 |
 | 站内通知 | 只有邮件通知，没有站内消息 | 按需，长任务完成通知时需要 |
 
 代码依据：
@@ -388,7 +388,7 @@ run.cancelled
 | 前后端类型同步 | 前端 `services/api/*` 手写请求与响应类型，后端已有 Swagger 但没有生成前端类型 | 随首版，Agent 接口与事件类型较多 |
 | 前端 E2E | 只有 Vitest 单测，没有 Playwright 等浏览器端到端测试 | P1，首版聊天流程稳定后补 |
 | 管理端真实看板 | Dashboard 仍是假数据，缺少用户数、队列状态、模型调用量等运营数据 | P1，依赖 4.2 的用量记录 |
-| 管理端系统设置页 | 后端设置接口已就绪（返回每项的 JSON Schema），管理端还没有对应页面，客户端也未按 `auth.registrationEnabled` 隐藏注册入口 | 按需，随后端设置项一起补 |
+| 管理端系统设置页 | 已完成：管理端 `/system-settings`（`setting:read` 可见，`setting:manage` 可改），按接口返回的 JSON Schema 生成开关、数字、文本与下拉控件，前端先校验范围，支持批量保存与单项恢复默认，已知设置项有中英文标题与说明；客户端读取公开设置，注册关闭时登录页隐藏注册链接、注册页显示暂未开放 | 按需 |
 | 客户端知识库页面 | 客户端只有账号相关页面，没有知识库与对话入口 | 随首版（见 4.4、3.5） |
 
 ## 6. 按产品定位决定的能力

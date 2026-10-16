@@ -194,6 +194,7 @@ const zh: typeof en = {
       resendCode: '重新发送',
       resendIn: '{seconds} 秒后重新发送',
       codeSent: '验证码已发送至 {email}，{minutes} 分钟内有效。',
+      closed: '暂未开放注册。已有账号请直接登录。',
     },
     forgot: {
       title: '忘记密码',

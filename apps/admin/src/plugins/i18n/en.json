@@ -172,6 +172,7 @@
     "roles": "Roles",
     "embeddingModels": "Embedding Models",
     "auditLogs": "Audit Log",
+    "systemSettings": "System Settings",
     "auth": "Auth",
     "signIn": "Sign In",
     "signIn2": "Sign In (2 Col)",
@@ -492,6 +493,63 @@
       "params": "Route parameters",
       "query": "Query",
       "body": "Request body"
+    }
+  },
+  "systemSettings": {
+    "title": "System Settings",
+    "description": "Feature flags and limits that take effect on every server instance within seconds, without a restart.",
+    "readOnly": "You can view these settings. Changing them needs the setting:manage permission.",
+    "envHint": "Infrastructure, secrets and security switches such as the audit log are configured through environment variables and are not listed here.",
+    "overridden": "Changed",
+    "public": "Public",
+    "unsaved": "Unsaved",
+    "defaultValue": "Default: {value}",
+    "range": "Range {min}–{max}",
+    "updatedAt": "Changed {date}",
+    "resetToDefault": "Reset to default",
+    "discard": "Discard",
+    "saveCount": "Save {count} change | Save {count} changes",
+    "saved": "{count} setting saved. | {count} settings saved.",
+    "resetDone": "Setting reset to its default.",
+    "groups": {
+      "auth": "Registration and sign-in",
+      "account": "Accounts",
+      "maintenance": "Data maintenance"
+    },
+    "items": {
+      "auth": {
+        "registrationEnabled": {
+          "title": "Allow client sign-up",
+          "description": "When off, the client app hides sign-up and the server rejects registrations and registration codes (AUTH_REGISTRATION_DISABLED). Existing users can still sign in."
+        }
+      },
+      "account": {
+        "deletionGraceDays": {
+          "title": "Deletion grace period (days)",
+          "description": "How long a client user can restore their account after requesting deletion. Applies to new requests only; 0 purges it in the next nightly run."
+        }
+      },
+      "maintenance": {
+        "authRecordRetentionDays": {
+          "title": "Session record retention (days)",
+          "description": "How long expired or revoked sessions and used or expired reset tokens are kept before the nightly cleanup; 0 keeps them forever."
+        },
+        "storageOrphanSweepEnabled": {
+          "title": "Sweep orphaned files",
+          "description": "Every day at 04:00, delete avatars, knowledge base sources and exports that no record references anymore."
+        }
+      }
+    },
+    "invalid": {
+      "boolean": "Choose on or off.",
+      "number": "Enter a number.",
+      "integer": "Enter a whole number.",
+      "range": "Enter a value between {min} and {max}.",
+      "min": "Enter at least {min}.",
+      "max": "Enter at most {max}.",
+      "option": "Choose one of the options.",
+      "text": "Enter text.",
+      "length": "Enter {min}–{max} characters."
     }
   },
   "embeddingModels": {

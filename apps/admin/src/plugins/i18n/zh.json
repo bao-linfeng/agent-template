@@ -172,6 +172,7 @@
     "roles": "角色",
     "embeddingModels": "Embedding 模型",
     "auditLogs": "审计日志",
+    "systemSettings": "系统设置",
     "auth": "认证",
     "signIn": "登录",
     "signIn2": "登录（双栏）",
@@ -492,6 +493,63 @@
       "params": "路由参数",
       "query": "查询参数",
       "body": "请求体"
+    }
+  },
+  "systemSettings": {
+    "title": "系统设置",
+    "description": "功能开关和运行参数，保存后几秒内在所有服务实例生效，无需重启。",
+    "readOnly": "你可以查看这些设置；修改需要 setting:manage 权限。",
+    "envHint": "基础设施、密钥以及审计日志等安全开关通过环境变量配置，不在此列出。",
+    "overridden": "已修改",
+    "public": "公开",
+    "unsaved": "未保存",
+    "defaultValue": "默认值：{value}",
+    "range": "范围 {min}–{max}",
+    "updatedAt": "修改于 {date}",
+    "resetToDefault": "恢复默认值",
+    "discard": "放弃修改",
+    "saveCount": "保存 {count} 项修改",
+    "saved": "已保存 {count} 项设置。",
+    "resetDone": "已恢复默认值。",
+    "groups": {
+      "auth": "注册与登录",
+      "account": "账号",
+      "maintenance": "数据维护"
+    },
+    "items": {
+      "auth": {
+        "registrationEnabled": {
+          "title": "允许展示端用户注册",
+          "description": "关闭后展示端隐藏注册入口，服务端拒绝注册和发送注册验证码（AUTH_REGISTRATION_DISABLED）；已有用户仍可登录。"
+        }
+      },
+      "account": {
+        "deletionGraceDays": {
+          "title": "注销冷静期（天）",
+          "description": "展示端用户申请注销后可恢复账号的天数，只影响之后的注销申请；0 表示在下一次夜间清理时删除。"
+        }
+      },
+      "maintenance": {
+        "authRecordRetentionDays": {
+          "title": "会话记录保留天数",
+          "description": "已过期或撤销的会话、已使用或过期的重置令牌在夜间清理前保留的天数；0 表示永久保留。"
+        },
+        "storageOrphanSweepEnabled": {
+          "title": "清理孤儿文件",
+          "description": "每天 04:00 删除没有数据记录引用的头像、知识库源文件和导出文件。"
+        }
+      }
+    },
+    "invalid": {
+      "boolean": "请选择开启或关闭。",
+      "number": "请输入数字。",
+      "integer": "请输入整数。",
+      "range": "请输入 {min} 到 {max} 之间的值。",
+      "min": "不能小于 {min}。",
+      "max": "不能大于 {max}。",
+      "option": "请选择一个选项。",
+      "text": "请输入文本。",
+      "length": "长度需在 {min}–{max} 个字符之间。"
     }
   },
   "embeddingModels": {

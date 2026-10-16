@@ -27,7 +27,8 @@ function setting<S extends z.ZodType>(
  * `AUDIT_LOG_ENABLED`) stay env-only. To add one:
  *   1. declare it here with a bounded schema and its default,
  *   2. read it with `SettingsService.get(key)` where it is used (never cache it in a field),
- *   3. document it in AGENTS.md; when it replaces an env variable, keep the variable as its default.
+ *   3. document it in AGENTS.md; when it replaces an env variable, keep the variable as its default,
+ *   4. translate its title and description for the admin console (`systemSettings.items.<key>`).
  * Keys are stable: rows of renamed or removed keys are ignored, and the previous release must still be
  * able to read every value it knows (keep the schema of an existing key compatible).
  */

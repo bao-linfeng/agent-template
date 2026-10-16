@@ -240,6 +240,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/system-settings/': RouteRecordInfo<
+      '/system-settings/',
+      '/system-settings',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/tasks/': RouteRecordInfo<
       '/tasks/',
       '/tasks',
@@ -502,6 +509,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/settings/notifications.vue': {
       routes:
         | '/settings/notifications'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/system-settings/index.vue': {
+      routes:
+        | '/system-settings/'
       views:
         | never
       pathParamNames:

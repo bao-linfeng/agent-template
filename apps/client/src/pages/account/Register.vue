@@ -2,6 +2,7 @@
 import type { Registration } from '@/lib/account'
 import { Alert, AlertDescription } from '@repo/ui/components/alert'
 import { Button } from '@repo/ui/components/button'
+import { getErrorCode } from '@repo/utils'
 import { useMutation } from '@tanstack/vue-query'
 import { computed, reactive, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -14,6 +15,7 @@ import { flash } from '@/composables/useFlash'
 import { useObjectUrl } from '@/composables/useObjectUrl'
 import { accountApi } from '@/lib/account'
 import { errorMessage } from '@/lib/api'
+import { usePublicSettings } from '@/lib/settings'
 import { checkCode, checkConfirmation, checkEmail, checkNewPassword, checkNickname, collectErrors, safeRedirect } from '@/lib/validation'
 import { useSessionStore } from '@/stores/session'
 
@@ -21,6 +23,13 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const session = useSessionStore()
+const { registrationOpen, refetch: refetchSettings } = usePublicSettings()
+
+/** Registration was closed while this page was open: switch to the closed notice. */
+function onRegistrationError(failure: Error) {
+  if (getErrorCode(failure) === 'AUTH_REGISTRATION_DISABLED')
+    void refetchSettings()
+}
 
 const form = reactive({ nickname: '', email: '', code: '', password: '', confirmPassword: '' })
 const avatar = shallowRef<File | null>(null)
@@ -36,6 +45,7 @@ const { mutate: sendCode, isPending: sendingCode, error: sendCodeError, reset: r
     codeSent.value = { email, minutes: Math.round(expiresIn / 60) }
     startResendCountdown(resendAfter)
   },
+  onError: onRegistrationError,
 })
 const sendCodeLabel = computed(() => {
   if (sendingCode.value)
@@ -53,6 +63,7 @@ const { mutate: register, isPending: submitting, error, reset: resetRegister } =
       flash({ type: 'warning', text: t('account.register.avatarNotSaved', { error: avatarError }) })
     return router.replace(safeRedirect(route.query.redirect))
   },
+  onError: onRegistrationError,
 })
 const failure = computed(() => {
   const latest = error.value ?? sendCodeError.value
@@ -88,7 +99,10 @@ function submit() {
 
 <template>
   <AuthShell :title="t('account.register.title')" :description="t('account.register.description')">
-    <form class="grid gap-4" novalidate @submit.prevent="submit">
+    <Alert v-if="!registrationOpen">
+      <AlertDescription>{{ t('account.register.closed') }}</AlertDescription>
+    </Alert>
+    <form v-else class="grid gap-4" novalidate @submit.prevent="submit">
       <Alert v-if="failure" variant="destructive">
         <AlertDescription>{{ failure }}</AlertDescription>
       </Alert>
