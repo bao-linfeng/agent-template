@@ -512,15 +512,57 @@
     "saved": "{count} setting saved. | {count} settings saved.",
     "resetDone": "Setting reset to its default.",
     "groups": {
-      "auth": "Registration and sign-in",
+      "auth": "Registration and verification",
       "account": "Accounts",
-      "maintenance": "Data maintenance"
+      "maintenance": "Data maintenance",
+      "rateLimit": "Rate limits",
+      "session": "Sessions"
     },
     "items": {
       "auth": {
         "registrationEnabled": {
           "title": "Allow client sign-up",
           "description": "When off, the client app hides sign-up and the server rejects registrations and registration codes (AUTH_REGISTRATION_DISABLED). Existing users can still sign in."
+        },
+        "passwordResetTtlSeconds": {
+          "title": "Password reset link lifetime (seconds)",
+          "description": "How long an emailed password reset link stays valid. Applies to links sent afterwards; the maximum is PASSWORD_RESET_TTL_SECONDS."
+        },
+        "emailCodeTtlSeconds": {
+          "title": "Email code lifetime (seconds)",
+          "description": "How long an emailed verification code stays valid. Applies to codes sent afterwards; the maximum is EMAIL_CODE_TTL_SECONDS."
+        },
+        "emailCodeResendSeconds": {
+          "title": "Email code resend interval (seconds)",
+          "description": "Minimum wait before another code can be sent to the same address. It can only be raised above EMAIL_CODE_RESEND_SECONDS."
+        },
+        "emailCodeMaxAttempts": {
+          "title": "Wrong code attempts",
+          "description": "How many wrong guesses a verification code allows before it is discarded."
+        }
+      },
+      "rateLimit": {
+        "defaultLimit": {
+          "title": "Requests per window",
+          "description": "Requests one IP may send to one endpoint within THROTTLE_TTL_SECONDS before getting 429. Can only be lowered below THROTTLE_LIMIT."
+        },
+        "authLimit": {
+          "title": "Credential requests per window",
+          "description": "Limit for sign-in, sign-up, codes, password reset and two-factor endpoints per IP within AUTH_THROTTLE_TTL_SECONDS. Can only be lowered below AUTH_THROTTLE_LIMIT; lower it during credential stuffing."
+        }
+      },
+      "session": {
+        "adminTtlSeconds": {
+          "title": "Admin session lifetime (seconds)",
+          "description": "Admin console sessions end this long after sign-in, however often they refresh (28800 = 8 hours). Applies to new sign-ins; the maximum is REFRESH_TOKEN_TTL_SECONDS."
+        },
+        "clientIdleTtlSeconds": {
+          "title": "Client session idle timeout (seconds)",
+          "description": "Client sessions expire after this long without activity; every token refresh restarts it (86400 = 1 day). The maximum is REFRESH_TOKEN_TTL_SECONDS."
+        },
+        "clientMaxTtlSeconds": {
+          "title": "Client session maximum lifetime (seconds)",
+          "description": "Client users must sign in again this long after signing in, even when active. The maximum is CLIENT_SESSION_MAX_TTL_SECONDS."
         }
       },
       "account": {

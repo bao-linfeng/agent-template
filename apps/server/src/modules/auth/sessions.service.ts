@@ -14,6 +14,8 @@ import type { Env } from '../../config/env.js'
 import type { Database, DbExecutor } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
+import type { NumberSettingKey } from '../settings/settings.catalog.js'
+import { SettingsService } from '../settings/settings.service.js'
 import { revokedSessionKey, type AccessTokenPayload } from './auth.constants.js'
 import { REALM_TABLES, SLIDING_SESSION_REALMS, type Realm } from './realms.js'
 
@@ -28,29 +30,40 @@ export interface IssuedTokens {
 /** Concurrent refreshes (several tabs) may present the just-rotated token for this long without being treated as theft. */
 const ROTATION_GRACE_MS = 30_000
 
+/**
+ * Runtime settings holding each realm's session lifetime in seconds: `ttl` counts from now on every
+ * (re)issue for sliding realms and from sign-in otherwise, `max` caps sliding sessions after sign-in.
+ */
+const SESSION_TTL_SETTINGS: Record<
+  Realm,
+  { ttl: NumberSettingKey; max?: NumberSettingKey }
+> = {
+  user: {
+    ttl: 'session.clientIdleTtlSeconds',
+    max: 'session.clientMaxTtlSeconds',
+  },
+  admin: { ttl: 'session.adminTtlSeconds' },
+}
+
 /** Login sessions of both realms; every method works on the session table of the given realm. */
 @Injectable()
 export class SessionsService {
+  /**
+   * Env-only on purpose: revocation markers live this long, so lowering it at runtime would let tokens
+   * issued before the change outlive the marker of their revoked session.
+   */
   readonly accessTtlSeconds: number
-  readonly refreshTtlSeconds: number
-  readonly clientSessionMaxTtlSeconds: number
 
   constructor(
     @InjectDb() private readonly db: Database,
     @InjectRedis() private readonly redis: Redis,
     private readonly jwt: JwtService,
+    private readonly settings: SettingsService,
     config: ConfigService<Env, true>,
   ) {
     this.accessTtlSeconds = config.get('ACCESS_TOKEN_TTL_SECONDS', {
       infer: true,
     })
-    this.refreshTtlSeconds = config.get('REFRESH_TOKEN_TTL_SECONDS', {
-      infer: true,
-    })
-    this.clientSessionMaxTtlSeconds = config.get(
-      'CLIENT_SESSION_MAX_TTL_SECONDS',
-      { infer: true },
-    )
   }
 
   async create(
@@ -266,18 +279,20 @@ export class SessionsService {
   }
 
   /**
-   * End of a session (re)issued now: `refreshTtlSeconds` from now, capped at `clientSessionMaxTtlSeconds`
-   * after sign-in for sliding realms (see `SLIDING_SESSION_REALMS`).
+   * End of a session (re)issued now: the realm's `ttl` setting from now, capped at its `max` setting
+   * after sign-in for sliding realms (see `SLIDING_SESSION_REALMS`). Read on every call, so changed
+   * settings apply to new sign-ins and the next refresh of sliding sessions.
    */
   private nextExpiry(realm: Realm, signedInAt: Date): Date {
-    const extended = Date.now() + this.refreshTtlSeconds * 1000
-    if (!SLIDING_SESSION_REALMS.has(realm)) {
+    const lifetime = SESSION_TTL_SETTINGS[realm]
+    const extended = Date.now() + this.settings.get(lifetime.ttl) * 1000
+    if (!SLIDING_SESSION_REALMS.has(realm) || !lifetime.max) {
       return new Date(extended)
     }
     return new Date(
       Math.min(
         extended,
-        signedInAt.getTime() + this.clientSessionMaxTtlSeconds * 1000,
+        signedInAt.getTime() + this.settings.get(lifetime.max) * 1000,
       ),
     )
   }

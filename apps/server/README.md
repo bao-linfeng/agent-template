@@ -80,7 +80,7 @@ docker compose exec ollama ollama pull bge-m3
 3. `POST /api/v1/client/auth/register`，请求体包含 `email`、`password`、`nickname` 和 `code`。成功后返回账号并登录；Bearer 模式返回 `{ account, tokens }`。
 4. 如需头像，登录后调用 `PUT /api/v1/client/users/me/avatar`，multipart 字段名为 `file`。
 
-验证码默认有效期 600 秒、重发间隔 60 秒，可用 `EMAIL_CODE_TTL_SECONDS` 和 `EMAIL_CODE_RESEND_SECONDS` 调整。验证码在 Redis 中哈希存储、一次性消费，并限制错误尝试次数。已注册邮箱发码返回 409，冷却期重发返回 429，验证码错误返回 400。管理员没有发注册验证码或注册接口。
+验证码默认有效期 600 秒、重发间隔 60 秒，可用 `EMAIL_CODE_TTL_SECONDS` 和 `EMAIL_CODE_RESEND_SECONDS` 调整，管理员也可在系统设置中缩短有效期、拉长重发间隔。验证码在 Redis 中哈希存储、一次性消费，并限制错误尝试次数。已注册邮箱发码返回 409，冷却期重发返回 429，验证码错误返回 400。管理员没有发注册验证码或注册接口。
 
 ## Embedding 与 RAG
 
@@ -100,7 +100,7 @@ docker compose exec ollama ollama pull bge-m3
 
 生产环境设置 `NODE_ENV=production`、至少 32 字符的 `JWT_SECRET`、32 字节 Base64 编码的 `ENCRYPTION_KEY`，以及实际的数据库、Redis、对象存储、SMTP、`PUBLIC_URL`、`APP_WEB_URL`、`CORS_ORIGINS`。反向代理后按部署设置 `TRUST_PROXY`。生产默认关闭 Swagger、启用 Secure Cookie；链路追踪仅在配置 `OTEL_EXPORTER_OTLP_ENDPOINT` 时启用（见下文“链路追踪”）。
 
-部分业务参数可在运行时修改：管理端接口 `/api/v1/admin/settings`（权限 `setting:read` / `setting:manage`）修改后写入 `system_settings` 表，所有实例经 Redis 通知立即生效，无需重启；对应的环境变量（`ACCOUNT_DELETION_GRACE_DAYS`、`AUTH_RECORD_RETENTION_DAYS`、`STORAGE_ORPHAN_SWEEP_ENABLED`）只作为默认值。另有注册开关 `auth.registrationEnabled`，客户端可通过公开接口 `/api/v1/client/settings` 读取。审计开关、密钥、Cookie、CORS 等仍只能用环境变量配置。设置项清单见 `src/modules/settings/settings.catalog.ts`。
+部分业务参数可在运行时修改：管理端接口 `/api/v1/admin/settings`（权限 `setting:read` / `setting:manage`）修改后写入 `system_settings` 表，所有实例经 Redis 通知立即生效，无需重启；对应的环境变量（`ACCOUNT_DELETION_GRACE_DAYS`、`AUTH_RECORD_RETENTION_DAYS`、`STORAGE_ORPHAN_SWEEP_ENABLED`）只作为默认值。另有注册开关 `auth.registrationEnabled`，客户端可通过公开接口 `/api/v1/client/settings` 读取。限流次数（`THROTTLE_LIMIT`、`AUTH_THROTTLE_LIMIT`）、会话时长（`REFRESH_TOKEN_TTL_SECONDS`、`CLIENT_SESSION_MAX_TTL_SECONDS`）、重置链接和邮件验证码参数也可在运行时调整，但对应环境变量是硬上限：后台只能收紧，不能放宽（例如遇到撞库时临时调低登录限流、把管理端会话缩短到 8 小时）。访问令牌有效期 `ACCESS_TOKEN_TTL_SECONDS` 和限流窗口仍只用环境变量。审计开关、密钥、Cookie、CORS 等仍只能用环境变量配置。设置项清单见 `src/modules/settings/settings.catalog.ts`。
 
 更换 `ENCRYPTION_KEY` 时，把旧密钥放进 `ENCRYPTION_KEYS_PREVIOUS`（逗号分隔，只用于解密），运行 `db:reencrypt` 把模型 API Key 和管理员 TOTP 密钥改用新密钥加密，`db:reencrypt --dry-run` 确认没有遗留后再删除旧密钥。完整步骤见 [deploy/README.md](../../deploy/README.md) 的「加密密钥轮换」。
 

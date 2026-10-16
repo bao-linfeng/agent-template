@@ -16,6 +16,7 @@ import { systemSettings } from '../../database/schema/index.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
 import {
   isSettingKey,
+  resolveSettingSchema,
   SETTING_KEYS,
   SETTINGS,
   type SettingKey,
@@ -58,6 +59,8 @@ export interface SettingView {
 export class SettingsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SettingsService.name)
   private readonly defaults: SettingValues
+  /** Schemas with env-bound limits resolved; they never change while the process runs. */
+  private readonly schemas: Record<SettingKey, z.ZodType>
   private overrides = new Map<SettingKey, Override>()
   private loadGeneration = 0
   private subscriber?: Redis
@@ -73,6 +76,12 @@ export class SettingsService implements OnModuleInit, OnModuleDestroy {
     this.defaults = Object.fromEntries(
       SETTING_KEYS.map((key) => [key, SETTINGS[key].defaultValue(env)]),
     ) as SettingValues
+    this.schemas = Object.fromEntries(
+      SETTING_KEYS.map((key) => [
+        key,
+        resolveSettingSchema(SETTINGS[key], env),
+      ]),
+    ) as Record<SettingKey, z.ZodType>
   }
 
   async onModuleInit(): Promise<void> {
@@ -110,7 +119,7 @@ export class SettingsService implements OnModuleInit, OnModuleDestroy {
         overridden: Boolean(override),
         public: definition.public,
         description: definition.description,
-        schema: z.toJSONSchema(definition.schema),
+        schema: z.toJSONSchema(this.schemas[key]),
         updatedAt: override?.updatedAt ?? null,
         updatedBy: override?.updatedBy ?? null,
       }
@@ -145,7 +154,7 @@ export class SettingsService implements OnModuleInit, OnModuleDestroy {
         resets.push(key)
         continue
       }
-      const parsed = SETTINGS[key].schema.safeParse(value)
+      const parsed = this.schemas[key].safeParse(value)
       if (!parsed.success) {
         throw new AppException('SETTING_INVALID', {
           params: { key },
@@ -202,8 +211,9 @@ export class SettingsService implements OnModuleInit, OnModuleDestroy {
       if (!isSettingKey(row.key)) {
         continue
       }
-      const parsed = SETTINGS[row.key].schema.safeParse(row.value)
+      const parsed = this.schemas[row.key].safeParse(row.value)
       if (!parsed.success) {
+        // Also happens when an env hard limit was lowered below the stored value.
         this.logger.warn(
           `Ignoring stored value of setting "${row.key}" that no longer matches its schema`,
         )

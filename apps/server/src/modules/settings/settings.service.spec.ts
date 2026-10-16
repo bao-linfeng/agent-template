@@ -1,10 +1,9 @@
 import type { ConfigService } from '@nestjs/config'
 import type { Redis } from 'ioredis'
-import { z } from 'zod'
 import { AppException } from '../../common/errors/app.exception.js'
 import type { Env } from '../../config/env.js'
 import type { Database } from '../../database/database.js'
-import { SETTING_KEYS, SETTINGS } from './settings.catalog.js'
+import { SETTING_KEYS } from './settings.catalog.js'
 import { SETTINGS_CHANNEL, SettingsService } from './settings.service.js'
 
 interface Row {
@@ -52,6 +51,13 @@ function setup(env: Partial<Env> = {}) {
         ACCOUNT_DELETION_GRACE_DAYS: 15,
         AUTH_RECORD_RETENTION_DAYS: 30,
         STORAGE_ORPHAN_SWEEP_ENABLED: true,
+        THROTTLE_LIMIT: 120,
+        AUTH_THROTTLE_LIMIT: 10,
+        REFRESH_TOKEN_TTL_SECONDS: 604_800,
+        CLIENT_SESSION_MAX_TTL_SECONDS: 2_592_000,
+        PASSWORD_RESET_TTL_SECONDS: 1800,
+        EMAIL_CODE_TTL_SECONDS: 600,
+        EMAIL_CODE_RESEND_SECONDS: 60,
         ...env,
       })[key],
   } as unknown as ConfigService<Env, true>
@@ -86,13 +92,45 @@ async function rejection(promise: Promise<unknown>): Promise<AppException> {
 
 describe('settings catalog', () => {
   it('declares a bounded schema for every numeric setting', () => {
-    for (const key of SETTING_KEYS) {
-      const schema = z.toJSONSchema(SETTINGS[key].schema)
+    for (const { key, schema } of setup().service.list()) {
       if (schema.type === 'integer' || schema.type === 'number') {
         expect(schema, key).toHaveProperty('minimum')
         expect(schema, key).toHaveProperty('maximum')
       }
     }
+  })
+
+  it('keeps every numeric default inside its own bounds', () => {
+    for (const { key, value, schema } of setup().service.list()) {
+      if (typeof value === 'number') {
+        expect(value, key).toBeGreaterThanOrEqual(schema.minimum as number)
+        expect(value, key).toBeLessThanOrEqual(schema.maximum as number)
+      }
+    }
+  })
+
+  it('lets settings replacing an env limit only tighten it', () => {
+    const { service } = setup({
+      AUTH_THROTTLE_LIMIT: 7,
+      EMAIL_CODE_RESEND_SECONDS: 90,
+    })
+    const schemas = Object.fromEntries(
+      service.list().map((view) => [view.key, view.schema]),
+    )
+    expect(schemas['rateLimit.authLimit']).toMatchObject({
+      minimum: 1,
+      maximum: 7,
+    })
+    // Waiting longer between codes is the stricter direction.
+    expect(schemas['auth.emailCodeResendSeconds']).toMatchObject({
+      minimum: 90,
+      maximum: 3600,
+    })
+    // An env value below the usual floor still leaves a valid range.
+    const low = setup({ PASSWORD_RESET_TTL_SECONDS: 30 }).service.list()
+    expect(
+      low.find((view) => view.key === 'auth.passwordResetTtlSeconds')?.schema,
+    ).toMatchObject({ minimum: 30, maximum: 30 })
   })
 })
 
@@ -124,6 +162,27 @@ describe('SettingsService', () => {
     expect(service.get('account.deletionGraceDays')).toBe(15)
     expect(service.get('maintenance.storageOrphanSweepEnabled')).toBe(true)
     expect(service.list().every((view) => !view.overridden)).toBe(true)
+  })
+
+  it('rejects values above an env limit and drops stored ones after the limit was lowered', async () => {
+    const { service, state, writes } = setup({ AUTH_THROTTLE_LIMIT: 5 })
+    const invalid = await rejection(
+      service.update({ 'rateLimit.authLimit': 6 }, ADMIN),
+    )
+    expect(invalid.getResponse()).toMatchObject({
+      code: 'SETTING_INVALID',
+      params: { key: 'rateLimit.authLimit' },
+    })
+    expect(writes).toEqual([])
+
+    // Stored while the env allowed 8; the lowered env limit wins.
+    state.rows = [
+      row('rateLimit.authLimit', 8),
+      row('session.adminTtlSeconds', 3600),
+    ]
+    await service.reload()
+    expect(service.get('rateLimit.authLimit')).toBe(5)
+    expect(service.get('session.adminTtlSeconds')).toBe(3600)
   })
 
   it('keeps the result of the newest load when loads overlap', async () => {

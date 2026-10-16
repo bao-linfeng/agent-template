@@ -177,4 +177,84 @@ describe('runtime settings (e2e)', () => {
     expect(graceMs).toBeGreaterThan(1.9 * DAY_MS)
     expect(graceMs).toBeLessThanOrEqual(2 * DAY_MS)
   })
+
+  it('only tightens env limits: the auth rate limit drops at runtime but cannot exceed env', async () => {
+    const envLimit = Number(process.env.AUTH_THROTTLE_LIMIT)
+    expect(await setting('rateLimit.authLimit')).toMatchObject({
+      value: envLimit,
+      schema: { type: 'integer', minimum: 1, maximum: envLimit },
+    })
+    const above = await admin
+      .patch(`${ADMIN_API}/settings`)
+      .send({ values: { 'rateLimit.authLimit': envLimit + 1 } })
+      .expect(400)
+    expect(above.body).toMatchObject({
+      code: 'SETTING_INVALID',
+      params: { key: 'rateLimit.authLimit' },
+    })
+
+    await admin
+      .patch(`${ADMIN_API}/settings`)
+      .send({ values: { 'rateLimit.authLimit': 2 } })
+      .expect(200)
+    const forgot = () =>
+      t
+        .http()
+        .post(`${CLIENT_API}/auth/forgot-password`)
+        .send({ email: 'nobody@e2e.test' })
+    await forgot().expect(202)
+    await forgot().expect(202)
+    await forgot().expect(429)
+    // The general limit is untouched.
+    await t.http().get(`${CLIENT_API}/settings`).expect(200)
+
+    await admin
+      .patch(`${ADMIN_API}/settings`)
+      .send({ values: { 'rateLimit.authLimit': null } })
+      .expect(200)
+  })
+
+  it('applies session lifetimes and verification code settings to new sign-ins and codes', async () => {
+    await admin
+      .patch(`${ADMIN_API}/settings`)
+      .send({
+        values: {
+          'session.adminTtlSeconds': 3600,
+          'session.clientIdleTtlSeconds': 900,
+          'auth.emailCodeTtlSeconds': 120,
+          'auth.emailCodeResendSeconds': 300,
+        },
+      })
+      .expect(200)
+
+    const adminLogin = await t
+      .http()
+      .post(`${ADMIN_API}/auth/login`)
+      .send({ email: E2E_ADMIN.email, password: E2E_ADMIN.password })
+      .expect(200)
+    const refreshCookie = (
+      adminLogin.headers['set-cookie'] as unknown as string[]
+    ).find((cookie) => cookie.startsWith('admin_refresh_token='))!
+    const adminMaxAge = Number(/Max-Age=(\d+)/.exec(refreshCookie)![1])
+    expect(adminMaxAge).toBeGreaterThan(3500)
+    expect(adminMaxAge).toBeLessThanOrEqual(3600)
+
+    const code = await t
+      .http()
+      .post(`${CLIENT_API}/auth/register/send-code`)
+      .send({ email: uniqueEmail() })
+      .expect(202)
+    expect(code.body).toEqual({ expiresIn: 120, resendAfter: 300 })
+
+    const { credentials } = await registerUser(t)
+    const clientLogin = await t
+      .http()
+      .post(`${CLIENT_API}/auth/login`)
+      .set('X-Auth-Transport', 'bearer')
+      .send(credentials)
+      .expect(200)
+    const refreshExpiresIn = clientLogin.body.tokens.refreshExpiresIn as number
+    expect(refreshExpiresIn).toBeGreaterThan(800)
+    expect(refreshExpiresIn).toBeLessThanOrEqual(900)
+  })
 })
