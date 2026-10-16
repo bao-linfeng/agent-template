@@ -32,8 +32,8 @@ export class MeController extends AccountMeController<PublicAccount> {
 
   /**
    * Requests deletion of the account (password required). Every session ends immediately (cookies are
-   * cleared); the account and all its data are purged `ACCOUNT_DELETION_GRACE_DAYS` later unless the
-   * owner restores it through `POST /v1/client/auth/restore` before `deletionScheduledAt`.
+   * cleared); the account and all its data are purged `account.deletionGraceDays` (runtime setting)
+   * later unless the owner restores it through `POST /v1/client/auth/restore` before `deletionScheduledAt`.
    */
   @Post('deletion')
   @HttpCode(202)

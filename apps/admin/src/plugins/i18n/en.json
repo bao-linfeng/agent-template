@@ -363,6 +363,8 @@
     "ROLE_SUPER_ADMIN_IMMUTABLE": "Permissions of super_admin cannot be changed.",
     "ROLE_SYSTEM_UNDELETABLE": "System roles cannot be deleted.",
     "AUDIT_LOG_NOT_FOUND": "Audit log entry not found.",
+    "SETTING_UNKNOWN": "Unknown setting: {key}.",
+    "SETTING_INVALID": "Invalid value for setting {key}.",
     "SERVICE_UNAVAILABLE": "The service is temporarily unavailable.",
     "SESSION_NOT_FOUND": "Session not found.",
     "TIMEOUT": "The server took too long to respond.",

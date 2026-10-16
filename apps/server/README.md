@@ -11,7 +11,8 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 | 权限 `rbac`                          | 只作用于后台管理员：角色 + 权限码（`user:read`、`admin:create` 等，CASL）；系统角色 `super_admin` / `admin`。客户端用户没有角色，只能操作自己的数据                                                                                                                       |
 | AI `ai`                              | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                                                                                                                                                                                    |
 | RAG `rag`                            | 客户端用户自己的知识库（`/api/v1/client/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/v1/admin/rag/knowledge-bases` 查看/删除所有知识库                                                         |
-| 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Prometheus 指标（独立内部端口）、OpenTelemetry 链路追踪、Swagger、请求 ID 与结构化日志                                                                                                                                                          |
+| 系统设置 `settings`                  | 运行时设置与功能开关（注册开关、注销宽限期、清理任务参数等），后台 `/api/v1/admin/settings` 修改后各实例立即生效、无需重启；公开项通过 `/api/v1/client/settings` 读取                                                                                                     |
+| 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Prometheus 指标（独立内部端口）、OpenTelemetry 链路追踪、Swagger、请求 ID 与结构化日志                                                                                                                                  |
 
 ## 快速开始
 
@@ -99,6 +100,8 @@ docker compose exec ollama ollama pull bge-m3
 
 生产环境设置 `NODE_ENV=production`、至少 32 字符的 `JWT_SECRET`、32 字节 Base64 编码的 `ENCRYPTION_KEY`，以及实际的数据库、Redis、对象存储、SMTP、`PUBLIC_URL`、`APP_WEB_URL`、`CORS_ORIGINS`。反向代理后按部署设置 `TRUST_PROXY`。生产默认关闭 Swagger、启用 Secure Cookie；链路追踪仅在配置 `OTEL_EXPORTER_OTLP_ENDPOINT` 时启用（见下文“链路追踪”）。
 
+部分业务参数可在运行时修改：管理端接口 `/api/v1/admin/settings`（权限 `setting:read` / `setting:manage`）修改后写入 `system_settings` 表，所有实例经 Redis 通知立即生效，无需重启；对应的环境变量（`ACCOUNT_DELETION_GRACE_DAYS`、`AUTH_RECORD_RETENTION_DAYS`、`STORAGE_ORPHAN_SWEEP_ENABLED`）只作为默认值。另有注册开关 `auth.registrationEnabled`，客户端可通过公开接口 `/api/v1/client/settings` 读取。审计开关、密钥、Cookie、CORS 等仍只能用环境变量配置。设置项清单见 `src/modules/settings/settings.catalog.ts`。
+
 更换 `ENCRYPTION_KEY` 时，把旧密钥放进 `ENCRYPTION_KEYS_PREVIOUS`（逗号分隔，只用于解密），运行 `db:reencrypt` 把模型 API Key 和管理员 TOTP 密钥改用新密钥加密，`db:reencrypt --dry-run` 确认没有遗留后再删除旧密钥。完整步骤见 [deploy/README.md](../../deploy/README.md) 的「加密密钥轮换」。
 
 从仓库根目录执行：
@@ -113,15 +116,15 @@ pnpm -C apps/server start:prod
 
 `METRICS_ENABLED`（默认开启）时，应用在 `METRICS_HOST:METRICS_PORT`（默认 `0.0.0.0:9464`）单独监听 `GET /metrics`，网关只转发 `PORT`，因此指标不会暴露到公网；不要发布这个端口。主要指标：
 
-| 指标 | 说明 |
-| --- | --- |
-| `http_server_request_duration_seconds{method,route,status_code,realm}` | 按路由模板统计的请求耗时（不含 `/health`；未匹配路由为 `unmatched`） |
-| `bullmq_queue_jobs{queue,state}` | 各队列各状态任务数，抓取时从 Redis 读取（缓存 10 秒，集群共享，用 `max by` 聚合） |
-| `bullmq_jobs_processed_total{queue,name,status}` / `bullmq_jobs_failed_final_total{queue,name}` | 本实例执行的任务次数 / 重试用尽或 `UnrecoverableError` 的最终失败 |
-| `bullmq_job_duration_seconds` / `bullmq_job_last_success_timestamp_seconds` | 单次执行耗时 / 每个任务名最近一次成功的时间（夜间定时任务据此告警） |
-| `pg_pool_connections{state}` / `pg_pool_waiting_requests` / `pg_pool_max_connections` | PostgreSQL 连接池 |
-| `upload_scans_total{result}` | 上传文件的病毒扫描结果（`clean` / `infected` / `error`，仅设置 `CLAMAV_HOST` 时） |
-| `process_*` / `nodejs_*` | Node 运行时（CPU、内存、GC、事件循环延迟） |
+| 指标                                                                                            | 说明                                                                              |
+| ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `http_server_request_duration_seconds{method,route,status_code,realm}`                          | 按路由模板统计的请求耗时（不含 `/health`；未匹配路由为 `unmatched`）              |
+| `bullmq_queue_jobs{queue,state}`                                                                | 各队列各状态任务数，抓取时从 Redis 读取（缓存 10 秒，集群共享，用 `max by` 聚合） |
+| `bullmq_jobs_processed_total{queue,name,status}` / `bullmq_jobs_failed_final_total{queue,name}` | 本实例执行的任务次数 / 重试用尽或 `UnrecoverableError` 的最终失败                 |
+| `bullmq_job_duration_seconds` / `bullmq_job_last_success_timestamp_seconds`                     | 单次执行耗时 / 每个任务名最近一次成功的时间（夜间定时任务据此告警）               |
+| `pg_pool_connections{state}` / `pg_pool_waiting_requests` / `pg_pool_max_connections`           | PostgreSQL 连接池                                                                 |
+| `upload_scans_total{result}`                                                                    | 上传文件的病毒扫描结果（`clean` / `infected` / `error`，仅设置 `CLAMAV_HOST` 时） |
+| `process_*` / `nodejs_*`                                                                        | Node 运行时（CPU、内存、GC、事件循环延迟）                                        |
 
 ### 链路追踪
 

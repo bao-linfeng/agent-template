@@ -1,6 +1,6 @@
-import type { ConfigService } from '@nestjs/config'
 import type { Job, Queue } from 'bullmq'
-import type { Env } from '../../config/env.js'
+import type { SettingValues } from '../settings/settings.catalog.js'
+import type { SettingsService } from '../settings/settings.service.js'
 import type { AccountExportsCleanup } from './account-exports.cleanup.js'
 import type { AuthRecordsCleanup } from './auth-records.cleanup.js'
 import type { DeletedAccountsCleanup } from './deleted-accounts.cleanup.js'
@@ -53,7 +53,7 @@ describe('parseObjectKey', () => {
 })
 
 describe('MaintenanceProcessor', () => {
-  function setup(env: Partial<Env>) {
+  function setup(values: Partial<SettingValues>) {
     const queue = {
       upsertJobScheduler: vi.fn().mockResolvedValue(undefined),
       removeJobScheduler: vi.fn().mockResolvedValue(true),
@@ -64,19 +64,22 @@ describe('MaintenanceProcessor', () => {
     const orphanObjects = { run: vi.fn().mockResolvedValue(0) }
     const deletedAccounts = { run: vi.fn().mockResolvedValue(0) }
     const accountExports = { run: vi.fn().mockResolvedValue(0) }
-    const config = {
-      get: (key: keyof Env) => env[key],
-    } as unknown as ConfigService<Env, true>
+    // Mutable so a test can switch a setting between runs, like an administrator would.
+    const settings = {
+      values,
+      get: (key: keyof SettingValues) => settings.values[key],
+    }
     const processor = new MaintenanceProcessor(
       authRecords as unknown as AuthRecordsCleanup,
       orphanObjects as unknown as OrphanObjectsCleanup,
       deletedAccounts as unknown as DeletedAccountsCleanup,
       accountExports as unknown as AccountExportsCleanup,
       queue as unknown as Queue,
-      config,
+      settings as unknown as SettingsService,
     )
     return {
       processor,
+      settings,
       queue,
       authRecords,
       orphanObjects,
@@ -85,48 +88,26 @@ describe('MaintenanceProcessor', () => {
     }
   }
 
-  it('schedules enabled tasks and unschedules disabled ones', async () => {
-    const enabled = setup({
-      AUTH_RECORD_RETENTION_DAYS: 30,
-      STORAGE_ORPHAN_SWEEP_ENABLED: true,
+  it('keeps every nightly task scheduled, even when its setting is off', async () => {
+    const { processor, queue } = setup({
+      'maintenance.authRecordRetentionDays': 0,
+      'maintenance.storageOrphanSweepEnabled': false,
     })
-    await enabled.processor.onApplicationBootstrap()
-    expect(enabled.queue.upsertJobScheduler).toHaveBeenCalledWith(
-      MAINTENANCE_JOBS.authRecordsPrune,
-      { pattern: '30 3 * * *' },
-      { name: MAINTENANCE_JOBS.authRecordsPrune },
-    )
-    expect(enabled.queue.upsertJobScheduler).toHaveBeenCalledWith(
-      MAINTENANCE_JOBS.storageOrphanSweep,
-      { pattern: '0 4 * * *' },
-      { name: MAINTENANCE_JOBS.storageOrphanSweep },
-    )
-    expect(enabled.queue.removeJobScheduler).not.toHaveBeenCalled()
-    expect(enabled.queue.upsertJobScheduler).toHaveBeenCalledTimes(4)
-
-    const disabled = setup({
-      AUTH_RECORD_RETENTION_DAYS: 0,
-      STORAGE_ORPHAN_SWEEP_ENABLED: false,
-    })
-    await disabled.processor.onApplicationBootstrap()
-    // Account deletion and export expiry are promises to users and always stay scheduled.
-    expect(disabled.queue.upsertJobScheduler).toHaveBeenCalledTimes(2)
-    expect(disabled.queue.upsertJobScheduler).toHaveBeenCalledWith(
-      MAINTENANCE_JOBS.accountPurge,
-      { pattern: '45 3 * * *' },
-      { name: MAINTENANCE_JOBS.accountPurge },
-    )
-    expect(disabled.queue.upsertJobScheduler).toHaveBeenCalledWith(
-      MAINTENANCE_JOBS.accountExportsPrune,
-      { pattern: '15 3 * * *' },
-      { name: MAINTENANCE_JOBS.accountExportsPrune },
-    )
-    expect(disabled.queue.removeJobScheduler).toHaveBeenCalledWith(
-      MAINTENANCE_JOBS.authRecordsPrune,
-    )
-    expect(disabled.queue.removeJobScheduler).toHaveBeenCalledWith(
-      MAINTENANCE_JOBS.storageOrphanSweep,
-    )
+    await processor.onApplicationBootstrap()
+    for (const [id, pattern] of [
+      [MAINTENANCE_JOBS.accountExportsPrune, '15 3 * * *'],
+      [MAINTENANCE_JOBS.authRecordsPrune, '30 3 * * *'],
+      [MAINTENANCE_JOBS.accountPurge, '45 3 * * *'],
+      [MAINTENANCE_JOBS.storageOrphanSweep, '0 4 * * *'],
+    ]) {
+      expect(queue.upsertJobScheduler).toHaveBeenCalledWith(
+        id,
+        { pattern },
+        { name: id },
+      )
+    }
+    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(4)
+    expect(queue.removeJobScheduler).not.toHaveBeenCalled()
   })
 
   it('dispatches jobs by name with retention-based cutoffs', async () => {
@@ -137,8 +118,8 @@ describe('MaintenanceProcessor', () => {
       deletedAccounts,
       accountExports,
     } = setup({
-      AUTH_RECORD_RETENTION_DAYS: 7,
-      STORAGE_ORPHAN_SWEEP_ENABLED: true,
+      'maintenance.authRecordRetentionDays': 7,
+      'maintenance.storageOrphanSweepEnabled': true,
     })
     // Frozen clock: cutoffs are exact instead of racing the millisecond tick.
     const now = new Date('2026-10-16T03:30:00.000Z').getTime()
@@ -174,10 +155,10 @@ describe('MaintenanceProcessor', () => {
     )
   })
 
-  it('skips disabled tasks even when a stale schedule fires', async () => {
-    const { processor, authRecords, orphanObjects } = setup({
-      AUTH_RECORD_RETENTION_DAYS: 0,
-      STORAGE_ORPHAN_SWEEP_ENABLED: false,
+  it('reads the settings when a job runs, so switching them needs no restart', async () => {
+    const { processor, settings, authRecords, orphanObjects } = setup({
+      'maintenance.authRecordRetentionDays': 0,
+      'maintenance.storageOrphanSweepEnabled': false,
     })
     await processor.process({ name: MAINTENANCE_JOBS.authRecordsPrune } as Job)
     await processor.process({
@@ -185,5 +166,16 @@ describe('MaintenanceProcessor', () => {
     } as Job)
     expect(authRecords.run).not.toHaveBeenCalled()
     expect(orphanObjects.run).not.toHaveBeenCalled()
+
+    settings.values = {
+      'maintenance.authRecordRetentionDays': 30,
+      'maintenance.storageOrphanSweepEnabled': true,
+    }
+    await processor.process({ name: MAINTENANCE_JOBS.authRecordsPrune } as Job)
+    await processor.process({
+      name: MAINTENANCE_JOBS.storageOrphanSweep,
+    } as Job)
+    expect(authRecords.run).toHaveBeenCalledTimes(1)
+    expect(orphanObjects.run).toHaveBeenCalledTimes(1)
   })
 })

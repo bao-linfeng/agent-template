@@ -17,6 +17,7 @@ import {
   normalizeEmail,
   type AccountRow,
 } from '../accounts/accounts.service.js'
+import { SettingsService } from '../settings/settings.service.js'
 import type { AccessTokenPayload } from './auth.constants.js'
 import type {
   ForgotPasswordDto,
@@ -63,6 +64,7 @@ export class AuthService {
     private readonly codes: VerificationCodesService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService<Env, true>,
+    private readonly settings: SettingsService,
   ) {}
 
   /**
@@ -70,6 +72,7 @@ export class AuthService {
    * like `register` itself, so the form can tell users to sign in instead.
    */
   async sendRegisterCode(dto: SendRegisterCodeDto): Promise<SentCode> {
+    this.assertRegistrationOpen()
     const email = normalizeEmail(dto.email)
     if (await this.accounts.findByEmail('user', email)) {
       throw new AppException('ACCOUNT_EMAIL_TAKEN')
@@ -94,6 +97,8 @@ export class AuthService {
    * by administrators.
    */
   async register(dto: RegisterDto, meta: RequestMeta): Promise<AuthResult> {
+    // Checked again here: codes sent before registration was closed must not still work.
+    this.assertRegistrationOpen()
     await this.codes.consume('user', 'register', dto.email, dto.code)
     const account = await this.accounts.create('user', dto, undefined, {
       lastLoginAt: new Date(),
@@ -298,5 +303,12 @@ export class AuthService {
       throw new AppException('AUTH_RESET_TOKEN_INVALID')
     }
     await this.accounts.setPassword(realm, account, dto.password)
+  }
+
+  /** 403 `AUTH_REGISTRATION_DISABLED` while the runtime setting `auth.registrationEnabled` is off. */
+  private assertRegistrationOpen(): void {
+    if (!this.settings.get('auth.registrationEnabled')) {
+      throw new AppException('AUTH_REGISTRATION_DISABLED')
+    }
   }
 }

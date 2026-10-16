@@ -11,6 +11,7 @@ export * from './auth.js'
 export * from './mfa.js'
 export * from './rag.js'
 export * from './rbac.js'
+export * from './settings.js'
 export * from './users.js'
 
 export const usersRelations = relations(users, ({ many }) => ({

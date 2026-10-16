@@ -39,14 +39,20 @@ export interface TestApp {
   close: () => Promise<void>
 }
 
-/** Boots the real AppModule on Fastify (same `configureApp` as production) with mail captured in memory. */
-export async function createTestApp(): Promise<TestApp> {
+/**
+ * Boots the real AppModule on Fastify (same `configureApp` as production) with mail captured in memory.
+ * A second instance of a multi-instance test passes the first one's `mailbox`: queued mail is sent by
+ * whichever instance's worker picks the job.
+ */
+export async function createTestApp(
+  options: { mailbox?: Mailbox } = {},
+): Promise<TestApp> {
   // Each test file starts with clean rate-limit counters and caches.
   const redis = new Redis(process.env.REDIS_URL!)
   await redis.flushdb()
   await redis.quit()
 
-  const mailbox = new Mailbox()
+  const mailbox = options.mailbox ?? new Mailbox()
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(MAIL_TRANSPORT)
     .useValue(mailbox)

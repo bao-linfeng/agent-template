@@ -188,7 +188,7 @@ ssh -L 3000:127.0.0.1:3000 <主机>    # 然后打开 http://localhost:3000，�
 | `UploadScanFailing`    | warning  | 10 分钟内有上传因 clamd 不可用或报错被拒绝（仅启用病毒扫描时）    |
 
 - `ApiDown` 触发时，同时出现的其他 API 告警会被抑制，只发一条。critical 告警每小时重复提醒，warning 每 4 小时。
-- 主动关闭某个定时任务（例如 `STORAGE_ORPHAN_SWEEP_ENABLED=false`）后，它的 `ScheduledJobMissed` 会持续到最后一次成功记录超过 7 天，期间在 Grafana（Alerting → Silences）或 Alertmanager 中静默即可。
+- 通过后台系统设置关闭的定时任务（如孤儿文件清扫）仍按时运行并直接成功返回，不会触发 `ScheduledJobMissed`；用环境变量移除的任务（如 `AUDIT_LOG_RETENTION_DAYS=0`）的该告警会持续到最后一次成功记录超过 7 天，期间在 Grafana（Alerting → Silences）或 Alertmanager 中静默即可。
 - 修改规则后先运行单元测试，再重新加载：
 
   ```sh

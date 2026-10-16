@@ -17,6 +17,7 @@ export const SUBJECTS = {
   'embedding-model': 'EmbeddingModel',
   'knowledge-base': 'KnowledgeBase',
   'audit-log': 'AuditLog',
+  setting: 'Setting',
 } as const
 export type SubjectName = (typeof SUBJECTS)[keyof typeof SUBJECTS]
 
@@ -37,6 +38,8 @@ export const PERMISSIONS = {
   'knowledge-base:read': '查看所有用户的知识库',
   'knowledge-base:manage': '管理所有用户的知识库',
   'audit-log:read': '查看审计日志',
+  'setting:read': '查看系统设置',
+  'setting:manage': '修改系统设置与功能开关',
 } as const satisfies Record<string, string>
 export type Permission = keyof typeof PERMISSIONS
 
@@ -75,6 +78,7 @@ export const SYSTEM_ROLES = {
       'role:read',
       'embedding-model:read',
       'knowledge-base:read',
+      'setting:read',
     ],
   },
 } as const satisfies Record<
