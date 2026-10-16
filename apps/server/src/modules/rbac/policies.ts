@@ -2,12 +2,11 @@ import {
   CanActivate,
   createParamDecorator,
   ExecutionContext,
-  ForbiddenException,
   Injectable,
   SetMetadata,
-  UnauthorizedException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { AuthUser, HttpRequest } from '../../common/http/request.js'
 import { canAny, type AppAbility } from './ability.js'
 import { parsePermission, type Permission } from './permissions.js'
@@ -51,9 +50,7 @@ export function assertCan(
   ...args: Parameters<AppAbility['can']>
 ): void {
   if (!ability.can(...args)) {
-    throw new ForbiddenException(
-      'You do not have permission to perform this action',
-    )
+    throw new AppException('PERMISSION_DENIED')
   }
 }
 
@@ -77,15 +74,13 @@ export class PoliciesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<HttpRequest>()
     if (!request.user) {
       if (handlers.length > 0) {
-        throw new UnauthorizedException('Authentication required')
+        throw new AppException('AUTH_REQUIRED')
       }
       return true
     }
     if (request.user.realm !== 'admin') {
       if (handlers.length > 0) {
-        throw new ForbiddenException(
-          'You do not have permission to perform this action',
-        )
+        throw new AppException('PERMISSION_DENIED')
       }
       return true
     }
@@ -93,9 +88,7 @@ export class PoliciesGuard implements CanActivate {
       request as HttpRequest & { user: AuthUser },
     )
     if (!handlers.every((handler) => handler(ability))) {
-      throw new ForbiddenException(
-        'You do not have permission to perform this action',
-      )
+      throw new AppException('PERMISSION_DENIED')
     }
     return true
   }

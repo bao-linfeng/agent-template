@@ -81,11 +81,53 @@ export function createApiClient({ baseURL, authPath = '/auth', timeout = 15_000,
   return { fetch: apiFetch, refreshSession }
 }
 
-/** Human readable message from a Nest error body (`message` may be a list of validation errors). */
-export function getErrorMessage(error: unknown, fallback = 'Request failed'): string {
+/** Body of every apps/server error response; clients translate by `code`. */
+export interface ApiErrorBody {
+  statusCode: number
+  code: string
+  /** English message, used when there is no translation for `code`. */
+  message: string
+  /** Values a translation may interpolate. */
+  params?: Record<string, string | number>
+  details?: unknown
+}
+
+/** Client-side codes for requests that never got a response. */
+export const NETWORK_ERROR = 'NETWORK_ERROR'
+export const TIMEOUT_ERROR = 'TIMEOUT'
+
+/** Returns the localized message for an error code, or `undefined` to keep the server message. */
+export type ErrorTranslator = (code: string, params: Record<string, string | number>) => string | undefined
+
+function isTimeout(error: FetchError): boolean {
+  return (error.cause as Error | undefined)?.name === 'TimeoutError'
+}
+
+/** Machine-readable code of a failed request: the server's `code`, or `NETWORK_ERROR`/`TIMEOUT` without a response. */
+export function getErrorCode(error: unknown): string | undefined {
+  if (!(error instanceof FetchError))
+    return undefined
+  if (!error.response)
+    return isTimeout(error) ? TIMEOUT_ERROR : NETWORK_ERROR
+  const code: unknown = error.data?.code
+  return typeof code === 'string' && code ? code : undefined
+}
+
+/**
+ * Human readable message for a failed request. With `translate`, known codes are localized;
+ * otherwise the server message (a list of messages is joined), then the status text, then `fallback`.
+ */
+export function getErrorMessage(error: unknown, fallback = 'Request failed', translate?: ErrorTranslator): string {
+  const code = getErrorCode(error)
+  if (code && translate) {
+    const params: unknown = error instanceof FetchError ? error.data?.params : undefined
+    const translated = translate(code, params && typeof params === 'object' ? params as Record<string, string | number> : {})
+    if (translated)
+      return translated
+  }
   if (error instanceof FetchError) {
     if (!error.response) {
-      return (error.cause as Error | undefined)?.name === 'TimeoutError'
+      return isTimeout(error)
         ? 'The server took too long to respond.'
         : 'Cannot reach the server. Please check your connection.'
     }

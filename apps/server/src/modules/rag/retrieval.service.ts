@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { toVectorLiteral } from '../../database/schema/columns.js'
@@ -42,9 +43,10 @@ export class RetrievalService {
     const topK = options.topK ?? 5
     const model = await this.models.get(kb.embeddingModelId)
     if (!model.enabled) {
-      throw new BadRequestException(
-        `Embedding model "${model.name}" is disabled`,
-      )
+      throw new AppException('EMBEDDING_MODEL_DISABLED', {
+        message: `Embedding model "${model.name}" is disabled`,
+        params: { name: model.name },
+      })
     }
     const [vector] = await this.embeddings.embed(this.models.toTarget(model), [
       query,

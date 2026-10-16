@@ -5,7 +5,7 @@
  * `onSessionExpired` run.
  */
 import { createApiClient, getErrorMessage } from '@repo/utils'
-import { t } from '@/i18n'
+import { i18n, t } from '@/i18n'
 
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3100/api').replace(/\/+$/, '')
 
@@ -29,7 +29,13 @@ export const { fetch: api, refreshSession } = createApiClient({
   },
 })
 
-/** Server messages are shown as sent; the fallback follows the UI language. */
+/**
+ * Localized message for a failed request: error codes with an `apiErrors.<code>` message are translated
+ * (with the body's `params`), other errors show the server message; the fallback follows the UI language.
+ */
 export function errorMessage(error: unknown, fallback = t('errors.generic')): string {
-  return getErrorMessage(error, fallback)
+  return getErrorMessage(error, fallback, (code, params) => {
+    const key = `apiErrors.${code}`
+    return i18n.global.te(key) ? t(key, params) : undefined
+  })
 }

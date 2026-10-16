@@ -9,6 +9,11 @@ import {
 } from '@nestjs/platform-fastify'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { Logger } from 'nestjs-pino'
+import { ErrorResponseDto } from './common/errors/error-response.dto.js'
+import {
+  AllExceptionsFilter,
+  validationException,
+} from './common/errors/exception.filter.js'
 import type { Env } from './config/env.js'
 import { REALM_COOKIES } from './modules/auth/realms.js'
 
@@ -59,8 +64,11 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: validationException,
     }),
   )
+  // Every error response is `{ statusCode, code, message, params?, details? }` (see common/errors).
+  app.useGlobalFilters(new AllExceptionsFilter())
 
   if (config.get('SWAGGER_ENABLED', { infer: true })) {
     const document = SwaggerModule.createDocument(
@@ -78,6 +86,11 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
         .addCookieAuth(REALM_COOKIES.user.access, undefined, 'user')
         .addBearerAuth({ type: 'http', scheme: 'bearer' }, 'user-bearer')
         .addCookieAuth(REALM_COOKIES.admin.access, undefined, 'admin')
+        .addGlobalResponse({
+          status: 'default',
+          description: 'Error; translate by `code`',
+          type: ErrorResponseDto,
+        })
         .build(),
     )
     SwaggerModule.setup(`${prefix}/docs`, app, document, {

@@ -5,13 +5,22 @@
  * separate from client app users. When the session cannot be refreshed, it is cleared and the user is
  * sent to sign-in.
  */
-import { createApiClient } from '@repo/utils'
+import { createApiClient, getErrorMessage as getServerErrorMessage } from '@repo/utils'
 import { toast } from 'vue-sonner'
 
 import { API_BASE_URL, API_TIMEOUT } from '@/constants/app-config'
-import { t } from '@/plugins/i18n'
+import { i18n, t } from '@/plugins/i18n'
 
-export { getErrorMessage } from '@repo/utils'
+/**
+ * Localized message for a failed request: error codes with an `apiErrors.<code>` message are translated
+ * (with the body's `params`), other errors show the server message, then `fallback`.
+ */
+export function getErrorMessage(error: unknown, fallback?: string): string {
+  return getServerErrorMessage(error, fallback, (code, params) => {
+    const key = `apiErrors.${code}`
+    return i18n.global.te(key) ? t(key, params) : undefined
+  })
+}
 
 /**
  * Clear the session and send the user back to sign-in when the session cannot be refreshed.

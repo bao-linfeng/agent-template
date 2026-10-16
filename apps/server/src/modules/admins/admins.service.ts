@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { eq, inArray } from 'drizzle-orm'
 import type { Paginated } from '../../common/dto/pagination.dto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { adminUserRoles, roles } from '../../database/schema/index.js'
@@ -76,7 +77,7 @@ export class AdminsService {
     dto: AdminUpdateAccountDto,
   ): Promise<AdminView> {
     if (dto.status === 'disabled' && actorId === id) {
-      throw new BadRequestException('You cannot disable your own account')
+      throw new AppException('ADMIN_CANNOT_DISABLE_SELF')
     }
     await this.accounts.adminUpdate('admin', id, dto)
     return this.get(id)
@@ -101,9 +102,7 @@ export class AdminsService {
         superAdminId &&
         !roleIds.includes(superAdminId)
       ) {
-        throw new BadRequestException(
-          'You cannot remove super_admin from yourself',
-        )
+        throw new AppException('ADMIN_CANNOT_REMOVE_OWN_SUPER_ADMIN')
       }
     }
     await this.db.transaction((tx) => this.rbac.assignRoles(id, roleIds, tx))
@@ -120,7 +119,7 @@ export class AdminsService {
       .from(roles)
       .where(inArray(roles.id, roleIds))
     if (found.length !== roleIds.length) {
-      throw new BadRequestException('One or more roles do not exist')
+      throw new AppException('ROLES_UNKNOWN')
     }
   }
 

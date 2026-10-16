@@ -1,16 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { and, eq, gt, isNull } from 'drizzle-orm'
 import type { Redis } from 'ioredis'
 import { randomToken, sha256 } from '../../common/crypto/crypto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { RequestMeta } from '../../common/http/request.js'
 import type { Env } from '../../config/env.js'
 import type { Database } from '../../database/database.js'
@@ -78,7 +72,7 @@ export class AuthService {
   async sendRegisterCode(dto: SendRegisterCodeDto): Promise<SentCode> {
     const email = normalizeEmail(dto.email)
     if (await this.accounts.findByEmail('user', email)) {
-      throw new ConflictException('Email is already registered')
+      throw new AppException('ACCOUNT_EMAIL_TAKEN')
     }
     const { code, expiresIn, resendAfter } = await this.codes.issue(
       'user',
@@ -118,10 +112,10 @@ export class AuthService {
       ? await this.hasher.verify(dto.password, account.passwordHash)
       : await this.hasher.verifyAgainstDummy(dto.password)
     if (!account || !valid) {
-      throw new UnauthorizedException('Email or password is incorrect')
+      throw new AppException('AUTH_INVALID_CREDENTIALS')
     }
     if (account.status !== 'active') {
-      throw new ForbiddenException('This account has been disabled')
+      throw new AppException('AUTH_ACCOUNT_DISABLED')
     }
     const tokens = await this.sessions.create(realm, account, meta)
     await this.accounts.touchLastLogin(realm, account.id)
@@ -134,7 +128,7 @@ export class AuthService {
     meta: RequestMeta,
   ): Promise<IssuedTokens> {
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token missing')
+      throw new AppException('AUTH_REFRESH_TOKEN_MISSING')
     }
     return this.sessions.rotate(realm, refreshToken, meta, async (id) => {
       const account = await this.accounts.findById(realm, id)
@@ -235,7 +229,7 @@ export class AuthService {
         .map((origin) => new URL(origin).origin),
     )
     if (!trusted.has(url.origin)) {
-      throw new BadRequestException('resetUrl must point to a trusted web app')
+      throw new AppException('AUTH_RESET_URL_UNTRUSTED')
     }
     url.hash = ''
     return url
@@ -259,7 +253,7 @@ export class AuthService {
       ? await this.accounts.findById(realm, consumed.userId)
       : undefined
     if (!account || account.status !== 'active') {
-      throw new BadRequestException('Reset link is invalid or has expired')
+      throw new AppException('AUTH_RESET_TOKEN_INVALID')
     }
     await this.accounts.setPassword(realm, account, dto.password)
   }

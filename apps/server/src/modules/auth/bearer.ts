@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { HttpRequest } from '../../common/http/request.js'
 import { BEARER_REALMS, type Realm } from './realms.js'
 
@@ -36,14 +36,10 @@ export function usesBearerTransport(
     return false
   }
   if (transport !== 'bearer') {
-    throw new BadRequestException(
-      'X-Auth-Transport must be "cookie" or "bearer"',
-    )
+    throw new AppException('AUTH_TRANSPORT_INVALID')
   }
   if (!BEARER_REALMS.has(realm)) {
-    throw new BadRequestException(
-      'Bearer tokens are not available for this realm',
-    )
+    throw new AppException('AUTH_BEARER_UNSUPPORTED')
   }
   return true
 }

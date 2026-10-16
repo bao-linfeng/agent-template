@@ -6,6 +6,7 @@ import { createApp } from 'vue'
 import type { IUserProfile } from '@/services/types/user.type'
 
 import { apiFetch, getErrorMessage } from '@/lib/api-client'
+import { DEFAULT_LOCALE, setLocale } from '@/plugins/i18n'
 import pinia from '@/plugins/pinia/setup'
 import { setupTanstackVueQuery } from '@/plugins/tanstack-vue-query/setup'
 import { useAuthStore } from '@/stores/auth'
@@ -203,5 +204,29 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(fetchError(undefined, 'Too Many Requests'))).toBe('Too Many Requests')
     expect(getErrorMessage(new Error('offline'))).toBe('offline')
     expect(getErrorMessage('nope', 'Default')).toBe('Default')
+  })
+
+  describe('with error codes', () => {
+    afterEach(() => {
+      setLocale(DEFAULT_LOCALE)
+    })
+
+    it('translates known codes into the UI language with their params', () => {
+      const error = fetchError({
+        statusCode: 400,
+        code: 'EMBEDDING_DIMENSIONS_OUT_OF_RANGE',
+        message: 'dimensions must be an integer between 1 and 2000',
+        params: { max: 2000 },
+      })
+      expect(getErrorMessage(error)).toBe('Dimensions must be an integer between 1 and 2000.')
+      setLocale('zh')
+      expect(getErrorMessage(error)).toBe('维度必须是 1 到 2000 之间的整数。')
+    })
+
+    it('shows the server message for codes without a translation', () => {
+      setLocale('zh')
+      expect(getErrorMessage(fetchError({ statusCode: 400, code: 'SOMETHING_NEW', message: 'Something new' })))
+        .toBe('Something new')
+    })
   })
 })

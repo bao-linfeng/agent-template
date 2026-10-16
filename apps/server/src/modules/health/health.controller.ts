@@ -1,7 +1,8 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common'
+import { Controller, Get, HttpStatus, Res } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { SkipThrottle } from '@nestjs/throttler'
 import { sql } from 'drizzle-orm'
+import type { FastifyReply } from 'fastify'
 import type { Redis } from 'ioredis'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
@@ -26,9 +27,9 @@ export class HealthController {
     return { status: 'ok' }
   }
 
-  /** Readiness: database and Redis respond. Returns 503 when a dependency is down. */
+  /** Readiness: database and Redis respond. Returns 503 (same body, not an error body) when a dependency is down. */
   @Get()
-  async ready() {
+  async ready(@Res({ passthrough: true }) reply: FastifyReply) {
     const [database, redis] = await Promise.all([
       this.check(() => this.db.execute(sql`select 1`)),
       this.check(() => this.redis.ping()),
@@ -38,7 +39,7 @@ export class HealthController {
       checks: { database, redis },
     }
     if (body.status !== 'ok') {
-      throw new ServiceUnavailableException(body)
+      void reply.status(HttpStatus.SERVICE_UNAVAILABLE)
     }
     return body
   }

@@ -1,12 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  UnsupportedMediaTypeException,
-} from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { and, count, desc, eq, ilike, or, type SQL } from 'drizzle-orm'
 import {
@@ -14,6 +7,7 @@ import {
   pageOffset,
   type Paginated,
 } from '../../common/dto/pagination.dto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Env } from '../../config/env.js'
 import type { Database, DbExecutor } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
@@ -99,7 +93,7 @@ export class AccountsService {
   async getOrThrow(realm: Realm, id: string): Promise<AccountRow> {
     const account = await this.findById(realm, id)
     if (!account) {
-      throw new NotFoundException('Account not found')
+      throw new AppException('ACCOUNT_NOT_FOUND')
     }
     return account
   }
@@ -146,7 +140,7 @@ export class AccountsService {
       return created!
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new ConflictException('Email is already registered')
+        throw new AppException('ACCOUNT_EMAIL_TAKEN')
       }
       throw error
     }
@@ -177,9 +171,7 @@ export class AccountsService {
   async setAvatar(realm: Realm, id: string, buffer: Buffer): Promise<void> {
     const type = detectImageType(buffer)
     if (!type) {
-      throw new UnsupportedMediaTypeException(
-        'Avatar must be a PNG, JPEG, GIF or WebP image',
-      )
+      throw new AppException('ACCOUNT_AVATAR_UNSUPPORTED')
     }
     const { accounts } = REALM_TABLES[realm]
     const account = await this.getOrThrow(realm, id)
@@ -213,7 +205,7 @@ export class AccountsService {
     const account = await this.getOrThrow(realm, id)
     if (!(await this.hasher.verify(currentPassword, account.passwordHash))) {
       // 400, not 401: clients treat 401 as an expired session and would sign the user out.
-      throw new BadRequestException('Current password is incorrect')
+      throw new AppException('ACCOUNT_PASSWORD_INCORRECT')
     }
     await this.setPassword(realm, account, newPassword, {
       exceptSessionId: sessionId,

@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { count, desc, eq, ilike, and, type SQL } from 'drizzle-orm'
 import {
   likePattern,
@@ -11,6 +6,7 @@ import {
   type PaginationQueryDto,
   type Paginated,
 } from '../../common/dto/pagination.dto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import {
@@ -79,7 +75,7 @@ export class KnowledgeBasesService {
       .where(eq(knowledgeBases.id, id))
       .limit(1)
     if (!kb) {
-      throw new NotFoundException('Knowledge base not found')
+      throw new AppException('KNOWLEDGE_BASE_NOT_FOUND')
     }
     return kb
   }
@@ -92,7 +88,7 @@ export class KnowledgeBasesService {
       )
       .limit(1)
     if (!kb) {
-      throw new NotFoundException('Knowledge base not found')
+      throw new AppException('KNOWLEDGE_BASE_NOT_FOUND')
     }
     return kb
   }
@@ -105,12 +101,10 @@ export class KnowledgeBasesService {
       ? await this.models.get(dto.embeddingModelId)
       : await this.models.getDefault()
     if (!model) {
-      throw new BadRequestException(
-        'No default embedding model is configured; ask an administrator to add one',
-      )
+      throw new AppException('EMBEDDING_MODEL_NOT_CONFIGURED')
     }
     if (!model.enabled) {
-      throw new BadRequestException('The selected embedding model is disabled')
+      throw new AppException('EMBEDDING_MODEL_DISABLED')
     }
     const chunkSize = dto.chunkSize ?? 800
     const chunkOverlap =
@@ -188,8 +182,6 @@ export class KnowledgeBasesService {
 
 function assertChunking(chunkSize: number, chunkOverlap: number): void {
   if (chunkOverlap * 2 > chunkSize) {
-    throw new BadRequestException(
-      'chunkOverlap must be at most half of chunkSize',
-    )
+    throw new AppException('KNOWLEDGE_BASE_CHUNK_OVERLAP_TOO_LARGE')
   }
 }

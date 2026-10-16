@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm'
@@ -8,6 +8,7 @@ import {
   safeEqualHex,
   sha256,
 } from '../../common/crypto/crypto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { RequestMeta } from '../../common/http/request.js'
 import type { Env } from '../../config/env.js'
 import type { Database, DbExecutor } from '../../database/database.js'
@@ -79,7 +80,7 @@ export class SessionsService {
     const { sessions } = REALM_TABLES[realm]
     const [sessionId, secret] = refreshToken.split('.')
     if (!sessionId || !secret || !/^[0-9a-f-]{36}$/.test(sessionId)) {
-      throw new UnauthorizedException('Invalid refresh token')
+      throw new AppException('AUTH_REFRESH_TOKEN_INVALID')
     }
     const [session] = await this.db
       .select()
@@ -87,7 +88,7 @@ export class SessionsService {
       .where(eq(sessions.id, sessionId))
       .limit(1)
     if (!session || session.revokedAt || session.expiresAt <= new Date()) {
-      throw new UnauthorizedException('Session expired, please sign in again')
+      throw new AppException('AUTH_SESSION_EXPIRED')
     }
 
     const presentedHash = sha256(secret)
@@ -101,13 +102,13 @@ export class SessionsService {
         // A rotated-out token was replayed: assume it leaked and kill the session.
         await this.revoke(realm, session.id)
       }
-      throw new UnauthorizedException('Refresh token is no longer valid')
+      throw new AppException('AUTH_REFRESH_TOKEN_INVALID')
     }
 
     const user = await loadUser(session.userId)
     if (!user) {
       await this.revoke(realm, session.id)
-      throw new UnauthorizedException('Account is not available')
+      throw new AppException('AUTH_ACCOUNT_UNAVAILABLE')
     }
 
     const nextSecret = randomToken()
@@ -129,7 +130,7 @@ export class SessionsService {
       )
       .returning({ id: sessions.id })
     if (rotated.length === 0) {
-      throw new UnauthorizedException('Refresh token is no longer valid')
+      throw new AppException('AUTH_REFRESH_TOKEN_INVALID')
     }
     return this.issue(realm, user, session.id, nextSecret)
   }

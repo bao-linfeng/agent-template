@@ -1,12 +1,6 @@
-import {
-  BadRequestException,
-  Body,
-  HttpCode,
-  Post,
-  Req,
-  Res,
-} from '@nestjs/common'
+import { Body, HttpCode, Post, Req, Res } from '@nestjs/common'
 import { ApiHeader } from '@nestjs/swagger'
+import { AppException } from '../../common/errors/app.exception.js'
 import {
   requestMeta,
   type HttpReply,
@@ -100,9 +94,7 @@ export abstract class CredentialsController<Profile> {
       return this.bearerTokens(tokens)
     }
     if (dto.refreshToken !== undefined) {
-      throw new BadRequestException(
-        'refreshToken in the body requires X-Auth-Transport: bearer',
-      )
+      throw new AppException('AUTH_BEARER_REQUIRED')
     }
     try {
       const tokens = await this.auth.refresh(

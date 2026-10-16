@@ -1,4 +1,4 @@
-import { BadGatewayException } from '@nestjs/common'
+import { AppException } from '../../common/errors/app.exception.js'
 import { EmbeddingClient, type EmbeddingTarget } from './embedding-client.js'
 
 const target: EmbeddingTarget = {
@@ -67,20 +67,28 @@ describe('EmbeddingClient', () => {
     fetchMock.mockResolvedValueOnce(
       respond({ data: [{ index: 0, embedding: [1, 0] }] }),
     )
-    await expect(client.embed(target, ['a'])).rejects.toThrow(
-      /2-dimensional vectors but 3/,
-    )
+    await expect(client.embed(target, ['a'])).rejects.toMatchObject({
+      code: 'EMBEDDING_DIMENSIONS_MISMATCH',
+      message: expect.stringMatching(/2-dimensional vectors but 3/),
+    })
   })
 
   it('surfaces provider errors as 502', async () => {
     fetchMock.mockResolvedValueOnce(
       new Response('model not found', { status: 404 }),
     )
-    await expect(client.embed(target, ['a'])).rejects.toBeInstanceOf(
-      BadGatewayException,
-    )
+    const error = await client.embed(target, ['a']).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(AppException)
+    expect((error as AppException).getStatus()).toBe(502)
+    expect((error as AppException).getResponse()).toMatchObject({
+      code: 'EMBEDDING_PROVIDER_ERROR',
+      params: { status: 404, detail: 'model not found' },
+    })
 
     fetchMock.mockRejectedValueOnce(new TypeError('fetch failed'))
-    await expect(client.embed(target, ['a'])).rejects.toThrow(/unreachable/)
+    await expect(client.embed(target, ['a'])).rejects.toMatchObject({
+      code: 'EMBEDDING_PROVIDER_UNREACHABLE',
+      message: expect.stringMatching(/unreachable/),
+    })
   })
 })

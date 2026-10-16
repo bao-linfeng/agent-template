@@ -1,10 +1,6 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { asc, count, eq } from 'drizzle-orm'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import {
@@ -53,7 +49,7 @@ export class RolesService {
       where: eq(roles.id, id),
     })
     if (!role) {
-      throw new NotFoundException('Role not found')
+      throw new AppException('ROLE_NOT_FOUND')
     }
     return role
   }
@@ -71,7 +67,7 @@ export class RolesService {
       .onConflictDoNothing({ target: roles.code })
       .returning()
     if (!role) {
-      throw new ConflictException('Role code already exists')
+      throw new AppException('ROLE_CODE_TAKEN')
     }
     return role
   }
@@ -79,9 +75,7 @@ export class RolesService {
   async update(id: string, dto: UpdateRoleDto): Promise<RoleRow> {
     const role = await this.get(id)
     if (role.code === SYSTEM_ROLES.superAdmin.code && dto.permissions) {
-      throw new BadRequestException(
-        'Permissions of super_admin cannot be changed',
-      )
+      throw new AppException('ROLE_SUPER_ADMIN_IMMUTABLE')
     }
     const [updated] = await this.db
       .update(roles)
@@ -95,7 +89,7 @@ export class RolesService {
   async remove(id: string): Promise<void> {
     const role = await this.get(id)
     if (role.isSystem) {
-      throw new BadRequestException('System roles cannot be deleted')
+      throw new AppException('ROLE_SYSTEM_UNDELETABLE')
     }
     await this.db.delete(roles).where(eq(roles.id, id))
     await this.rbac.invalidateAll()

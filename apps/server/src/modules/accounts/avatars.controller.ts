@@ -1,13 +1,13 @@
 import {
   Controller,
   Get,
-  NotFoundException,
   Param,
   ParseUUIDPipe,
   Res,
   StreamableFile,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { HttpReply } from '../../common/http/request.js'
 import { StorageService } from '../../infra/storage/storage.service.js'
 import { Public } from '../auth/decorators.js'
@@ -32,7 +32,7 @@ export class AvatarsController {
     @Res({ passthrough: true }) reply: HttpReply,
   ): Promise<StreamableFile> {
     if (!AVATAR_FILE_PATTERN.test(file)) {
-      throw new NotFoundException('File not found')
+      throw new AppException('FILE_NOT_FOUND')
     }
     const object = await this.storage.getObject(avatarKey(accountId, file))
     const ext = file.slice(file.lastIndexOf('.') + 1) as AvatarExtension

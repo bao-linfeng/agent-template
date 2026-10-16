@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { HttpRequest } from '../../common/http/request.js'
 import { readBearerToken, usesBearerTransport } from './bearer.js'
 
@@ -50,20 +50,37 @@ describe('usesBearerTransport', () => {
   })
 
   it('rejects bearer on cookie-only realms and unknown values', () => {
-    expect(() =>
-      usesBearerTransport(
-        withHeaders({ 'x-auth-transport': 'bearer' }),
-        'admin',
+    const codeOf = (run: () => unknown) => {
+      try {
+        run()
+      } catch (error) {
+        return error instanceof AppException ? error.code : error
+      }
+      return undefined
+    }
+    expect(
+      codeOf(() =>
+        usesBearerTransport(
+          withHeaders({ 'x-auth-transport': 'bearer' }),
+          'admin',
+        ),
       ),
-    ).toThrow(BadRequestException)
-    expect(() =>
-      usesBearerTransport(withHeaders({ 'x-auth-transport': 'token' }), 'user'),
-    ).toThrow(BadRequestException)
-    expect(() =>
-      usesBearerTransport(
-        withHeaders({ 'x-auth-transport': ['bearer', 'bearer'] }),
-        'user',
+    ).toBe('AUTH_BEARER_UNSUPPORTED')
+    expect(
+      codeOf(() =>
+        usesBearerTransport(
+          withHeaders({ 'x-auth-transport': 'token' }),
+          'user',
+        ),
       ),
-    ).toThrow(BadRequestException)
+    ).toBe('AUTH_TRANSPORT_INVALID')
+    expect(
+      codeOf(() =>
+        usesBearerTransport(
+          withHeaders({ 'x-auth-transport': ['bearer', 'bearer'] }),
+          'user',
+        ),
+      ),
+    ).toBe('AUTH_TRANSPORT_INVALID')
   })
 })

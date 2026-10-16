@@ -50,7 +50,7 @@ meta:
 
 ## Data Fetching / API
 
-- ofetch client: `src/lib/api-client.ts`, an instance of `createApiClient` from `@repo/utils` (`apiFetch`: cookies via `credentials: 'include'`, shared `POST /auth/refresh` + one retry on 401, sign-out on failure; `getErrorMessage` for Nest errors)
+- ofetch client: `src/lib/api-client.ts`, an instance of `createApiClient` from `@repo/utils` (`apiFetch`: cookies via `credentials: 'include'`, shared `POST /auth/refresh` + one retry on 401, sign-out on failure; `getErrorMessage` translates server error codes via `apiErrors.*`, falling back to the server message)
 - Vue Query plugin: `src/plugins/tanstack-vue-query/setup.ts` (global error toasts for queries and mutations, 401 excluded)
 - API modules: `src/services/api/*.api.ts` — transport functions + query/mutation hooks. Real server APIs: `auth`, `me`, `admin-users` (client users), `admins` (admin accounts), `roles`, `embedding-models`; `example-*` are mocks.
 - Shared types: `src/services/types/response.type.ts` (`IPaginated`), `src/services/types/user.type.ts`

@@ -1,13 +1,8 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { asc, count, eq } from 'drizzle-orm'
 import type { Pool } from 'pg'
 import { SecretBox } from '../../common/crypto/crypto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb, PG_POOL } from '../../database/database.module.js'
 import {
@@ -64,7 +59,7 @@ export class EmbeddingModelsService {
       where: eq(embeddingModels.id, id),
     })
     if (!row) {
-      throw new NotFoundException('Embedding model not found')
+      throw new AppException('EMBEDDING_MODEL_NOT_FOUND')
     }
     return row
   }
@@ -111,9 +106,7 @@ export class EmbeddingModelsService {
       return this.toView(row)
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new ConflictException(
-          'An embedding model with this name already exists',
-        )
+        throw new AppException('EMBEDDING_MODEL_NAME_TAKEN')
       }
       throw error
     }
@@ -128,14 +121,12 @@ export class EmbeddingModelsService {
       (dto.model !== undefined && dto.model !== current.model) ||
       (dto.dimensions !== undefined && dto.dimensions !== current.dimensions)
     if (changesVectors && (await this.usageCount(id)) > 0) {
-      throw new ConflictException(
-        'model and dimensions cannot change while knowledge bases use this model; create a new model instead',
-      )
+      throw new AppException('EMBEDDING_MODEL_LOCKED')
     }
     if (dto.enabled === false && current.isDefault) {
-      throw new BadRequestException(
-        'Set another default model before disabling this one',
-      )
+      throw new AppException('EMBEDDING_MODEL_IS_DEFAULT', {
+        message: 'Set another default model before disabling this one',
+      })
     }
     if (dto.dimensions !== undefined) {
       await this.ensureVectorIndex(dto.dimensions)
@@ -157,9 +148,7 @@ export class EmbeddingModelsService {
       return this.toView(row!)
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new ConflictException(
-          'An embedding model with this name already exists',
-        )
+        throw new AppException('EMBEDDING_MODEL_NAME_TAKEN')
       }
       throw error
     }
@@ -168,7 +157,7 @@ export class EmbeddingModelsService {
   async setDefault(id: string): Promise<EmbeddingModelView> {
     const model = await this.get(id)
     if (!model.enabled) {
-      throw new BadRequestException('A disabled model cannot be the default')
+      throw new AppException('EMBEDDING_MODEL_DEFAULT_DISABLED')
     }
     await this.db.transaction(async (tx) => {
       await tx
@@ -186,17 +175,15 @@ export class EmbeddingModelsService {
   async remove(id: string): Promise<void> {
     const model = await this.get(id)
     if (model.isDefault) {
-      throw new BadRequestException(
-        'Set another default model before deleting this one',
-      )
+      throw new AppException('EMBEDDING_MODEL_IS_DEFAULT', {
+        message: 'Set another default model before deleting this one',
+      })
     }
     try {
       await this.db.delete(embeddingModels).where(eq(embeddingModels.id, id))
     } catch (error) {
       if (isForeignKeyViolation(error)) {
-        throw new ConflictException(
-          'This model is used by knowledge bases and cannot be deleted',
-        )
+        throw new AppException('EMBEDDING_MODEL_IN_USE')
       }
       throw error
     }
@@ -240,9 +227,10 @@ export class EmbeddingModelsService {
       dimensions < 1 ||
       dimensions > MAX_EMBEDDING_DIMENSIONS
     ) {
-      throw new BadRequestException(
-        `dimensions must be an integer between 1 and ${MAX_EMBEDDING_DIMENSIONS}`,
-      )
+      throw new AppException('EMBEDDING_DIMENSIONS_OUT_OF_RANGE', {
+        message: `dimensions must be an integer between 1 and ${MAX_EMBEDDING_DIMENSIONS}`,
+        params: { max: MAX_EMBEDDING_DIMENSIONS },
+      })
     }
     await this.pool.query(
       `CREATE INDEX CONCURRENTLY IF NOT EXISTS rag_chunks_embedding_${dimensions}_hnsw ON rag_chunks ` +

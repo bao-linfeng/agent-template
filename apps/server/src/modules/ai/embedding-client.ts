@@ -1,4 +1,5 @@
-import { BadGatewayException, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
+import { AppException } from '../../common/errors/app.exception.js'
 
 export interface EmbeddingTarget {
   baseUrl: string
@@ -56,15 +57,18 @@ export class EmbeddingClient {
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       })
     } catch (error) {
-      throw new BadGatewayException(
-        `Embedding provider unreachable: ${(error as Error).message}`,
-      )
+      throw new AppException('EMBEDDING_PROVIDER_UNREACHABLE', {
+        message: `Embedding provider unreachable: ${(error as Error).message}`,
+        params: { reason: (error as Error).message },
+        cause: error,
+      })
     }
     if (!response.ok) {
       const detail = (await response.text().catch(() => '')).slice(0, 300)
-      throw new BadGatewayException(
-        `Embedding provider returned ${response.status}: ${detail}`,
-      )
+      throw new AppException('EMBEDDING_PROVIDER_ERROR', {
+        message: `Embedding provider returned ${response.status}: ${detail}`,
+        params: { status: response.status, detail },
+      })
     }
 
     const body = (await response.json()) as EmbeddingsResponse
@@ -72,9 +76,9 @@ export class EmbeddingClient {
       (a, b) => (a.index ?? 0) - (b.index ?? 0),
     )
     if (data.length !== input.length) {
-      throw new BadGatewayException(
-        `Embedding provider returned ${data.length} vectors for ${input.length} inputs`,
-      )
+      throw new AppException('EMBEDDING_PROVIDER_INVALID_RESPONSE', {
+        message: `Embedding provider returned ${data.length} vectors for ${input.length} inputs`,
+      })
     }
     return data.map(({ embedding }) => {
       if (
@@ -83,14 +87,13 @@ export class EmbeddingClient {
           (value) => typeof value === 'number' && Number.isFinite(value),
         )
       ) {
-        throw new BadGatewayException(
-          'Embedding provider returned a malformed vector',
-        )
+        throw new AppException('EMBEDDING_PROVIDER_INVALID_RESPONSE')
       }
       if (embedding.length !== target.dimensions) {
-        throw new BadGatewayException(
-          `Model returned ${embedding.length}-dimensional vectors but ${target.dimensions} are configured`,
-        )
+        throw new AppException('EMBEDDING_DIMENSIONS_MISMATCH', {
+          message: `Model returned ${embedding.length}-dimensional vectors but ${target.dimensions} are configured`,
+          params: { actual: embedding.length, expected: target.dimensions },
+        })
       }
       return embedding as number[]
     })

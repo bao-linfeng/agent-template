@@ -15,11 +15,11 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import {
   Injectable,
   Logger,
-  NotFoundException,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Env } from '../../config/env.js'
 
 export interface StoredObject {
@@ -115,7 +115,7 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       }
     } catch (error) {
       if (error instanceof NoSuchKey) {
-        throw new NotFoundException('File not found')
+        throw new AppException('FILE_NOT_FOUND')
       }
       throw error
     }

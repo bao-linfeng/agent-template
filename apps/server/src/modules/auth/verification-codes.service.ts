@@ -1,13 +1,9 @@
-import {
-  BadRequestException,
-  HttpException,
-  HttpStatus,
-  Injectable,
-} from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { randomInt } from 'node:crypto'
 import type { Redis } from 'ioredis'
 import { sha256 } from '../../common/crypto/crypto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { Env } from '../../config/env.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
 import { normalizeEmail } from '../accounts/accounts.service.js'
@@ -78,10 +74,10 @@ export class VerificationCodesService {
       'NX',
     )
     if (cooldown !== 'OK') {
-      throw new HttpException(
-        'A code was sent recently, please wait before requesting another one',
-        HttpStatus.TOO_MANY_REQUESTS,
-      )
+      const retryAfter = await this.redis.ttl(`${key}:cooldown`)
+      throw new AppException('AUTH_CODE_RESEND_TOO_SOON', {
+        params: { retryAfter: Math.max(retryAfter, 1) },
+      })
     }
     const code = randomInt(0, 10 ** CODE_LENGTH)
       .toString()
@@ -110,9 +106,7 @@ export class VerificationCodesService {
       VERIFICATION_CODE_MAX_ATTEMPTS,
     )
     if (matched !== 1) {
-      throw new BadRequestException(
-        'Verification code is invalid or has expired',
-      )
+      throw new AppException('AUTH_CODE_INVALID')
     }
   }
 

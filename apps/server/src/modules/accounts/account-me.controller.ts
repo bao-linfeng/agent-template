@@ -3,7 +3,6 @@ import {
   Delete,
   Get,
   HttpCode,
-  NotFoundException,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -13,6 +12,7 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ApiBody, ApiConsumes } from '@nestjs/swagger'
+import { AppException } from '../../common/errors/app.exception.js'
 import { readSingleFile } from '../../common/http/multipart.js'
 import type { AuthUser, HttpRequest } from '../../common/http/request.js'
 import type { Env } from '../../config/env.js'
@@ -111,7 +111,7 @@ export abstract class AccountMeController<Profile> {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
     if (!(await this.sessions.revokeOwn(user.realm, user.id, id))) {
-      throw new NotFoundException('Session not found')
+      throw new AppException('SESSION_NOT_FOUND')
     }
   }
 }

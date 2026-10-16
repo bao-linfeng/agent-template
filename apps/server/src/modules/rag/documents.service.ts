@@ -1,11 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { InjectQueue } from '@nestjs/bullmq'
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import type { Queue } from 'bullmq'
 import { and, count, desc, eq } from 'drizzle-orm'
 import {
@@ -13,6 +8,7 @@ import {
   type PaginationQueryDto,
   type Paginated,
 } from '../../common/dto/pagination.dto.js'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { UploadedFile } from '../../common/http/multipart.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
@@ -71,7 +67,7 @@ export class DocumentsService {
       ),
     })
     if (!document) {
-      throw new NotFoundException('Document not found')
+      throw new AppException('DOCUMENT_NOT_FOUND')
     }
     return document
   }
@@ -91,7 +87,9 @@ export class DocumentsService {
       }
     } catch (error) {
       if (error instanceof UnsupportedDocumentError) {
-        throw new BadRequestException(error.message)
+        throw new AppException('DOCUMENT_UNSUPPORTED', {
+          message: error.message,
+        })
       }
       throw error
     }

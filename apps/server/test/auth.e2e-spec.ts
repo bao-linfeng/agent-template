@@ -121,7 +121,12 @@ describe('auth & account (e2e)', () => {
       .post(`${CLIENT_API}/auth/register/send-code`)
       .send({ email })
       .expect(429)
-    expect(resend.body.message).toMatch(/wait/)
+    expect(resend.body).toMatchObject({
+      statusCode: 429,
+      code: 'AUTH_CODE_RESEND_TOO_SOON',
+      message: expect.stringMatching(/wait/),
+    })
+    expect(resend.body.params.retryAfter).toBeGreaterThan(0)
 
     // Codes only work for the address they were sent to.
     await register({ email: uniqueEmail('other'), code }).expect(400)
@@ -138,15 +143,12 @@ describe('auth & account (e2e)', () => {
     const code = await requestRegisterCode(t, email)
     const wrong = code === '000000' ? '111111' : '000000'
     const register = (value: string) =>
-      t
-        .http()
-        .post(`${CLIENT_API}/auth/register`)
-        .send({
-          email,
-          password: 'password123',
-          nickname: 'Guess',
-          code: value,
-        })
+      t.http().post(`${CLIENT_API}/auth/register`).send({
+        email,
+        password: 'password123',
+        nickname: 'Guess',
+        code: value,
+      })
     for (let i = 0; i < VERIFICATION_CODE_MAX_ATTEMPTS; i++) {
       await register(wrong).expect(400)
     }

@@ -1,12 +1,8 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common'
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 import type { Redis } from 'ioredis'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { HttpRequest } from '../../common/http/request.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
 import { revokedSessionKey, type AccessTokenPayload } from './auth.constants.js'
@@ -54,14 +50,14 @@ export class JwtAuthGuard implements CanActivate {
       (BEARER_REALMS.has(realm) ? readBearerToken(request) : undefined) ??
       request.cookies?.[REALM_COOKIES[realm].access]
     if (!token) {
-      throw new UnauthorizedException('Authentication required')
+      throw new AppException('AUTH_REQUIRED')
     }
 
     let payload: AccessTokenPayload
     try {
       payload = await this.jwt.verifyAsync<AccessTokenPayload>(token)
     } catch {
-      throw new UnauthorizedException('Invalid or expired authentication token')
+      throw new AppException('AUTH_TOKEN_INVALID')
     }
     if (
       typeof payload.sub !== 'string' ||
@@ -69,10 +65,10 @@ export class JwtAuthGuard implements CanActivate {
       typeof payload.email !== 'string' ||
       payload.realm !== realm
     ) {
-      throw new UnauthorizedException('Invalid authentication token')
+      throw new AppException('AUTH_TOKEN_INVALID')
     }
     if (await this.redis.exists(revokedSessionKey(realm, payload.sid))) {
-      throw new UnauthorizedException('Session has been revoked')
+      throw new AppException('AUTH_SESSION_REVOKED')
     }
 
     request.user = {

@@ -1,8 +1,5 @@
-import {
-  BadRequestException,
-  HttpException,
-  PayloadTooLargeException,
-} from '@nestjs/common'
+import { HttpException } from '@nestjs/common'
+import { AppException } from '../errors/app.exception.js'
 import type { HttpRequest } from './request.js'
 
 export interface UploadedFile {
@@ -22,14 +19,14 @@ export async function readSingleFile(
   maxBytes: number,
 ): Promise<UploadedFile> {
   if (!request.isMultipart()) {
-    throw new BadRequestException('Expected multipart/form-data')
+    throw new AppException('UPLOAD_NOT_MULTIPART')
   }
   try {
     const part = await request.file({
       limits: { fileSize: maxBytes, files: 1 },
     })
     if (!part || part.fieldname !== 'file') {
-      throw new BadRequestException('Form field "file" is required')
+      throw new AppException('UPLOAD_FILE_REQUIRED')
     }
     const buffer = await part.toBuffer()
     const fields: Record<string, string> = {}
@@ -46,12 +43,15 @@ export async function readSingleFile(
     }
     const code = (error as { code?: string }).code
     if (code === 'FST_REQ_FILE_TOO_LARGE' || code === 'FST_FILES_LIMIT') {
-      throw new PayloadTooLargeException(
-        `File exceeds the ${maxBytes} byte limit`,
-      )
+      throw new AppException('UPLOAD_TOO_LARGE', {
+        message: `File exceeds the ${maxBytes} byte limit`,
+        params: { maxBytes },
+      })
     }
     if (code?.startsWith('FST_')) {
-      throw new BadRequestException((error as Error).message)
+      throw new AppException('UPLOAD_INVALID', {
+        message: (error as Error).message,
+      })
     }
     throw error
   }

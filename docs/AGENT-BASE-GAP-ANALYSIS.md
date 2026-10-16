@@ -352,13 +352,13 @@ run.cancelled
 
 ## 5. 通用基座能力缺口
 
-以下能力与 Agent 无关，但通用生产项目普遍需要，当前代码中均未实现。标注“随首版”的项建议与首个 Agent 一起落地，其余按 P1 处理。
+以下能力与 Agent 无关，但通用生产项目普遍需要；除标注“已完成”的项外，当前代码中均未实现。标注“随首版”的项建议与首个 Agent 一起落地，其余按 P1 处理。
 
 ### 5.1 后端
 
 | 缺口 | 当前情况 | 建议时机 |
 | --- | --- | --- |
-| 统一错误码 | 业务错误直接抛出英文文案（如 `new ConflictException('Email is already registered')`），没有全局 `ExceptionFilter` 和机器可读的 `code`；两个前端已有 i18n，但服务端错误按原文显示 | 随首版，Agent 事件协议需复用 |
+| 统一错误码 | 已完成：`apps/server/src/common/errors`（`ERRORS` 错误码目录、`AppException`、全局 `AllExceptionsFilter`），错误体统一为 `{ statusCode, code, message, params?, details? }`；admin/client 按 `code` 显示本地化文案（`apiErrors.*`），未翻译的码回退到服务端原文 | 随首版；Agent 流式事件复用同一套 `code` |
 | 审计日志 | 管理员修改角色、禁用账号、删除知识库、修改模型凭据等操作不留记录 | 随首版，Agent 配置变更与对话查看需要留痕 |
 | 幂等键与分布式锁 | 没有通用实现；仅验证码使用了 Redis Lua 脚本 | 随首版，用于重复提交与对话并发控制 |
 | 定时任务 | 没有 `@Cron` 或 BullMQ 重复任务；过期会话、重置令牌和孤儿对象没有清理任务 | P1 |

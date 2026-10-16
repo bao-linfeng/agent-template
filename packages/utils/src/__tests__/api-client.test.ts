@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createApiClient, FetchError, getErrorMessage, isUnauthorized } from '../api-client'
+import { createApiClient, FetchError, getErrorCode, getErrorMessage, isUnauthorized } from '../api-client'
 
 const fetchMock = vi.fn()
 vi.stubGlobal('fetch', fetchMock)
@@ -185,6 +185,23 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage('nope', 'Default')).toBe('Default')
   })
 
+  it('translates by code and interpolates params', () => {
+    const error = fetchError({ statusCode: 413, code: 'UPLOAD_TOO_LARGE', message: 'File exceeds the 10 byte limit', params: { maxBytes: 10 } })
+    const translate = vi.fn((code: string, params: Record<string, string | number>) =>
+      code === 'UPLOAD_TOO_LARGE' ? `文件超过 ${params.maxBytes} 字节` : undefined)
+
+    expect(getErrorCode(error)).toBe('UPLOAD_TOO_LARGE')
+    expect(getErrorMessage(error, 'Default', translate)).toBe('文件超过 10 字节')
+    expect(translate).toHaveBeenCalledWith('UPLOAD_TOO_LARGE', { maxBytes: 10 })
+  })
+
+  it('keeps the server message when a code has no translation', () => {
+    const error = fetchError({ statusCode: 409, code: 'SOMETHING_NEW', message: 'Something new happened' })
+    expect(getErrorMessage(error, 'Default', () => undefined)).toBe('Something new happened')
+    expect(getErrorCode(fetchError({ message: 'no code' }))).toBeUndefined()
+    expect(getErrorCode(new Error('plain'))).toBeUndefined()
+  })
+
   it('explains requests that got no response', async () => {
     const client = createApiClient({ baseURL: BASE_URL, timeout: 10 })
 
@@ -197,5 +214,22 @@ describe('getErrorMessage', () => {
     }))
     expect(getErrorMessage(await client.fetch('/users/me', { retry: 0 }).catch(e => e)))
       .toBe('The server took too long to respond.')
+  })
+
+  it('gives requests without a response a client-side code', async () => {
+    const client = createApiClient({ baseURL: BASE_URL, timeout: 10 })
+    const translate = (code: string) => ({ NETWORK_ERROR: '网络不可用', TIMEOUT: '请求超时' })[code]
+
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    const offline = await client.fetch('/users/me', { retry: 0 }).catch(e => e)
+    expect(getErrorCode(offline)).toBe('NETWORK_ERROR')
+    expect(getErrorMessage(offline, 'Default', translate)).toBe('网络不可用')
+
+    fetchMock.mockImplementation((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal!.addEventListener('abort', () => reject(init.signal!.reason))
+    }))
+    const slow = await client.fetch('/users/me', { retry: 0 }).catch(e => e)
+    expect(getErrorCode(slow)).toBe('TIMEOUT')
+    expect(getErrorMessage(slow, 'Default', translate)).toBe('请求超时')
   })
 })
