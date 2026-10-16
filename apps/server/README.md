@@ -11,7 +11,7 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 | 权限 `rbac`                          | 只作用于后台管理员：角色 + 权限码（`user:read`、`admin:create` 等，CASL）；系统角色 `super_admin` / `admin`。客户端用户没有角色，只能操作自己的数据                                                                                                                       |
 | AI `ai`                              | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                                                                                                                                                                                    |
 | RAG `rag`                            | 客户端用户自己的知识库（`/api/v1/client/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/v1/admin/rag/knowledge-bases` 查看/删除所有知识库                                                         |
-| 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Prometheus 指标（独立内部端口）、Swagger、请求 ID 与结构化日志                                                                                                                                                          |
+| 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Prometheus 指标（独立内部端口）、OpenTelemetry 链路追踪、Swagger、请求 ID 与结构化日志                                                                                                                                                          |
 
 ## 快速开始
 
@@ -95,7 +95,7 @@ docker compose exec ollama ollama pull bge-m3
 
 环境变量以 `src/config/env.ts` 为准，示例见 [.env.example](./.env.example)。应用从服务端工作目录依次加载 `.env.local`、`.env`，已有进程变量优先；`NODE_ENV=test` 时跳过文件。Docker Compose 默认读取 `.env`，使用 `.env.local` 覆盖连接参数时需与基础设施保持一致。
 
-生产环境设置 `NODE_ENV=production`、至少 32 字符的 `JWT_SECRET`、32 字节 Base64 编码的 `ENCRYPTION_KEY`，以及实际的数据库、Redis、对象存储、SMTP、`PUBLIC_URL`、`APP_WEB_URL`、`CORS_ORIGINS`。反向代理后按部署设置 `TRUST_PROXY`。生产默认关闭 Swagger、启用 Secure Cookie；NestJS Observe 仅在同时配置 `OBSERVE_APP_KEY` 和 `OBSERVE_APP_SECRET` 时加载。
+生产环境设置 `NODE_ENV=production`、至少 32 字符的 `JWT_SECRET`、32 字节 Base64 编码的 `ENCRYPTION_KEY`，以及实际的数据库、Redis、对象存储、SMTP、`PUBLIC_URL`、`APP_WEB_URL`、`CORS_ORIGINS`。反向代理后按部署设置 `TRUST_PROXY`。生产默认关闭 Swagger、启用 Secure Cookie；链路追踪仅在配置 `OTEL_EXPORTER_OTLP_ENDPOINT` 时启用（见下文“链路追踪”）。
 
 从仓库根目录执行：
 
@@ -117,6 +117,15 @@ pnpm -C apps/server start:prod
 | `bullmq_job_duration_seconds` / `bullmq_job_last_success_timestamp_seconds` | 单次执行耗时 / 每个任务名最近一次成功的时间（夜间定时任务据此告警） |
 | `pg_pool_connections{state}` / `pg_pool_waiting_requests` / `pg_pool_max_connections` | PostgreSQL 连接池 |
 | `process_*` / `nodejs_*` | Node 运行时（CPU、内存、GC、事件循环延迟） |
+
+### 链路追踪
+
+`start:prod` 和 Docker 镜像通过 `node --import ./dist/tracing.js dist/main.js` 预加载 OpenTelemetry；设置 `OTEL_EXPORTER_OTLP_ENDPOINT`（OTLP http/protobuf，例如 Tempo 的 `http://tempo:4318`）后开始上报，未设置时不做任何事。`pnpm dev` 不加载预加载脚本，本地调试链路请用 `pnpm build && pnpm start:prod`。
+
+- 每个请求一条链路，span 名为 `<METHOD> <路由模板>`，响应头 `traceparent` 带链路 ID，可直接在 Tempo 中检索；`/health` 和 `/metrics` 不记录。
+- 子 span 覆盖 PostgreSQL 查询、Redis 命令、对外 HTTP / `fetch`（对象存储、Embedding 接口）；BullMQ 任务延续入队请求的链路（`add mail.send` → `process mail`）。
+- 日志行带 `trace_id` / `span_id`，可按链路 ID 搜索日志。
+- `OTEL_TRACES_SAMPLER_ARG`（0–1，默认 1）控制新链路的采样比例；`OTEL_SERVICE_NAME`、`OTEL_EXPORTER_OTLP_HEADERS`、`OTEL_RESOURCE_ATTRIBUTES` 等标准变量同样生效，`OTEL_SDK_DISABLED=true` 可临时关闭。
 
 首次部署需要种子数据时，在 `apps/server` 执行 `node dist/scripts/seed.js`。迁移文件在 `drizzle/`，数据库 schema 位于 `src/database/schema/`；修改 schema 后使用 `db:generate` 生成并提交迁移。
 

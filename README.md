@@ -122,7 +122,7 @@ docker compose exec ollama ollama pull bge-m3
 - 请求统一带 Cookie（`credentials: 'include'`）；业务接口返回 401 时自动调用对应的 `POST /api/v1/client/auth/refresh`（管理端 `/api/v1/admin/auth/refresh`）并重试一次，并发请求共享同一次刷新。刷新失败会清空登录态；管理端跳转登录页，客户端仅在受保护页面跳转 `/login`。登录等凭证接口的 401 不触发刷新。
 - 找回密码时前端把自己的重置页地址作为 `resetUrl` 传给后端（管理端 `/auth/reset-password`，客户端 `/reset-password`），后端只接受 `APP_WEB_URL` 或 `CORS_ORIGINS` 中的来源。
 - 管理端按 `GET /api/v1/admin/me` 返回的权限码过滤侧边栏和命令面板，页面可在 `<route>` 中声明 `meta.permission`；使用默认布局的页面默认需要登录。
-- 生产环境必须设置 `JWT_SECRET` 和 `ENCRYPTION_KEY`；Nest Observe 仅在配置 `OBSERVE_APP_KEY`/`OBSERVE_APP_SECRET` 时启用。
+- 生产环境必须设置 `JWT_SECRET` 和 `ENCRYPTION_KEY`；设置 `OTEL_EXPORTER_OTLP_ENDPOINT` 后上报 OpenTelemetry 链路，Prometheus 指标在内部端口 9464。
 
 ## 检查与测试
 
@@ -166,7 +166,7 @@ pnpm -C apps/client build
 ## 构建与运行产物
 
 - admin / client：产物位于各自 `dist/`，可使用 `pnpm -C apps/admin preview` 或 `pnpm -C apps/client preview` 本地预览。
-- server：依次执行 `pnpm -C apps/server build`、`pnpm -C apps/server db:migrate:prod`、`pnpm -C apps/server start:prod`，入口为 `dist/main.js`。
+- server：依次执行 `pnpm -C apps/server build`、`pnpm -C apps/server db:migrate:prod`、`pnpm -C apps/server start:prod`，入口为 `dist/main.js`（经 `--import ./dist/tracing.js` 预加载链路追踪）。
 - docs：先 `pnpm -C apps/docs build`（产物在 `apps/docs/dist/`），再 `pnpm -C apps/docs preview` 本地预览。
 - Turbo 缓存各工作区的 `dist/` 构建产物；类型检查和测试每次执行，不复用成功日志。
 

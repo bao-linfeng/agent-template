@@ -14,6 +14,7 @@ import { MetricsModule } from './infra/metrics/metrics.module.js'
 import { QueueModule } from './infra/queue/queue.module.js'
 import { REDIS, RedisModule } from './infra/redis/redis.module.js'
 import { StorageModule } from './infra/storage/storage.module.js'
+import { TracingModule } from './infra/tracing/tracing.module.js'
 import { AccountsModule } from './modules/accounts/accounts.module.js'
 import { AdminsModule } from './modules/admins/admins.module.js'
 import { AiModule } from './modules/ai/ai.module.js'
@@ -30,7 +31,6 @@ import { RagModule } from './modules/rag/rag.module.js'
 import { PoliciesGuard } from './modules/rbac/policies.js'
 import { RbacModule } from './modules/rbac/rbac.module.js'
 import { UsersModule } from './modules/users/users.module.js'
-import { observeImports } from './observe.js'
 
 @Module({
   imports: [
@@ -93,6 +93,7 @@ import { observeImports } from './observe.js'
     StorageModule,
     QueueModule,
     MetricsModule,
+    TracingModule,
     MailModule,
     AuditModule,
     SecurityModule,
@@ -106,7 +107,6 @@ import { observeImports } from './observe.js'
     RagModule,
     MaintenanceModule,
     HealthModule,
-    ...observeImports,
   ],
   providers: [
     // Order matters: audit context (never blocks) → rate limit → authenticate → authorize.

@@ -140,8 +140,21 @@ export const envSchema = z
     /** Keep it unreachable from the internet (the gateway only proxies `PORT`); 0 picks a free port. */
     METRICS_PORT: z.coerce.number().int().min(0).max(65_535).default(9464),
 
-    OBSERVE_APP_KEY: z.string().optional(),
-    OBSERVE_APP_SECRET: z.string().optional(),
+    /**
+     * OpenTelemetry tracing (see `src/tracing.ts`, needs `node --import ./dist/tracing.js`): enabled when an
+     * OTLP endpoint is set. The SDK reads the other standard variables itself (`OTEL_EXPORTER_OTLP_HEADERS`,
+     * `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_RESOURCE_ATTRIBUTES`, ...).
+     */
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: z.url().optional(),
+    OTEL_SDK_DISABLED: booleanString.default(false),
+    OTEL_SERVICE_NAME: z
+      .string()
+      .trim()
+      .min(1)
+      .default('agent-template-server'),
+    /** Share of new traces that are kept; requests continuing an upstream trace follow its decision. */
+    OTEL_TRACES_SAMPLER_ARG: z.coerce.number().min(0).max(1).default(1),
   })
   .superRefine((env, ctx) => {
     if (env.METRICS_ENABLED && env.METRICS_PORT === env.PORT) {
@@ -172,6 +185,12 @@ export const envSchema = z
       ENCRYPTION_KEY: env.ENCRYPTION_KEY ?? DEV_ENCRYPTION_KEY,
       COOKIE_SECURE: env.COOKIE_SECURE ?? isProduction,
       SWAGGER_ENABLED: env.SWAGGER_ENABLED ?? !isProduction,
+      TRACING_ENABLED:
+        !env.OTEL_SDK_DISABLED &&
+        Boolean(
+          env.OTEL_EXPORTER_OTLP_ENDPOINT ??
+          env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+        ),
     }
   })
 
