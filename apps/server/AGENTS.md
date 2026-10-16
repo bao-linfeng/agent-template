@@ -5,7 +5,7 @@ NestJS 12 + Fastify API that is meant to be built on, not a demo. Keep new code 
 ## Workspace and commands
 
 - Belongs to the root pnpm workspace: install from the repository root; dependency changes update the root `pnpm-lock.yaml` (no package-local lockfile). Run commands as `pnpm -C apps/server <script>`.
-- Local infrastructure runs in Docker (`docker-compose.yml`): PostgreSQL 18 + pgvector, Redis 8, RustFS (S3) and Mailpit; `--profile ai` adds Ollama for local `bge-m3` embeddings. Compose reads `apps/server/.env`.
+- Local infrastructure runs in Docker (`docker-compose.yml`): PostgreSQL 18 + pgvector, Redis 8, RustFS (S3) and Mailpit; `--profile ai` adds Ollama for local `bge-m3` embeddings, `--profile observability` the monitoring stack from `deploy/observability` (Grafana `http://localhost:3300`, Prometheus scraping the host API through `host.docker.internal:9464` via `prometheus.local.yml`, alert mail to Mailpit; see README "本地监控"). Compose reads `apps/server/.env` (`COMPOSE_PROFILES` there makes `infra:up` include profiles).
 - First run: `cp .env.example .env` → `pnpm infra:up` → `pnpm db:migrate` → `pnpm db:seed` → `pnpm dev` (port 3100). The app fails to boot when Postgres or Redis is down.
 - Verify changes with `pnpm lint` (oxlint, type-aware), `pnpm check-types`, `pnpm build`, `pnpm test` (unit, `src/**/*.spec.ts`) and `pnpm test:e2e` (`test/**/*.e2e-spec.ts`, needs Docker; ~20 s container start). Format with `pnpm format` (local Prettier).
 - Single unit spec: `pnpm exec vitest run src/modules/rbac/ability.spec.ts`. Single e2e file: `pnpm test:e2e test/rag.e2e-spec.ts`.

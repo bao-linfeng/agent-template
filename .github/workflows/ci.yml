@@ -91,6 +91,8 @@ jobs:
           image="$(grep -oE 'prom/prometheus:[^ "]+' ../docker-compose.yml)"
           run() { docker run --rm -v "$PWD/prometheus:/etc/prometheus:ro" --entrypoint promtool "$image" "$@"; }
           run check config /etc/prometheus/prometheus.yml
+          # Local development variant (apps/server/docker-compose.yml, profile observability).
+          run check config /etc/prometheus/prometheus.local.yml
           run test rules /etc/prometheus/tests/api.test.yml
 
       - name: Alertmanager config renders

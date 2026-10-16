@@ -128,6 +128,8 @@ scripts/restore.sh backups/<目录>                   # 正式恢复：输入 re
 | `tempo`        | `grafana/tempo`     | 接收 API 的 OTLP 链路（`tempo:4318`），本地卷存储，默认保留 7 天                                      |
 | `grafana`      | `grafana/grafana`   | 预置 Prometheus、Tempo、Alertmanager 数据源和「API 概览」仪表盘，只监听 `127.0.0.1`                   |
 
+开发时可以用 `apps/server/docker-compose.yml` 的同名 profile 在本地运行同一套规则和仪表盘（抓取宿主机上的 API，告警发到 Mailpit），见 [apps/server/README.md](../apps/server/README.md) 的「本地监控」。修改规则或仪表盘时可以先在本地验证。
+
 ### 启用
 
 在 `.env` 中设置（变量说明见 `.env.example` 的 Monitoring 一节）：

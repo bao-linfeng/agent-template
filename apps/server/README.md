@@ -27,7 +27,7 @@ pnpm dev                 # http://localhost:3100/api
 
 - Swagger：<http://localhost:3100/api/docs>，JSON：<http://localhost:3100/api/docs-json>
 - 就绪检查：<http://localhost:3100/api/health>（Postgres/Redis），存活检查：<http://localhost:3100/api/health/live>
-- Prometheus 指标：<http://localhost:9464/metrics>（独立监听，不走 API 端口；见下文“指标”）
+- Prometheus 指标：<http://localhost:9464/metrics>（独立监听，不走 API 端口；见下文“指标”）；Grafana 仪表盘和链路查询见下文“本地监控”
 - Mailpit 收件箱（注册验证码和找回密码邮件）：<http://localhost:8025>
 - RustFS 控制台：<http://localhost:9001>（账号见 `.env` 中的 `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`）
 
@@ -128,6 +128,27 @@ pnpm -C apps/server start:prod
 - `OTEL_TRACES_SAMPLER_ARG`（0–1，默认 1）控制新链路的采样比例；`OTEL_SERVICE_NAME`、`OTEL_EXPORTER_OTLP_HEADERS`、`OTEL_RESOURCE_ATTRIBUTES` 等标准变量同样生效，`OTEL_SDK_DISABLED=true` 可临时关闭。
 
 生产部署的监控栈（Prometheus 抓取、告警规则、Grafana 仪表盘、Tempo）见 [deploy/README.md](../../deploy/README.md) 的「监控与告警」。
+
+### 本地监控
+
+本地 Compose 的 `observability` profile 启动同一套监控栈，复用 `deploy/observability/` 下的告警规则、仪表盘和 Tempo 配置，用于在开发时查看指标、查链路和调试告警：
+
+```bash
+docker compose --profile observability up -d --wait   # 或在 .env 中设置 COMPOSE_PROFILES=observability 后执行 pnpm infra:up
+```
+
+| 服务         | 地址                            | 说明                                                                                            |
+| ------------ | ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Grafana      | <http://localhost:3300>         | 免登录（匿名管理员），首页即「API 概览」仪表盘；Explore → Tempo 查链路                          |
+| Prometheus   | <http://localhost:9090>         | 通过 `host.docker.internal:9464` 抓取宿主机上运行的 API                                         |
+| Alertmanager | <http://localhost:9093>         | 告警邮件发到 Mailpit（<http://localhost:8025>，收件人 `ops@localhost`）；不含企业微信/飞书/钉钉 |
+| Tempo        | `http://localhost:4318`（OTLP） | 接收链路，保留 72 小时                                                                          |
+
+- 指标：`pnpm dev` 即可，Prometheus 15 秒内抓到。`METRICS_PORT` 不是 9464 时，同步修改 `deploy/observability/prometheus/prometheus.local.yml`。
+- 链路：`pnpm dev` 不加载预加载脚本，需要 `pnpm build` 后用 `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 pnpm start:prod` 启动（或把该变量写进 `.env`）。
+- 告警：开发中经常重启 API，`ApiDown` 等告警会出现在 Mailpit，属于正常现象。
+- 端口都只绑定 `127.0.0.1`；`GRAFANA_PORT`、`PROMETHEUS_PORT`、`ALERTMANAGER_PORT`、`TEMPO_OTLP_PORT` 可在 `.env` 中修改。
+- 停止：`docker compose --profile observability down`（未设置 `COMPOSE_PROFILES` 时，`pnpm infra:down` 不会停止这些容器）。
 
 首次部署需要种子数据时，在 `apps/server` 执行 `node dist/scripts/seed.js`。迁移文件在 `drizzle/`，数据库 schema 位于 `src/database/schema/`；修改 schema 后使用 `db:generate` 生成并提交迁移。
 
