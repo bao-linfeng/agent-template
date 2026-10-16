@@ -19,6 +19,7 @@ import {
 } from './common/errors/exception.filter.js'
 import type { Env } from './config/env.js'
 import { registerMetricsHook } from './infra/metrics/http-metrics.js'
+import { registerTracingHook } from './infra/tracing/http-tracing.js'
 import { registerAuditHook } from './modules/audit/audit.hook.js'
 import { REALM_COOKIES } from './modules/auth/realms.js'
 
@@ -102,6 +103,8 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
   registerAuditHook(app)
   // Prometheus HTTP metrics (see infra/metrics), served on the separate METRICS_PORT listener.
   registerMetricsHook(app)
+  // Names the OpenTelemetry request span by route and returns `traceparent` (see infra/tracing).
+  registerTracingHook(app)
 
   if (config.get('SWAGGER_ENABLED', { infer: true })) {
     const document = SwaggerModule.createDocument(

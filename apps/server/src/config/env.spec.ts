@@ -36,6 +36,30 @@ describe('validateEnv', () => {
     ).toBe(false)
   })
 
+  it('enables tracing only when an OTLP endpoint is set', () => {
+    expect(validateEnv({}).TRACING_ENABLED).toBe(false)
+    const env = validateEnv({
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo:4318',
+    })
+    expect(env.TRACING_ENABLED).toBe(true)
+    expect(env.OTEL_SERVICE_NAME).toBe('agent-template-server')
+    expect(env.OTEL_TRACES_SAMPLER_ARG).toBe(1)
+    expect(
+      validateEnv({
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'http://tempo:4318/v1/traces',
+      }).TRACING_ENABLED,
+    ).toBe(true)
+    expect(
+      validateEnv({
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo:4318',
+        OTEL_SDK_DISABLED: 'true',
+      }).TRACING_ENABLED,
+    ).toBe(false)
+    expect(() => validateEnv({ OTEL_TRACES_SAMPLER_ARG: '2' })).toThrow(
+      /OTEL_TRACES_SAMPLER_ARG/,
+    )
+  })
+
   it('requires secrets in production and enables secure defaults', () => {
     expect(() => validateEnv({ NODE_ENV: 'production' })).toThrow(
       /JWT_SECRET must be set in production/,

@@ -5,17 +5,13 @@ import { NestFactory } from '@nestjs/core'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { AppModule } from './app.module.js'
 import type { Env } from './config/env.js'
-import { observeEnabled, ObserveInstrument } from './observe.js'
 import { configureApp, createFastifyAdapter } from './setup-app.js'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     createFastifyAdapter(),
-    {
-      bufferLogs: true,
-      ...(observeEnabled ? { instrument: ObserveInstrument } : {}),
-    },
+    { bufferLogs: true },
   )
   await configureApp(app)
   const config = app.get<ConfigService<Env, true>>(ConfigService)

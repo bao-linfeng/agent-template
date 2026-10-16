@@ -253,12 +253,13 @@ run.cancelled
 
 ### 4.2 Agent 专属观测与用量控制
 
-**当前状态：** 有请求日志及可选的服务观测，尚无 Agent 级运行记录与指标。
+**当前状态：** 有请求日志、Prometheus 服务指标和 OpenTelemetry 链路追踪，尚无 Agent 级运行记录与指标。
 
 代码依据：
 
 - [`apps/server/src/app.module.ts`](apps/server/src/app.module.ts)
-- [`apps/server/src/observe.ts`](apps/server/src/observe.ts)
+- [`apps/server/src/infra/metrics`](apps/server/src/infra/metrics)
+- [`apps/server/src/tracing.ts`](apps/server/src/tracing.ts)
 
 **建议从第一个真实调用就记录：**
 
@@ -364,7 +365,7 @@ run.cancelled
 | 定时任务 | 没有 `@Cron` 或 BullMQ 重复任务；过期会话、重置令牌和孤儿对象没有清理任务 | P1 |
 | 账号注销与数据导出 | 只能删除头像、会话等，无法注销账号或导出个人数据；没有软删除与数据保留策略 | P1，面向公众上线前补齐 |
 | 第三方登录／SSO／双因素认证 | 均未实现；Bearer 通道已就绪，但没有微信、企业 SSO 等身份接入，管理员没有 TOTP | 按目标用户决定，管理员 TOTP 建议 P1 |
-| 指标与链路追踪 | 只有可选的 NestJS Observe，没有 Prometheus 指标或 OpenTelemetry 链路追踪；队列积压与失败没有告警 | P1 |
+| 指标与链路追踪 | 部分完成：Prometheus 指标（`apps/server/src/infra/metrics`，独立内部端口 9464）与 OpenTelemetry 链路追踪（`apps/server/src/tracing.ts`，OTLP 上报 Tempo）已实现；尚缺监控栈与队列积压、失败告警 | P1 |
 | 数据库连接防护 | `createPool` 只配置了 `max`，没有 `statement_timeout`、`idle_in_transaction_session_timeout` 与连接超时 | P1 |
 | 上传内容校验 | 未见基于文件内容（magic bytes）的类型识别，也没有病毒扫描 | P1，开放用户上传前补齐 |
 | 加密密钥轮换 | `SecretBox` 密文带 `v1` 版本前缀，但只支持单个 `ENCRYPTION_KEY`，更换密钥需要手动迁移 | P1 |
