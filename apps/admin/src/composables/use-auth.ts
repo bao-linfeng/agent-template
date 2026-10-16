@@ -1,8 +1,9 @@
+import { getErrorCode } from '@repo/utils'
 import { useQueryClient } from '@tanstack/vue-query'
 
 import type { ILoginBody } from '@/services/api/auth.api'
 
-import { HOME_PATH, LOGIN_PATH } from '@/constants/app'
+import { HOME_PATH, LOGIN_PATH, MFA_PATH } from '@/constants/app'
 import * as authApi from '@/services/api/auth.api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -31,10 +32,42 @@ export function useAuth() {
     return router.push(safeRedirect(router.currentRoute.value.query.redirect))
   }
 
-  /** Throws the API error so the form can show it. */
+  /**
+   * Throws the API error so the form can show it. Admins with two-factor authentication continue on the
+   * code page (keeping `?redirect=`).
+   */
   function login(body: ILoginBody) {
     return run(async () => {
-      authStore.setUser(await authApi.login(body))
+      const result = await authApi.login(body)
+      if (authApi.isMfaChallenge(result)) {
+        authStore.setPendingMfa(result, body.email)
+        await router.push({ path: MFA_PATH, query: router.currentRoute.value.query })
+        return
+      }
+      authStore.setUser(result)
+      await toRedirect()
+    })
+  }
+
+  /**
+   * Second step with an authenticator or recovery code. Throws the API error; when the challenge is gone
+   * (expired or too many wrong codes) the pending state is dropped, so the page offers to sign in again.
+   */
+  function verifyMfa(code: string) {
+    return run(async () => {
+      const pending = authStore.activeMfa()
+      if (!pending) {
+        authStore.clearPendingMfa()
+        return
+      }
+      try {
+        authStore.setUser(await authApi.loginMfa({ challengeToken: pending.challengeToken, code }))
+      }
+      catch (error) {
+        if (getErrorCode(error) === 'AUTH_MFA_CHALLENGE_INVALID')
+          authStore.clearPendingMfa()
+        throw error
+      }
       await toRedirect()
     })
   }
@@ -53,6 +86,7 @@ export function useAuth() {
   return {
     loading,
     login,
+    verifyMfa,
     logout,
   }
 }

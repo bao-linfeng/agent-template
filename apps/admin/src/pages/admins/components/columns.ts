@@ -20,6 +20,13 @@ export function createColumns(options: { canEdit: boolean }): DataTableColumnDef
       h(Badge, { key: role.id, variant: 'secondary', title: role.code }, () => role.name),
     )),
     enableSorting: false,
+  }, {
+    id: 'mfa',
+    header: ({ column }) => h(DataTableColumnHeader<IAdminAccount>, { column, title: t('fields.mfa') }),
+    cell: ({ row }) => row.original.mfaEnabled
+      ? h(Badge, { variant: 'secondary' }, () => t('common.enabled'))
+      : h('span', { class: 'text-muted-foreground' }, t('common.none')),
+    enableSorting: false,
   })
   if (options.canEdit) {
     columns.push({

@@ -70,6 +70,34 @@ export const mailTemplates = {
     }
   },
 
+  /** Security notice for every change of an admin's two-factor authentication. */
+  twoFactorChanged(input: {
+    nickname: string
+    change: 'enabled' | 'disabled' | 'reset'
+  }): RenderedMail {
+    const nickname = escapeHtml(input.nickname)
+    const { subject, body } = {
+      enabled: {
+        subject: '两步验证已开启 / Two-factor authentication enabled',
+        body: '你的账号刚刚开启了两步验证，其他设备已退出登录。今后登录时需要输入身份验证器中的验证码。',
+      },
+      disabled: {
+        subject: '两步验证已关闭 / Two-factor authentication disabled',
+        body: '你的账号刚刚关闭了两步验证，今后登录只需要密码。',
+      },
+      reset: {
+        subject: '两步验证已被重置 / Two-factor authentication reset',
+        body: '管理员重置了你账号的两步验证，所有设备已退出登录。登录后可以在设置中重新开启。',
+      },
+    }[input.change]
+    const warning = '如果不是你本人操作，请立即修改密码并联系管理员。'
+    return {
+      subject,
+      text: `${input.nickname}，你好：\n\n${body}${warning}`,
+      html: `<p>${nickname}，你好：</p><p>${body}${warning}</p>`,
+    }
+  },
+
   accountDeletionScheduled(input: {
     nickname: string
     scheduledAt: Date

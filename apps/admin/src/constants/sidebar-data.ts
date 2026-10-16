@@ -45,7 +45,6 @@ export const navData: NavGroup[] = [
           { title: 'nav.signIn2', url: '/auth/sign-in-2' },
           { title: 'nav.forgotPassword', url: '/auth/forgot-password' },
           { title: 'nav.resetPassword', url: '/auth/reset-password' },
-          { title: 'nav.otp', url: '/auth/otp' },
         ],
       },
       {

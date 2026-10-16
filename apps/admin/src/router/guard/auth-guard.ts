@@ -1,11 +1,11 @@
 import type { RouteLocationNormalized, RouteMeta, Router } from 'vue-router'
 
-import { HOME_PATH, LOGIN_PATH } from '@/constants/app'
+import { HOME_PATH, LOGIN_PATH, MFA_PATH } from '@/constants/app'
 import pinia from '@/plugins/pinia/setup'
 import { useAuthStore } from '@/stores/auth'
 
 /** Pages for signed-out users; signed-in users are sent away from them. */
-const GUEST_ONLY_PATHS = new Set([LOGIN_PATH, '/auth/sign-in-2'])
+const GUEST_ONLY_PATHS = new Set<string>([LOGIN_PATH, '/auth/sign-in-2', MFA_PATH])
 
 /**
  * Pages rendered in the dashboard layout require a session unless they opt out with `meta.auth: false`;

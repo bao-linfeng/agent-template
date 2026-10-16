@@ -8,6 +8,7 @@ import {
 } from '../../common/http/request.js'
 import type { AccountRow } from '../accounts/accounts.service.js'
 import { Audit, setAuditActor } from '../audit/audit-context.js'
+import type { MfaChallenge } from '../mfa/mfa.service.js'
 import { AuthCookies } from './auth-cookies.service.js'
 import { AuthService } from './auth.service.js'
 import {
@@ -57,7 +58,19 @@ export abstract class CredentialsController<Profile> {
 
   protected abstract profile(account: AccountRow): Promise<Profile>
 
-  /** Returns the profile, or `{ account, tokens }` for bearer clients. */
+  /**
+   * Second sign-in step for an account whose password matched: a challenge to answer instead of a
+   * session, or null to sign in right away. Realms with a second factor override it and add the route
+   * that completes the challenge.
+   */
+  protected secondFactor(_account: AccountRow): Promise<MfaChallenge | null> {
+    return Promise.resolve(null)
+  }
+
+  /**
+   * Returns the profile, or `{ account, tokens }` for bearer clients. Accounts with a second factor get
+   * `{ mfaRequired: true, challengeToken, expiresIn }` instead and no session yet.
+   */
   @Post('login')
   @HttpCode(200)
   @AuthThrottle()
@@ -66,14 +79,19 @@ export abstract class CredentialsController<Profile> {
     @Body() dto: LoginDto,
     @Req() request: HttpRequest,
     @Res({ passthrough: true }) reply: HttpReply,
-  ): Promise<Profile | BearerSignIn<Profile>> {
+  ): Promise<Profile | BearerSignIn<Profile> | MfaChallenge> {
     const bearer = usesBearerTransport(request, this.realm)
-    const { tokens, account } = await this.auth.login(
+    const account = await this.auth.authenticate(this.realm, dto)
+    setAuditActor(request, account)
+    const challenge = await this.secondFactor(account)
+    if (challenge) {
+      return challenge
+    }
+    const { tokens } = await this.auth.startSession(
       this.realm,
-      dto,
+      account,
       requestMeta(request),
     )
-    setAuditActor(request, account)
     return this.signIn(bearer, reply, tokens, await this.profile(account))
   }
 

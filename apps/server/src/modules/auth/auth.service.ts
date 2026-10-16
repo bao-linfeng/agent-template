@@ -103,21 +103,19 @@ export class AuthService {
   }
 
   /**
-   * Accounts with a pending deletion answer `AUTH_ACCOUNT_PENDING_DELETION` (with `params.scheduledAt`),
-   * but only after the password matched, so the state of an account is not revealed to strangers.
+   * First step of a sign-in: checks the password and returns the account to start a session for
+   * (`startSession`), possibly after a second factor. Accounts with a pending deletion answer
+   * `AUTH_ACCOUNT_PENDING_DELETION` (with `params.scheduledAt`), but only after the password matched,
+   * so the state of an account is not revealed to strangers.
    */
-  async login(
-    realm: Realm,
-    dto: LoginDto,
-    meta: RequestMeta,
-  ): Promise<AuthResult> {
+  async authenticate(realm: Realm, dto: LoginDto): Promise<AccountRow> {
     const account = await this.verifyCredentials(realm, dto)
     if (account.deletionScheduledAt) {
       throw new AppException('AUTH_ACCOUNT_PENDING_DELETION', {
         params: { scheduledAt: account.deletionScheduledAt.toISOString() },
       })
     }
-    return this.startSession(realm, account, meta)
+    return account
   }
 
   /** Cancels a pending deletion with the account's credentials and signs in (plain login otherwise). */
@@ -150,7 +148,8 @@ export class AuthService {
     return account
   }
 
-  private async startSession(
+  /** Creates a session for an authenticated account and records the sign-in. */
+  async startSession(
     realm: Realm,
     account: AccountRow,
     meta: RequestMeta,

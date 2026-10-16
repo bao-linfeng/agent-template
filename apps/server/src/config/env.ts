@@ -77,6 +77,8 @@ export const envSchema = z
       .default(10 * 60),
     /** Minimum wait before another code can be requested for the same email. */
     EMAIL_CODE_RESEND_SECONDS: z.coerce.number().int().positive().default(60),
+    /** Issuer shown next to admin accounts in authenticator apps (two-factor authentication). */
+    MFA_TOTP_ISSUER: z.string().trim().min(1).max(64).default('Agent Admin'),
     PASSWORD_HASH_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
     COOKIE_SECURE: booleanString.optional(),
     COOKIE_DOMAIN: z.string().optional(),

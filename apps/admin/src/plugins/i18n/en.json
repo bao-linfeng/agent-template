@@ -135,7 +135,8 @@
     "name": "Name",
     "code": "Code",
     "description": "Description",
-    "permissions": "Permissions"
+    "permissions": "Permissions",
+    "mfa": "Two-factor"
   },
   "status": {
     "active": "Active",
@@ -176,7 +177,6 @@
     "signIn2": "Sign In (2 Col)",
     "forgotPassword": "Forgot Password",
     "resetPassword": "Reset Password",
-    "otp": "OTP",
     "errors": "Errors",
     "error401": "401 Unauthorized",
     "error403": "403 Forbidden",
@@ -275,10 +275,14 @@
     "requestNewLink": "Request a new link",
     "resetSuccess": "Your password has been reset. Please sign in with the new password.",
     "otpTitle": "Two-Factor Authentication",
-    "otpDescription": "Please enter the authentication code. We have sent the authentication code to your email.",
+    "otpDescription": "Enter the 6-digit code from your authenticator app.",
     "verify": "Verify",
-    "otpNotReceived": "Haven't received it?",
-    "otpResend": "Resend a new code."
+    "otpRecoveryDescription": "Enter one of the recovery codes you saved when you turned on two-factor authentication. Each code works once.",
+    "otpAccount": "Signing in as {email}",
+    "otpExpired": "This verification has expired or had too many wrong codes. Please sign in again.",
+    "recoveryCode": "Recovery code",
+    "useRecoveryCode": "Use a recovery code",
+    "useAuthenticator": "Use the authenticator app"
   },
   "errors": {
     "401": {
@@ -369,7 +373,13 @@
     "UPLOAD_INVALID": "The upload is invalid.",
     "UPLOAD_NOT_MULTIPART": "The upload request is malformed.",
     "UPLOAD_TOO_LARGE": "The file exceeds the {maxBytes} byte limit.",
-    "VALIDATION_FAILED": "Some fields are invalid, please check your input."
+    "VALIDATION_FAILED": "Some fields are invalid, please check your input.",
+    "AUTH_MFA_CHALLENGE_INVALID": "Sign-in verification has expired, please sign in again.",
+    "AUTH_MFA_CODE_INVALID": "The authentication code or recovery code is invalid.",
+    "MFA_ALREADY_ENABLED": "Two-factor authentication is already on.",
+    "MFA_NOT_ENABLED": "Two-factor authentication is not on.",
+    "MFA_SETUP_EXPIRED": "The setup has expired, please start again.",
+    "ADMIN_CANNOT_RESET_OWN_MFA": "You cannot reset your own two-factor authentication; turn it off in Settings instead."
   },
   "accounts": {
     "user": "User",
@@ -408,7 +418,11 @@
     "statusHint": "Disabling signs the admin out everywhere.",
     "createSubmit": "Create admin",
     "created": "Admin {email} created. Share the initial password with them securely.",
-    "updated": "Admin updated."
+    "updated": "Admin updated.",
+    "resetMfa": "Reset two-factor",
+    "resetMfaTitle": "Reset two-factor authentication of {email}?",
+    "resetMfaDescription": "Use this when they lost their authenticator and recovery codes. They are signed out everywhere and sign in with the password alone until they turn it on again.",
+    "mfaReset": "Two-factor authentication reset. The admin has been signed out everywhere."
   },
   "roles": {
     "title": "Roles",
@@ -536,6 +550,40 @@
       "newPasswordHint": "8-72 characters. Every other session will be signed out.",
       "submit": "Change password",
       "changed": "Password changed. Your other sessions have been signed out."
+    },
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "description": "Ask for a code from an authenticator app after your password, so a leaked password alone cannot sign in.",
+      "statusOn": "On",
+      "offHint": "Off. Use an authenticator app such as Google Authenticator, Microsoft Authenticator or 1Password.",
+      "authenticatorApp": "Authenticator app",
+      "enabledAt": "Turned on {date}",
+      "recoveryRemaining": "{count} unused recovery codes",
+      "enable": "Turn on",
+      "disable": "Turn off",
+      "regenerate": "New recovery codes",
+      "setupTitle": "Set up an authenticator app",
+      "passwordStep": "Confirm your password to start.",
+      "scanStep": "Scan the QR code with your authenticator app, then enter the 6-digit code it shows.",
+      "qrAlt": "QR code for the authenticator app",
+      "manualEntry": "Cannot scan it? Enter this key in the app:",
+      "code": "Authentication code",
+      "codePlaceholder": "6-digit code",
+      "verifyAndEnable": "Verify and turn on",
+      "codesTitle": "Save your recovery codes",
+      "codesDescription": "If you lose your authenticator, each code signs you in once. They are shown only now, so copy or download them and keep them safe.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "download": "Download",
+      "done": "I have saved them",
+      "enabled": "Two-factor authentication is on. Your other sessions have been signed out.",
+      "disableTitle": "Turn off two-factor authentication",
+      "disableDescription": "Confirm with your password and a current authentication code or a recovery code.",
+      "disabled": "Two-factor authentication is off.",
+      "regenerateTitle": "Generate new recovery codes",
+      "regenerateDescription": "Your current recovery codes stop working. Confirm with your password and a current authentication code or a recovery code.",
+      "codeOrRecovery": "Authentication or recovery code",
+      "codeOrRecoveryPlaceholder": "123456 or xxxxx-xxxxx"
     },
     "sessions": {
       "title": "Active sessions",

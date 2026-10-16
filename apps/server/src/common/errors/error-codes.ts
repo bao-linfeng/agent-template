@@ -146,6 +146,14 @@ export const ERRORS = {
     status: HttpStatus.BAD_REQUEST,
     message: 'Verification code is invalid or has expired',
   },
+  AUTH_MFA_CHALLENGE_INVALID: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Sign-in verification has expired, please sign in again',
+  },
+  AUTH_MFA_CODE_INVALID: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Authentication code or recovery code is invalid',
+  },
   PERMISSION_DENIED: {
     status: HttpStatus.FORBIDDEN,
     message: 'You do not have permission to perform this action',
@@ -218,6 +226,25 @@ export const ERRORS = {
   ADMIN_CANNOT_REMOVE_OWN_SUPER_ADMIN: {
     status: HttpStatus.BAD_REQUEST,
     message: 'You cannot remove super_admin from yourself',
+  },
+  ADMIN_CANNOT_RESET_OWN_MFA: {
+    status: HttpStatus.BAD_REQUEST,
+    message:
+      'You cannot reset your own two-factor authentication; turn it off in your settings instead',
+  },
+
+  // Two-factor authentication (admin console)
+  MFA_ALREADY_ENABLED: {
+    status: HttpStatus.CONFLICT,
+    message: 'Two-factor authentication is already enabled',
+  },
+  MFA_NOT_ENABLED: {
+    status: HttpStatus.CONFLICT,
+    message: 'Two-factor authentication is not enabled',
+  },
+  MFA_SETUP_EXPIRED: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Two-factor setup has expired, please start again',
   },
   ROLE_NOT_FOUND: { status: HttpStatus.NOT_FOUND, message: 'Role not found' },
   ROLES_UNKNOWN: {

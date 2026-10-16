@@ -21,6 +21,7 @@ const profile: IUserProfile = {
   createdAt: '2026-01-01T00:00:00.000Z',
   roles: ['admin'],
   permissions: ['user:read', 'embedding-model:manage'],
+  mfaEnabled: false,
 }
 
 describe('stores', () => {
@@ -47,6 +48,29 @@ describe('stores', () => {
 
     expect(authStore.isLogin).toBe(false)
     expect(authStore.user).toBeNull()
+  })
+
+  it('keeps a pending two-factor challenge until it expires or a session starts', () => {
+    const authStore = useAuthStore()
+    const now = 1_000_000
+
+    expect(authStore.activeMfa(now)).toBeNull()
+
+    authStore.setPendingMfa({ mfaRequired: true, challengeToken: 'c1', expiresIn: 300 }, 'ada@example.com', now)
+
+    expect(authStore.activeMfa(now + 299_000)).toEqual({ challengeToken: 'c1', email: 'ada@example.com', expiresAt: now + 300_000 })
+    expect(authStore.activeMfa(now + 300_000)).toBeNull()
+    expect(authStore.isLogin).toBe(false)
+
+    authStore.setUser(profile)
+    expect(authStore.pendingMfa).toBeNull()
+
+    authStore.setPendingMfa({ mfaRequired: true, challengeToken: 'c2', expiresIn: 300 }, 'ada@example.com', now)
+    authStore.clearPendingMfa()
+    expect(authStore.pendingMfa).toBeNull()
+    authStore.setPendingMfa({ mfaRequired: true, challengeToken: 'c3', expiresIn: 300 }, 'ada@example.com', now)
+    authStore.clear()
+    expect(authStore.pendingMfa).toBeNull()
   })
 
   it('restores the session once, sharing concurrent calls', async () => {

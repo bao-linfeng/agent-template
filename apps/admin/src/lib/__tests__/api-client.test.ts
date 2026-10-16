@@ -41,6 +41,7 @@ const profile: IUserProfile = {
   createdAt: '2026-01-01T00:00:00.000Z',
   roles: ['user'],
   permissions: [],
+  mfaEnabled: false,
 }
 
 function respond(status: number, body: unknown = { message: 'Service unavailable' }) {
