@@ -57,6 +57,20 @@ groups:
           summary: Node.js 事件循环阻塞
           description: "{{ $labels.instance }} 事件循环延迟 p99 持续 5 分钟高于 500ms（当前 {{ $value | humanizeDuration }}），通常是 CPU 密集计算或同步 IO。"
 
+      # Only with CLAMAV_HOST set: uploads fail closed (503) while clamd cannot scan them.
+      - alert: UploadScanFailing
+        expr: |
+          sum by (instance) (increase(upload_scans_total{result="error"}[10m])) > 0
+          or (
+            sum by (instance) (upload_scans_total{result="error"} unless upload_scans_total{result="error"} offset 10m)
+            and on () group(up{job="api"} offset 10m)
+          )
+        labels:
+          severity: warning
+        annotations:
+          summary: 上传文件无法进行病毒扫描
+          description: "{{ $labels.instance }} 最近 10 分钟有上传因 clamd 不可用或报错被拒绝（503 UPLOAD_SCAN_UNAVAILABLE）。检查 clamav 容器状态和 API 日志。"
+
   - name: queues
     rules:
       # Every instance reports the same Redis counts: take the max per queue, not the sum.

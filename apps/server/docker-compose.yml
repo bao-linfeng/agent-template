@@ -4,6 +4,7 @@
 #   docker compose up -d                 # postgres + redis + rustfs + mailpit
 #   docker compose --profile ai up -d    # also start Ollama for local bge-m3 embeddings
 #   docker compose --profile observability up -d   # also Prometheus, Alertmanager, Tempo and Grafana
+#   docker compose --profile antivirus up -d       # also clamd for the upload malware scan (CLAMAV_HOST=localhost)
 #
 # Profiles can also be set once in .env (COMPOSE_PROFILES=observability), then `pnpm infra:up`/`infra:down` include them.
 name: agent-template-server
@@ -30,7 +31,14 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
-    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    command:
+      [
+        'redis-server',
+        '--appendonly',
+        'yes',
+        '--maxmemory-policy',
+        'noeviction',
+      ]
     ports:
       - '${REDIS_PORT:-6379}:6379'
     volumes:
@@ -71,6 +79,17 @@ services:
       - '${OLLAMA_PORT:-11434}:11434'
     volumes:
       - ollama-data:/root/.ollama
+
+  clamav:
+    # Optional malware scan of uploads: set CLAMAV_HOST=localhost. The first start downloads the signature
+    # database (a few hundred MB) and takes a few minutes until healthy; clamd then needs ~1.5 GB RAM.
+    image: clamav/clamav:1.4
+    profiles: ['antivirus']
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${CLAMAV_PORT:-3310}:3310'
+    volumes:
+      - clamav-data:/var/lib/clamav
 
   # --- Monitoring (profile `observability`): the production stack of deploy/observability, wired to the host API ---
   # Same rules, dashboard and Tempo settings as deploy/docker-compose.yml (keep the image versions equal).
@@ -170,6 +189,7 @@ volumes:
   redis-data:
   rustfs-data:
   ollama-data:
+  clamav-data:
   prometheus-data:
   alertmanager-data:
   tempo-data:

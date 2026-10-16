@@ -9,6 +9,7 @@ import { IdempotencyInterceptor } from './common/idempotency/idempotency.interce
 import { RedisThrottlerStorage } from './common/throttling/redis-throttler.storage.js'
 import { validateEnv, type Env } from './config/env.js'
 import { DatabaseModule } from './database/database.module.js'
+import { AntivirusModule } from './infra/antivirus/antivirus.module.js'
 import { MailModule } from './infra/mail/mail.module.js'
 import { MetricsModule } from './infra/metrics/metrics.module.js'
 import { QueueModule } from './infra/queue/queue.module.js'
@@ -91,6 +92,7 @@ import { UsersModule } from './modules/users/users.module.js'
     RedisModule,
     CryptoModule,
     StorageModule,
+    AntivirusModule,
     QueueModule,
     MetricsModule,
     TracingModule,

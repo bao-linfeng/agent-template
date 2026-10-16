@@ -216,6 +216,14 @@ export const ERRORS = {
     status: HttpStatus.BAD_REQUEST,
     message: 'Invalid multipart upload',
   },
+  UPLOAD_INFECTED: {
+    status: HttpStatus.UNPROCESSABLE_ENTITY,
+    message: 'The file was rejected by the malware scan',
+  },
+  UPLOAD_SCAN_UNAVAILABLE: {
+    status: HttpStatus.SERVICE_UNAVAILABLE,
+    message: 'Uploads cannot be scanned right now, please try again later',
+  },
   FILE_NOT_FOUND: { status: HttpStatus.NOT_FOUND, message: 'File not found' },
 
   // Admin console accounts and roles
