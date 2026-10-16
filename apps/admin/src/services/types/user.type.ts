@@ -11,6 +11,8 @@ export interface IPublicUser {
   avatarUrl: string | null
   status: UserStatus
   lastLoginAt: string | null
+  /** Client users only: when a pending deletion purges the account (signed out until restored); null otherwise. */
+  deletionScheduledAt: string | null
   createdAt: string
 }
 

@@ -24,6 +24,7 @@ export const PERMISSIONS = {
   'all:manage': '全部权限（超级管理员）',
   'user:read': '查看客户端用户',
   'user:update': '编辑客户端用户资料与状态',
+  'user:delete': '注销客户端用户或撤销其注销',
   'admin:read': '查看管理员账号',
   'admin:create': '创建管理员账号',
   'admin:update': '编辑管理员资料、状态与角色',

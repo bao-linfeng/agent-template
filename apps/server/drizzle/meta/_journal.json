@@ -43,6 +43,13 @@
       "when": 1792113361465,
       "tag": "0005_audit_logs",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792120909492,
+      "tag": "0006_account_deletion_exports",
+      "breakpoints": true
     }
   ]
 }

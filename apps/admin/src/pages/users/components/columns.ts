@@ -48,7 +48,11 @@ export function accountColumns<T extends IPublicUser>(): DataTableColumnDef<T>[]
       header: ({ column }) => h(DataTableColumnHeader<T>, { column, title: t('fields.status') }),
       cell: ({ row }) => {
         const status = userStatuses.find(item => item.value === row.original.status)
-        return status ? h(Badge, { class: status.style, variant: 'outline' }, () => t(status.label)) : null
+        const { deletionScheduledAt } = row.original
+        return h('div', { class: 'flex flex-wrap gap-1' }, [
+          status && h(Badge, { class: status.style, variant: 'outline' }, () => t(status.label)),
+          deletionScheduledAt && h(Badge, { variant: 'destructive' }, () => t('users.deletionOn', { date: formatDate(deletionScheduledAt) })),
+        ])
       },
       enableSorting: false,
     },
@@ -67,12 +71,12 @@ export function accountColumns<T extends IPublicUser>(): DataTableColumnDef<T>[]
   ]
 }
 
-export function createColumns(options: { canEdit: boolean }): DataTableColumnDef<IClientUser>[] {
+export function createColumns(options: { canEdit: boolean, canDelete: boolean }): DataTableColumnDef<IClientUser>[] {
   const columns = accountColumns<IClientUser>()
-  if (options.canEdit) {
+  if (options.canEdit || options.canDelete) {
     columns.push({
       id: 'actions',
-      cell: ({ row }) => h(DataTableRowActions, { row }),
+      cell: ({ row }) => h(DataTableRowActions, { row, canEdit: options.canEdit, canDelete: options.canDelete }),
     })
   }
   return columns

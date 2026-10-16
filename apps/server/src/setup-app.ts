@@ -77,7 +77,12 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
     // @fastify/cors only allows GET,HEAD,POST by default; the web apps also PATCH/PUT/DELETE.
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
     // Readable by browser code; request headers such as Idempotency-Key are reflected from the preflight.
-    exposedHeaders: ['x-request-id', IDEMPOTENT_REPLAYED_HEADER],
+    // Content-Disposition carries the file name of downloads such as data exports.
+    exposedHeaders: [
+      'x-request-id',
+      IDEMPOTENT_REPLAYED_HEADER,
+      'content-disposition',
+    ],
   })
   app.setGlobalPrefix(prefix)
   // Realm controllers carry `version: API_VERSION` → `/<prefix>/v1/{client,admin}/...`; public routes stay unversioned.

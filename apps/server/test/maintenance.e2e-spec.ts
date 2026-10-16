@@ -44,10 +44,9 @@ describe('maintenance jobs (e2e)', () => {
   it('registers the nightly job schedulers', async () => {
     const queue = t.app.get<Queue>(getQueueToken(QUEUES.maintenance))
     const schedulers = await queue.getJobSchedulers()
-    expect(schedulers.map((scheduler) => scheduler.key).sort()).toEqual([
-      MAINTENANCE_JOBS.authRecordsPrune,
-      MAINTENANCE_JOBS.storageOrphanSweep,
-    ])
+    expect(schedulers.map((scheduler) => scheduler.key).sort()).toEqual(
+      Object.values(MAINTENANCE_JOBS).sort(),
+    )
   })
 
   it('deletes sessions and reset tokens that ended before the cutoff in both realms', async () => {

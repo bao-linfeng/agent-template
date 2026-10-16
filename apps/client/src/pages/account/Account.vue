@@ -9,6 +9,8 @@ import { computed, reactive, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import AvatarPicker from '@/components/account/AvatarPicker.vue'
+import DataExportCard from '@/components/account/DataExportCard.vue'
+import DeleteAccountCard from '@/components/account/DeleteAccountCard.vue'
 import TextField from '@/components/account/TextField.vue'
 import { MainNavigation } from '@/components/sections/navbar'
 import { takeFlash } from '@/composables/useFlash'
@@ -197,6 +199,9 @@ async function logout() {
           </form>
         </CardContent>
       </Card>
+
+      <DataExportCard />
+      <DeleteAccountCard />
     </div>
   </main>
 </template>

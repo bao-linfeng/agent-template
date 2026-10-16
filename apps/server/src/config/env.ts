@@ -127,6 +127,11 @@ export const envSchema = z
     /** Daily sweep of avatar and RAG source objects that no database row references anymore. */
     STORAGE_ORPHAN_SWEEP_ENABLED: booleanString.default(true),
 
+    /** Days a client user can restore an account after requesting its deletion; the nightly purge then deletes it with all its data. 0 = purged by the next run. */
+    ACCOUNT_DELETION_GRACE_DAYS: z.coerce.number().int().min(0).default(15),
+    /** How long a finished personal data export stays downloadable before it is deleted. */
+    ACCOUNT_EXPORT_TTL_HOURS: z.coerce.number().int().positive().default(72),
+
     OBSERVE_APP_KEY: z.string().optional(),
     OBSERVE_APP_SECRET: z.string().optional(),
   })

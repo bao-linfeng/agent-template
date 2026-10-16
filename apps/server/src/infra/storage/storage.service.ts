@@ -1,3 +1,5 @@
+import { createReadStream } from 'node:fs'
+import { stat } from 'node:fs/promises'
 import type { Readable } from 'node:stream'
 import {
   CreateBucketCommand,
@@ -109,6 +111,25 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
         ContentType: contentType,
       }),
     )
+  }
+
+  /** Streams a local file into storage (for large generated files); returns its size in bytes. */
+  async putFile(
+    key: string,
+    path: string,
+    contentType: string,
+  ): Promise<number> {
+    const { size } = await stat(path)
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: createReadStream(path),
+        ContentLength: size,
+        ContentType: contentType,
+      }),
+    )
+    return size
   }
 
   async getObject(key: string): Promise<StoredObject> {

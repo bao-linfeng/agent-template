@@ -9,6 +9,7 @@ export const QUEUES = {
   ragIngest: 'rag-ingest',
   audit: 'audit',
   maintenance: 'maintenance',
+  accountExport: 'account-export',
 } as const
 
 @Module({

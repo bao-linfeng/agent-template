@@ -4,12 +4,16 @@ import { ConfigService } from '@nestjs/config'
 import { UnrecoverableError, type Job, type Queue } from 'bullmq'
 import type { Env } from '../../config/env.js'
 import { QUEUES } from '../../infra/queue/queue.module.js'
+import { AccountExportsCleanup } from './account-exports.cleanup.js'
 import { AuthRecordsCleanup } from './auth-records.cleanup.js'
+import { DeletedAccountsCleanup } from './deleted-accounts.cleanup.js'
 import { OrphanObjectsCleanup } from './orphan-objects.cleanup.js'
 
 /** Job scheduler ids; each scheduler emits jobs with the same name. */
 export const MAINTENANCE_JOBS = {
+  accountExportsPrune: 'account-exports-prune',
   authRecordsPrune: 'auth-records-prune',
+  accountPurge: 'account-purge',
   storageOrphanSweep: 'storage-orphan-sweep',
 } as const
 
@@ -20,8 +24,11 @@ export const ORPHAN_GRACE_MS = DAY_MS
 /**
  * Nightly housekeeping (server time) on the `maintenance` queue. BullMQ job schedulers run each job once
  * per cluster; a disabled task has its schedule removed on boot.
+ * - 03:15 `account-exports-prune`: data exports past `expiresAt` (`ACCOUNT_EXPORT_TTL_HOURS`), stuck ones.
  * - 03:30 `auth-records-prune`: sessions and reset tokens `AUTH_RECORD_RETENTION_DAYS` after they ended.
- * - 04:00 `storage-orphan-sweep`: unreferenced avatar/RAG objects (`STORAGE_ORPHAN_SWEEP_ENABLED`).
+ * - 03:45 `account-purge`: client accounts whose deletion grace period (`ACCOUNT_DELETION_GRACE_DAYS`) ended.
+ * - 04:00 `storage-orphan-sweep`: unreferenced avatar/RAG/export objects (`STORAGE_ORPHAN_SWEEP_ENABLED`).
+ * The two account jobs always run: they keep the promises made to users (deletion, export expiry).
  */
 @Processor(QUEUES.maintenance)
 export class MaintenanceProcessor
@@ -35,6 +42,8 @@ export class MaintenanceProcessor
   constructor(
     private readonly authRecords: AuthRecordsCleanup,
     private readonly orphanObjects: OrphanObjectsCleanup,
+    private readonly deletedAccounts: DeletedAccountsCleanup,
+    private readonly accountExports: AccountExportsCleanup,
     @InjectQueue(QUEUES.maintenance) private readonly queue: Queue,
     config: ConfigService<Env, true>,
   ) {
@@ -49,10 +58,16 @@ export class MaintenanceProcessor
 
   async onApplicationBootstrap(): Promise<void> {
     await this.schedule(
+      MAINTENANCE_JOBS.accountExportsPrune,
+      '15 3 * * *',
+      true,
+    )
+    await this.schedule(
       MAINTENANCE_JOBS.authRecordsPrune,
       '30 3 * * *',
       this.authRetentionDays > 0,
     )
+    await this.schedule(MAINTENANCE_JOBS.accountPurge, '45 3 * * *', true)
     await this.schedule(
       MAINTENANCE_JOBS.storageOrphanSweep,
       '0 4 * * *',
@@ -66,6 +81,10 @@ export class MaintenanceProcessor
         return this.pruneAuthRecords()
       case MAINTENANCE_JOBS.storageOrphanSweep:
         return this.sweepOrphanObjects()
+      case MAINTENANCE_JOBS.accountPurge:
+        return this.purgeDeletedAccounts()
+      case MAINTENANCE_JOBS.accountExportsPrune:
+        return this.pruneAccountExports()
       default:
         throw new UnrecoverableError(`Unknown maintenance job "${job.name}"`)
     }
@@ -95,6 +114,18 @@ export class MaintenanceProcessor
     )
     if (deleted > 0) {
       this.logger.log(`Deleted ${deleted} unreferenced storage objects`)
+    }
+  }
+
+  private async purgeDeletedAccounts(): Promise<void> {
+    // Logs on its own: it emails every purged user.
+    await this.deletedAccounts.run(new Date())
+  }
+
+  private async pruneAccountExports(): Promise<void> {
+    const deleted = await this.accountExports.run(new Date())
+    if (deleted > 0) {
+      this.logger.log(`Deleted ${deleted} expired data exports`)
     }
   }
 

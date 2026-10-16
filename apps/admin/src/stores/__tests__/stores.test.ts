@@ -17,6 +17,7 @@ const profile: IUserProfile = {
   avatarUrl: null,
   status: 'active',
   lastLoginAt: null,
+  deletionScheduledAt: null,
   createdAt: '2026-01-01T00:00:00.000Z',
   roles: ['admin'],
   permissions: ['user:read', 'embedding-model:manage'],

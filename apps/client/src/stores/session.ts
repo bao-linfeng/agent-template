@@ -42,6 +42,18 @@ export const useSessionStore = defineStore('session', () => {
     setUser(await accountApi.login(credentials))
   }
 
+  /** Cancels a pending deletion of the account and signs in. */
+  async function restoreAccount(credentials: Credentials) {
+    setUser(await accountApi.restoreAccount(credentials))
+  }
+
+  /** The server signs every session out, so the local profile goes too. Returns the purge date. */
+  async function requestDeletion(password: string): Promise<string> {
+    const { deletionScheduledAt } = await accountApi.requestDeletion(password)
+    setUser(null)
+    return deletionScheduledAt
+  }
+
   /**
    * Registration signs the user in; the optional avatar is uploaded with the new session.
    * Returns an error message when only the avatar failed.
@@ -90,6 +102,8 @@ export const useSessionStore = defineStore('session', () => {
     isLoggedIn,
     restore,
     login,
+    restoreAccount,
+    requestDeletion,
     register,
     logout,
     updateProfile,
