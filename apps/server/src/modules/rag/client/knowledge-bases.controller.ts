@@ -13,6 +13,7 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { PaginationQueryDto } from '../../../common/dto/pagination.dto.js'
+import { Idempotent } from '../../../common/idempotency/idempotency.js'
 import { readSingleFile } from '../../../common/http/multipart.js'
 import type { AuthUser, HttpRequest } from '../../../common/http/request.js'
 import type { Env } from '../../../config/env.js'
@@ -48,7 +49,9 @@ export class RagController {
     return this.knowledgeBases.list(query, user.id)
   }
 
+  /** Send `Idempotency-Key` to make retries safe. */
   @Post()
+  @Idempotent()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateKnowledgeBaseDto) {
     return this.knowledgeBases.create(user.id, dto)
   }
@@ -108,8 +111,12 @@ export class RagController {
     )
   }
 
-  /** Upload a text file (multipart field `file`, optional field `title` sent before it). Indexing runs in the background. */
+  /**
+   * Upload a text file (multipart field `file`, optional field `title` sent before it). Indexing runs in
+   * the background. Send `Idempotency-Key` to make retries safe (the file is not part of the fingerprint).
+   */
   @Post(':id/documents')
+  @Idempotent()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: `Supported: ${SUPPORTED_EXTENSIONS.join(', ')}`,
@@ -135,7 +142,9 @@ export class RagController {
     return this.documents.addFile(kb, user.id, file)
   }
 
+  /** Send `Idempotency-Key` to make retries safe. */
   @Post(':id/documents/text')
+  @Idempotent()
   async addText(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

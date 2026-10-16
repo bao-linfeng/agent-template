@@ -6,6 +6,7 @@ import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { chunks, documents } from '../../database/schema/index.js'
 import { QUEUES } from '../../infra/queue/queue.module.js'
+import { RedisLockService } from '../../infra/redis/redis-lock.service.js'
 import { StorageService } from '../../infra/storage/storage.service.js'
 import { EmbeddingClient } from '../ai/embedding-client.js'
 import { EmbeddingModelsService } from '../ai/embedding-models.service.js'
@@ -14,8 +15,14 @@ import type { IngestJob } from './documents.service.js'
 import { splitText } from './text-splitter.js'
 
 const INSERT_BATCH = 500
+/** How long a job waits for another ingest of the same document (upload + quick reindex) before retrying. */
+const LOCK_WAIT_MS = 5 * 60_000
 
-/** parse → chunk → embed → replace chunks. Transient failures (provider down) are retried by BullMQ. */
+/**
+ * parse → chunk → embed → replace chunks. Transient failures (provider down) are retried by BullMQ.
+ * Jobs of the same document run one at a time (Redis lock), so overlapping ingests cannot interleave
+ * their chunk replacements.
+ */
 @Processor(QUEUES.ragIngest, { concurrency: 2 })
 export class IngestProcessor extends WorkerHost {
   private readonly logger = new Logger(IngestProcessor.name)
@@ -25,11 +32,21 @@ export class IngestProcessor extends WorkerHost {
     private readonly storage: StorageService,
     private readonly models: EmbeddingModelsService,
     private readonly embeddings: EmbeddingClient,
+    private readonly locks: RedisLockService,
   ) {
     super()
   }
 
   async process(job: Job<IngestJob>): Promise<void> {
+    // Busy for longer than LOCK_WAIT_MS → RESOURCE_LOCKED, retried by BullMQ with the document still pending.
+    await this.locks.withLock(
+      `rag:ingest:${job.data.documentId}`,
+      () => this.ingest(job),
+      { waitMs: LOCK_WAIT_MS, retryDelayMs: 500 },
+    )
+  }
+
+  private async ingest(job: Job<IngestJob>): Promise<void> {
     const { documentId } = job.data
     const document = await this.db.query.documents.findFirst({
       where: eq(documents.id, documentId),

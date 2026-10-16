@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import type { Redis } from 'ioredis'
 import { LoggerModule } from 'nestjs-pino'
 import { CryptoModule } from './common/crypto/crypto.module.js'
+import { IdempotencyInterceptor } from './common/idempotency/idempotency.interceptor.js'
 import { RedisThrottlerStorage } from './common/throttling/redis-throttler.storage.js'
 import { validateEnv, type Env } from './config/env.js'
 import { DatabaseModule } from './database/database.module.js'
@@ -108,6 +109,8 @@ import { observeImports } from './observe.js'
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PoliciesGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    // Only acts on routes decorated with @Idempotent(); inside the audit interceptor so replays are audited too.
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
 })
 export class AppModule {}

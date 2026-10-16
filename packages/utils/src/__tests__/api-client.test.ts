@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createApiClient, FetchError, getErrorCode, getErrorMessage, isUnauthorized } from '../api-client'
+import { createApiClient, createIdempotencyKey, FetchError, getErrorCode, getErrorMessage, isUnauthorized } from '../api-client'
 
 const fetchMock = vi.fn()
 vi.stubGlobal('fetch', fetchMock)
@@ -133,6 +133,68 @@ describe('createApiClient', () => {
     expect(isUnauthorized(error)).toBe(false)
     expect(getErrorMessage(error)).toBe('Forbidden')
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('idempotency keys', () => {
+  const client = createApiClient({ baseURL: BASE_URL })
+  const UUID = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+  })
+
+  function sentKeys() {
+    return fetchMock.mock.calls
+      .filter(([request]) => !String(request).endsWith('/auth/refresh'))
+      .map(([, init]) => new Headers(init.headers).get('idempotency-key'))
+  }
+
+  it('sends no key unless asked', async () => {
+    route(() => respond(200, {}))
+
+    await client.fetch('/kb', { method: 'POST', body: {} })
+    await client.fetch('/kb', { method: 'POST', body: {}, idempotencyKey: false })
+    expect(sentKeys()).toEqual([null, null])
+  })
+
+  it('generates one key per call and reuses it for the retry after a refresh', async () => {
+    route((path, call) => {
+      if (path === '/auth/refresh')
+        return respond(204)
+      return path === '/kb' && call === 0 ? respond(401) : respond(201, {})
+    })
+
+    await client.fetch('/kb', { method: 'POST', body: { name: 'a' }, idempotencyKey: true })
+    await client.fetch('/other', { method: 'POST', body: {}, idempotencyKey: true })
+    const [first, retry, other] = sentKeys()
+    expect(first).toMatch(UUID)
+    expect(retry).toBe(first)
+    expect(other).toMatch(UUID)
+    expect(other).not.toBe(first)
+  })
+
+  it('uses a given key and keeps other headers', async () => {
+    route(() => respond(201, {}))
+    const key = createIdempotencyKey()
+
+    await client.fetch('/kb', { method: 'POST', body: {}, headers: { 'X-Trace': '1' }, idempotencyKey: key })
+    await client.fetch('/kb', { method: 'POST', body: {}, headers: { 'Idempotency-Key': 'explicit' }, idempotencyKey: key })
+    expect(sentKeys()).toEqual([key, 'explicit'])
+    expect(new Headers(fetchMock.mock.calls[0]![1].headers).get('x-trace')).toBe('1')
+  })
+
+  it('creates UUID v4 keys without crypto.randomUUID (insecure contexts)', () => {
+    const { crypto } = globalThis
+    vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) })
+    try {
+      const key = createIdempotencyKey()
+      expect(key).toMatch(UUID)
+      expect(createIdempotencyKey()).not.toBe(key)
+    }
+    finally {
+      vi.stubGlobal('crypto', crypto)
+    }
   })
 })
 
