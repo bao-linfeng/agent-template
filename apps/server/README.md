@@ -15,7 +15,7 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 
 ## 快速开始
 
-需要 Node.js ≥ 24、根目录固定的 pnpm **11.25.0** 和 Docker。先在仓库根目录运行 `pnpm install --frozen-lockfile`，再在 `apps/server` 执行以下命令；在仓库根目录调用脚本时使用 `pnpm -C apps/server <脚本>`。
+需要 Node.js ≥ 24.22、根目录固定的 pnpm **11.25.0** 和 Docker。先在仓库根目录运行 `pnpm install --frozen-lockfile`，再在 `apps/server` 执行以下命令；在仓库根目录调用脚本时使用 `pnpm -C apps/server <脚本>`。
 
 ```bash
 cp .env.example .env     # 本地默认值即可直接使用

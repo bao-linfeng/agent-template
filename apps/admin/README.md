@@ -6,7 +6,7 @@ The Vue admin console in [Agent Template](../../README.md), based on [shadcn-vue
 
 ## Quick start
 
-Use Node.js **24+** and the root-pinned **pnpm 11.25.0**. Run these commands from the repository root:
+Use Node.js **24.22+** and the root-pinned **pnpm 11.25.0**. Run these commands from the repository root:
 
 ```sh
 pnpm install --frozen-lockfile

@@ -2,7 +2,7 @@
 
 ## Workspace boundaries
 
-- Use Node.js >=24 and root-pinned pnpm 11.25.0. Install from the root with `pnpm install --frozen-lockfile`; dependency edits update the single root lockfile. Root workspace settings enforce a 24-hour minimum release age and explicitly allow dependency build scripts.
+- Use Node.js >=24.22 and root-pinned pnpm 11.25.0 (older 24.x on Windows randomly kills Vitest forks with native exit 0xC0000409, reported as "Worker exited unexpectedly"). Install from the root with `pnpm install --frozen-lockfile`; dependency edits update the single root lockfile. Root workspace settings enforce a 24-hour minimum release age and explicitly allow dependency build scripts.
 - Workspace globs are `apps/*` and `packages/*`.
 - The repository is Vue-only: there is no React/Next.js code. `apps/docs` is a VitePress site.
 - Shared code lives in Just-in-Time packages that export source directly (no build step, no TypeScript `paths` used by their sources):
