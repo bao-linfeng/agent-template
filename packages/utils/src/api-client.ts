@@ -5,7 +5,8 @@
  * `credentials: 'include'`. A 401 triggers one shared `POST <authPath>/refresh` and a single retry; if
  * the refresh fails too, `onUnauthorized` decides what happens to the local session. Client users and
  * admin console accounts are separate realms, each under its own versioned root (`/v1/client`,
- * `/v1/admin`) with its own `/auth` routes; point `baseURL` at the realm root.
+ * `/v1/admin`) with its own `/auth` routes; point `baseURL` at the realm root. Requests may carry an
+ * `Idempotency-Key` (option `idempotencyKey`) for server routes marked `@Idempotent()`.
  */
 import type { FetchOptions } from 'ofetch'
 
@@ -13,6 +14,9 @@ import { FetchError, ofetch } from 'ofetch'
 
 export { FetchError }
 export type { FetchOptions }
+
+/** Request header read by server routes marked `@Idempotent()`. */
+export const IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key'
 
 /** Credential endpoints answer 401 for wrong input, not for an expired session. */
 const CREDENTIAL_ENDPOINTS = ['login', 'register', 'refresh', 'logout', 'forgot-password', 'reset-password']
@@ -27,7 +31,17 @@ export interface ApiClientOptions {
   onUnauthorized?: () => unknown
 }
 
-export type ApiFetch = <T = any>(request: string, options?: FetchOptions<'json'>) => Promise<T>
+export type ApiFetchOptions = FetchOptions<'json'> & {
+  /**
+   * Sends `Idempotency-Key` so the server runs the operation at most once. `true` generates a key for
+   * this call, shared by its retry after a session refresh. To make user resubmits safe (double
+   * click, retry after a network error), create one key per operation with `createIdempotencyKey()`
+   * and pass it on every attempt. An `Idempotency-Key` already in `headers` wins.
+   */
+  idempotencyKey?: string | boolean
+}
+
+export type ApiFetch = <T = any>(request: string, options?: ApiFetchOptions) => Promise<T>
 
 export interface ApiClient {
   fetch: ApiFetch
@@ -37,6 +51,29 @@ export interface ApiClient {
 
 export function isUnauthorized(error: unknown): boolean {
   return error instanceof FetchError && error.status === 401
+}
+
+/** Random UUID v4 for `idempotencyKey`; also works outside secure contexts, where `crypto.randomUUID` is missing. */
+export function createIdempotencyKey(): string {
+  if (typeof globalThis.crypto.randomUUID === 'function')
+    return globalThis.crypto.randomUUID()
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6]! & 0x0F) | 0x40
+  bytes[8] = (bytes[8]! & 0x3F) | 0x80
+  const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+function toFetchOptions(options?: ApiFetchOptions): FetchOptions<'json'> | undefined {
+  if (!options)
+    return options
+  const { idempotencyKey, ...rest } = options
+  if (!idempotencyKey)
+    return rest
+  const headers = new Headers(rest.headers)
+  if (!headers.has(IDEMPOTENCY_KEY_HEADER))
+    headers.set(IDEMPOTENCY_KEY_HEADER, idempotencyKey === true ? createIdempotencyKey() : idempotencyKey)
+  return { ...rest, headers }
 }
 
 export function createApiClient({ baseURL, authPath = '/auth', timeout = 15_000, onUnauthorized }: ApiClientOptions): ApiClient {
@@ -54,7 +91,9 @@ export function createApiClient({ baseURL, authPath = '/auth', timeout = 15_000,
     return refreshing
   }
 
-  async function apiFetch<T = any>(request: string, options?: FetchOptions<'json'>): Promise<T> {
+  async function apiFetch<T = any>(request: string, apiOptions?: ApiFetchOptions): Promise<T> {
+    // Resolved once, so a retry after refreshing the session reuses the same idempotency key.
+    const options = toFetchOptions(apiOptions)
     try {
       return await rawFetch<T>(request, options)
     }
