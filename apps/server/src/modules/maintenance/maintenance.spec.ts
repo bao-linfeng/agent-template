@@ -140,28 +140,33 @@ describe('MaintenanceProcessor', () => {
       AUTH_RECORD_RETENTION_DAYS: 7,
       STORAGE_ORPHAN_SWEEP_ENABLED: true,
     })
-    const now = Date.now()
+    // Frozen clock: cutoffs are exact instead of racing the millisecond tick.
+    const now = new Date('2026-10-16T03:30:00.000Z').getTime()
+    vi.useFakeTimers({ now, toFake: ['Date'] })
+    try {
+      await processor.process({
+        name: MAINTENANCE_JOBS.authRecordsPrune,
+      } as Job)
+      expect(authRecords.run).toHaveBeenCalledWith(
+        new Date(now - 7 * 24 * 60 * 60 * 1000),
+      )
 
-    await processor.process({
-      name: MAINTENANCE_JOBS.authRecordsPrune,
-    } as Job)
-    const authCutoff = (authRecords.run.mock.calls[0] as [Date])[0].getTime()
-    expect(now - authCutoff).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000)
-    expect(now - authCutoff).toBeLessThan(7 * 24 * 60 * 60 * 1000 + 5_000)
+      await processor.process({
+        name: MAINTENANCE_JOBS.storageOrphanSweep,
+      } as Job)
+      expect(orphanObjects.run).toHaveBeenCalledWith(
+        new Date(now - 24 * 60 * 60 * 1000),
+      )
 
-    await processor.process({
-      name: MAINTENANCE_JOBS.storageOrphanSweep,
-    } as Job)
-    const sweepCutoff = (orphanObjects.run.mock.calls[0] as [Date])[0].getTime()
-    expect(now - sweepCutoff).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000)
-
-    for (const [name, cleanup] of [
-      [MAINTENANCE_JOBS.accountPurge, deletedAccounts],
-      [MAINTENANCE_JOBS.accountExportsPrune, accountExports],
-    ] as const) {
-      await processor.process({ name } as Job)
-      const cutoff = (cleanup.run.mock.calls[0] as [Date])[0].getTime()
-      expect(Math.abs(Date.now() - cutoff)).toBeLessThan(5_000)
+      for (const [name, cleanup] of [
+        [MAINTENANCE_JOBS.accountPurge, deletedAccounts],
+        [MAINTENANCE_JOBS.accountExportsPrune, accountExports],
+      ] as const) {
+        await processor.process({ name } as Job)
+        expect(cleanup.run).toHaveBeenCalledWith(new Date(now))
+      }
+    } finally {
+      vi.useRealTimers()
     }
 
     await expect(processor.process({ name: 'unknown' } as Job)).rejects.toThrow(
