@@ -8,7 +8,16 @@
 # Optional monitoring (Prometheus, Alertmanager, Grafana, Tempo): COMPOSE_PROFILES=observability in deploy/.env.
 name: agent-template
 
+# Rotated container logs (docker compose logs still works): at most LOG_MAX_FILES × LOG_MAX_SIZE per container.
+# Applies when a container is (re)created; the driver is explicit so a different daemon default does not apply.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: ${LOG_MAX_SIZE:-10m}
+    max-file: "${LOG_MAX_FILES:-5}"
+
 x-server: &server
+  logging: *logging
   image: ${IMAGE_REGISTRY:?set IMAGE_REGISTRY in deploy/.env}/server:${IMAGE_TAG:-latest}
   build:
     context: ..
@@ -33,6 +42,7 @@ services:
   gateway:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *logging
     ports:
       - "80:80"
       - "443:443"
@@ -91,6 +101,7 @@ services:
         VITE_SERVER_API_URL: https://${API_DOMAIN}
         VITE_SERVER_API_PREFIX: /${API_PREFIX:-api}
     restart: unless-stopped
+    logging: *logging
 
   client:
     image: ${IMAGE_REGISTRY}/client:${IMAGE_TAG:-latest}
@@ -100,10 +111,12 @@ services:
       args:
         VITE_API_BASE_URL: https://${API_DOMAIN}/${API_PREFIX:-api}
     restart: unless-stopped
+    logging: *logging
 
   postgres:
     image: pgvector/pgvector:pg18
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-app}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -121,6 +134,7 @@ services:
   redis:
     image: redis:8-alpine
     restart: unless-stopped
+    logging: *logging
     # BullMQ needs noeviction; AOF keeps queued jobs across restarts.
     command:
       [
@@ -145,6 +159,7 @@ services:
   rustfs:
     image: rustfs/rustfs:1.0.1
     restart: unless-stopped
+    logging: *logging
     environment:
       RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:?set STORAGE_ACCESS_KEY}
       RUSTFS_SECRET_KEY: ${STORAGE_SECRET_KEY:?set STORAGE_SECRET_KEY}
@@ -173,6 +188,7 @@ services:
     image: prom/prometheus:v3.15.0
     profiles: ["observability"]
     restart: unless-stopped
+    logging: *logging
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -190,6 +206,7 @@ services:
     image: prom/alertmanager:v0.34.1
     profiles: ["observability"]
     restart: unless-stopped
+    logging: *logging
     # Renders the receivers from these variables (Alertmanager cannot read the environment itself).
     entrypoint: ["/bin/sh", "/etc/alertmanager/entrypoint.sh"]
     environment:
@@ -219,6 +236,7 @@ services:
     image: node:24-alpine
     profiles: ["observability"]
     restart: unless-stopped
+    logging: *logging
     user: node
     command: ["node", "/app/relay.mjs"]
     environment:
@@ -246,6 +264,7 @@ services:
     image: grafana/tempo:3.1.0
     profiles: ["observability"]
     restart: unless-stopped
+    logging: *logging
     command: ["-config.file=/etc/tempo/tempo.yaml", "-config.expand-env=true"]
     environment:
       TEMPO_RETENTION: ${TEMPO_RETENTION:-168h}
@@ -257,6 +276,7 @@ services:
     image: grafana/grafana:13.2.4
     profiles: ["observability"]
     restart: unless-stopped
+    logging: *logging
     # Refuses to start without an admin password instead of falling back to admin/admin.
     entrypoint:
       [

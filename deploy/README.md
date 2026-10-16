@@ -212,4 +212,6 @@ docker compose exec redis redis-cli info   # Redis（REDISCLI_AUTH 已在容器�
 docker compose run --rm seed               # 重复执行是安全的，只补齐缺失数据
 ```
 
+容器日志由 Docker 的 `json-file` 驱动按容器轮转：单个文件达到 `LOG_MAX_SIZE`（默认 `10m`）后切分，最多保留 `LOG_MAX_FILES`（默认 `5`）个，因此每个容器最多占用约 50 MB，超出部分丢弃最旧的日志。需要长期保留日志时，另接日志收集系统，而不是调大这两个值。修改后执行 `docker compose up -d`，配置变化的容器会被重建并生效（重建会丢弃该容器之前的日志）。
+
 当前 BullMQ Worker 运行在 API 进程内；Agent 长任务出现后再拆分独立的 Worker 服务。
