@@ -24,6 +24,7 @@ import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js'
 import { SecurityModule } from './modules/auth/security.module.js'
 import { HealthModule } from './modules/health/health.module.js'
 import { MaintenanceModule } from './modules/maintenance/maintenance.module.js'
+import { MfaModule } from './modules/mfa/mfa.module.js'
 import { RagModule } from './modules/rag/rag.module.js'
 import { PoliciesGuard } from './modules/rbac/policies.js'
 import { RbacModule } from './modules/rbac/rbac.module.js'
@@ -97,6 +98,7 @@ import { observeImports } from './observe.js'
     AccountsModule,
     UsersModule,
     AdminsModule,
+    MfaModule,
     AuthModule,
     AiModule,
     RagModule,

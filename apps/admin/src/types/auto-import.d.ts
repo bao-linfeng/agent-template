@@ -15,6 +15,7 @@ declare global {
   const EffectScope: typeof import('vue').EffectScope
   const HOME_PATH: typeof import('../constants/app').HOME_PATH
   const LOGIN_PATH: typeof import('../constants/app').LOGIN_PATH
+  const MFA_PATH: typeof import('../constants/app').MFA_PATH
   const PAGE_SIZES: typeof import('../constants/app').PAGE_SIZES
   const RADIUS: typeof import('../constants/themes').RADIUS
   const THEMES: typeof import('../constants/themes').THEMES
@@ -107,6 +108,9 @@ declare global {
   // @ts-ignore
   export type { Theme, Radius, ContentLayout } from '../constants/themes'
   import('../constants/themes')
+  // @ts-ignore
+  export type { IPendingMfa } from '../stores/auth'
+  import('../stores/auth')
   // @ts-ignore
   export type { NavigationMode } from '../stores/sidebar-config'
   import('../stores/sidebar-config')

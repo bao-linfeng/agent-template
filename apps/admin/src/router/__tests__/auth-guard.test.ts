@@ -42,6 +42,8 @@ describe('resolveAuthRedirect', () => {
     expect(resolveAuthRedirect(to('/auth/sign-in', { layout: false }), to('/users'), admin)).toBe('/users')
     expect(resolveAuthRedirect(to('/auth/sign-in-2', { layout: false }), to('/'), admin)).toBe('/dashboard')
     expect(resolveAuthRedirect(to('/auth/sign-in', { layout: false }), to('/auth/sign-in-2'), admin)).toBe('/dashboard')
+    expect(resolveAuthRedirect(to('/auth/otp', { layout: false }), to('/auth/sign-in'), admin)).toBe('/dashboard')
+    expect(resolveAuthRedirect(to('/auth/otp', { layout: false }), to('/'), guest)).toBeUndefined()
   })
 
   it('checks page permissions', () => {

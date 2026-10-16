@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { apiFetch } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth'
 
-import type { ISession, IUserProfile } from '../types/user.type'
+import type { IMfaStatus, IRecoveryCodes, ISession, ITotpSetup, IUserProfile } from '../types/user.type'
 
 export interface IUpdateProfileBody {
   nickname?: string
@@ -12,6 +12,12 @@ export interface IUpdateProfileBody {
 export interface IChangePasswordBody {
   currentPassword: string
   newPassword: string
+}
+
+/** Password plus a current authenticator code or an unused recovery code. */
+export interface IConfirmMfaBody {
+  password: string
+  code: string
 }
 
 // Transport layer (the signed-in admin account)
@@ -45,6 +51,29 @@ export function fetchSessions() {
 
 export function revokeSession(id: string) {
   return apiFetch<void>(`/me/sessions/${id}`, { method: 'delete' })
+}
+
+// Two-factor authentication of the signed-in admin
+export function fetchMfaStatus() {
+  return apiFetch<IMfaStatus>('/me/mfa', { method: 'get' })
+}
+
+/** Creates a pending secret (valid `expiresIn` seconds); nothing changes until `enableTotp`. */
+export function startTotpSetup(password: string) {
+  return apiFetch<ITotpSetup>('/me/mfa/totp/setup', { method: 'post', body: { password } })
+}
+
+/** Confirms the pending secret with the first code; signs out every other session. */
+export function enableTotp(code: string) {
+  return apiFetch<IRecoveryCodes>('/me/mfa/totp/enable', { method: 'post', body: { code } })
+}
+
+export function disableTotp(body: IConfirmMfaBody) {
+  return apiFetch<void>('/me/mfa/totp/disable', { method: 'post', body })
+}
+
+export function regenerateRecoveryCodes(body: IConfirmMfaBody) {
+  return apiFetch<IRecoveryCodes>('/me/mfa/recovery-codes', { method: 'post', body })
 }
 
 // Query/mutation hooks. Profile mutations write the result back into the auth store.
@@ -88,5 +117,46 @@ export function useRevokeSessionMutation() {
     mutationKey: ['revokeSession'],
     mutationFn: revokeSession,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
+  })
+}
+
+export function useMfaStatusQuery() {
+  return useQuery({ queryKey: ['mfa'], queryFn: fetchMfaStatus, staleTime: 0 })
+}
+
+export function useStartTotpSetupMutation() {
+  return useMutation({ mutationKey: ['startTotpSetup'], mutationFn: startTotpSetup })
+}
+
+/** Refreshes the status, the session list (others were signed out) and `mfaEnabled` in the auth store. */
+function useMfaChangeMutation<V, R>(key: string, mutationFn: (variables: V) => Promise<R>, mfaEnabled: boolean) {
+  const queryClient = useQueryClient()
+  const authStore = useAuthStore()
+  return useMutation({
+    mutationKey: [key],
+    mutationFn,
+    onSuccess: () => {
+      if (authStore.user)
+        authStore.setUser({ ...authStore.user, mfaEnabled })
+      queryClient.invalidateQueries({ queryKey: ['mfa'] })
+      queryClient.invalidateQueries({ queryKey: ['sessions'] })
+    },
+  })
+}
+
+export function useEnableTotpMutation() {
+  return useMfaChangeMutation('enableTotp', enableTotp, true)
+}
+
+export function useDisableTotpMutation() {
+  return useMfaChangeMutation('disableTotp', disableTotp, false)
+}
+
+export function useRegenerateRecoveryCodesMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationKey: ['regenerateRecoveryCodes'],
+    mutationFn: regenerateRecoveryCodes,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mfa'] }),
   })
 }

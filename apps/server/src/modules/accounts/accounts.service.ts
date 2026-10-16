@@ -214,6 +214,22 @@ export class AccountsService {
     await this.deleteObjectQuietly(account.avatarKey)
   }
 
+  /**
+   * Re-checks the password of a signed-in account before sensitive changes, so a hijacked session
+   * alone is not enough. 400, not 401: clients treat 401 as an expired session and would sign out.
+   */
+  async verifyPassword(
+    realm: Realm,
+    id: string,
+    password: string,
+  ): Promise<AccountRow> {
+    const account = await this.getOrThrow(realm, id)
+    if (!(await this.hasher.verify(password, account.passwordHash))) {
+      throw new AppException('ACCOUNT_PASSWORD_INCORRECT')
+    }
+    return account
+  }
+
   /** Changes the password and signs out every other session. */
   async changePassword(
     realm: Realm,
@@ -222,11 +238,7 @@ export class AccountsService {
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
-    const account = await this.getOrThrow(realm, id)
-    if (!(await this.hasher.verify(currentPassword, account.passwordHash))) {
-      // 400, not 401: clients treat 401 as an expired session and would sign the user out.
-      throw new AppException('ACCOUNT_PASSWORD_INCORRECT')
-    }
+    const account = await this.verifyPassword(realm, id, currentPassword)
     await this.setPassword(realm, account, newPassword, {
       exceptSessionId: sessionId,
     })
@@ -259,10 +271,7 @@ export class AccountsService {
     id: string,
     password: string,
   ): Promise<AccountRow> {
-    const account = await this.getOrThrow(realm, id)
-    if (!(await this.hasher.verify(password, account.passwordHash))) {
-      throw new AppException('ACCOUNT_PASSWORD_INCORRECT')
-    }
+    await this.verifyPassword(realm, id, password)
     return this.scheduleDeletion(realm, id)
   }
 

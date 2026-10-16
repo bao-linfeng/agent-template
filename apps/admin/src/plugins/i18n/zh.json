@@ -135,7 +135,8 @@
     "name": "名称",
     "code": "编码",
     "description": "描述",
-    "permissions": "权限"
+    "permissions": "权限",
+    "mfa": "两步验证"
   },
   "status": {
     "active": "正常",
@@ -176,7 +177,6 @@
     "signIn2": "登录（双栏）",
     "forgotPassword": "忘记密码",
     "resetPassword": "重置密码",
-    "otp": "验证码",
     "errors": "错误页",
     "error401": "401 未授权",
     "error403": "403 禁止访问",
@@ -275,10 +275,14 @@
     "requestNewLink": "重新申请链接",
     "resetSuccess": "密码已重置，请使用新密码登录。",
     "otpTitle": "两步验证",
-    "otpDescription": "请输入验证码。验证码已发送到你的邮箱。",
+    "otpDescription": "请输入身份验证器 App 中显示的 6 位验证码。",
     "verify": "验证",
-    "otpNotReceived": "没有收到？",
-    "otpResend": "重新发送验证码。"
+    "otpRecoveryDescription": "请输入开启两步验证时保存的恢复码，每个恢复码只能使用一次。",
+    "otpAccount": "正在登录 {email}",
+    "otpExpired": "本次验证已过期或错误次数过多，请重新登录。",
+    "recoveryCode": "恢复码",
+    "useRecoveryCode": "使用恢复码",
+    "useAuthenticator": "使用身份验证器"
   },
   "errors": {
     "401": {
@@ -369,7 +373,13 @@
     "UPLOAD_INVALID": "上传内容无效。",
     "UPLOAD_NOT_MULTIPART": "上传请求格式错误。",
     "UPLOAD_TOO_LARGE": "文件超过 {maxBytes} 字节的大小限制。",
-    "VALIDATION_FAILED": "部分字段不合法，请检查输入。"
+    "VALIDATION_FAILED": "部分字段不合法，请检查输入。",
+    "AUTH_MFA_CHALLENGE_INVALID": "登录验证已过期，请重新登录。",
+    "AUTH_MFA_CODE_INVALID": "验证码或恢复码无效。",
+    "MFA_ALREADY_ENABLED": "两步验证已经开启。",
+    "MFA_NOT_ENABLED": "两步验证未开启。",
+    "MFA_SETUP_EXPIRED": "设置已过期，请重新开始。",
+    "ADMIN_CANNOT_RESET_OWN_MFA": "不能重置自己的两步验证，请在设置中关闭。"
   },
   "accounts": {
     "user": "用户",
@@ -408,7 +418,11 @@
     "statusHint": "禁用后，该管理员的所有登录都会失效。",
     "createSubmit": "创建管理员",
     "created": "管理员 {email} 已创建，请通过安全的方式告知其初始密码。",
-    "updated": "管理员已更新。"
+    "updated": "管理员已更新。",
+    "resetMfa": "重置两步验证",
+    "resetMfaTitle": "确定重置 {email} 的两步验证吗？",
+    "resetMfaDescription": "适用于对方丢失了身份验证器和恢复码的情况。对方会在所有设备上退出登录，之后只用密码即可登录，直到重新开启两步验证。",
+    "mfaReset": "两步验证已重置，该管理员已在所有设备上退出登录。"
   },
   "roles": {
     "title": "角色",
@@ -536,6 +550,40 @@
       "newPasswordHint": "8-72 个字符。修改后其他会话都会退出登录。",
       "submit": "修改密码",
       "changed": "密码已修改，其他会话已退出登录。"
+    },
+    "twoFactor": {
+      "title": "两步验证",
+      "description": "输入密码后还需输入身份验证器中的验证码，即使密码泄露也无法直接登录。",
+      "statusOn": "已开启",
+      "offHint": "未开启。可使用 Google Authenticator、Microsoft Authenticator、1Password 等身份验证器 App。",
+      "authenticatorApp": "身份验证器 App",
+      "enabledAt": "开启于 {date}",
+      "recoveryRemaining": "剩余 {count} 个未使用的恢复码",
+      "enable": "开启",
+      "disable": "关闭",
+      "regenerate": "重新生成恢复码",
+      "setupTitle": "设置身份验证器",
+      "passwordStep": "请先确认你的密码。",
+      "scanStep": "用身份验证器 App 扫描二维码，然后输入 App 中显示的 6 位验证码。",
+      "qrAlt": "身份验证器二维码",
+      "manualEntry": "无法扫码？在 App 中手动输入此密钥：",
+      "code": "验证码",
+      "codePlaceholder": "6 位验证码",
+      "verifyAndEnable": "验证并开启",
+      "codesTitle": "保存恢复码",
+      "codesDescription": "身份验证器丢失时，每个恢复码可登录一次。恢复码只显示这一次，请复制或下载后妥善保存。",
+      "copy": "复制",
+      "copied": "已复制",
+      "download": "下载",
+      "done": "我已保存",
+      "enabled": "两步验证已开启，其他设备上的会话已退出登录。",
+      "disableTitle": "关闭两步验证",
+      "disableDescription": "请输入密码，以及当前验证码或一个恢复码。",
+      "disabled": "两步验证已关闭。",
+      "regenerateTitle": "重新生成恢复码",
+      "regenerateDescription": "现有恢复码将全部失效。请输入密码，以及当前验证码或一个恢复码。",
+      "codeOrRecovery": "验证码或恢复码",
+      "codeOrRecoveryPlaceholder": "123456 或 xxxxx-xxxxx"
     },
     "sessions": {
       "title": "登录中的会话",

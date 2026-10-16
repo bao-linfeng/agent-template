@@ -41,6 +41,11 @@ export function setAdminRoles(id: string, roleIds: string[]) {
   return apiFetch<IAdminAccount>(`/admins/${id}/roles`, { method: 'put', body: { roleIds } })
 }
 
+/** Removes another admin's two-factor authentication (lost device) and signs them out everywhere. */
+export function resetAdminMfa(id: string) {
+  return apiFetch<void>(`/admins/${id}/mfa`, { method: 'delete' })
+}
+
 // Query/mutation hooks
 export function useAdminsQuery(query: MaybeRefOrGetter<IListUsersQuery>) {
   const params = computed(() => compactQuery(toValue(query)))
@@ -84,5 +89,14 @@ export function useCreateAdminMutation() {
       queryClient.invalidateQueries({ queryKey: ['admins'] })
       queryClient.invalidateQueries({ queryKey: ['roles'] })
     },
+  })
+}
+
+export function useResetAdminMfaMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationKey: ['resetAdminMfa'],
+    mutationFn: resetAdminMfa,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admins'] }),
   })
 }

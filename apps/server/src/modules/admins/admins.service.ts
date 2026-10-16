@@ -13,6 +13,7 @@ import type {
   AdminUpdateAccountDto,
   ListAccountsQueryDto,
 } from '../accounts/dto/account.dto.js'
+import { MfaService } from '../mfa/mfa.service.js'
 import { SYSTEM_ROLES } from '../rbac/permissions.js'
 import { RbacService } from '../rbac/rbac.service.js'
 import type { CreateAdminDto } from './dto/admin.dto.js'
@@ -21,11 +22,14 @@ import type { CreateAdminDto } from './dto/admin.dto.js'
 export interface AdminProfile extends PublicAccount {
   roles: string[]
   permissions: string[]
+  /** Two-factor authentication (authenticator app) is enabled; details in `GET /v1/admin/me/mfa`. */
+  mfaEnabled: boolean
 }
 
 /** Admin accounts as listed in `/v1/admin/admins`. */
 export interface AdminView extends PublicAccount {
   roles: { id: string; code: string; name: string }[]
+  mfaEnabled: boolean
 }
 
 /** Admin console accounts: there is no self-registration, administrators create each other. */
@@ -35,29 +39,42 @@ export class AdminsService {
     @InjectDb() private readonly db: Database,
     private readonly accounts: AccountsService,
     private readonly rbac: RbacService,
+    private readonly mfa: MfaService,
   ) {}
 
   async getProfile(id: string): Promise<AdminProfile> {
     const account = await this.accounts.getPublic('admin', id)
-    return { ...account, ...(await this.rbac.getAdminAccess(id)) }
+    return {
+      ...account,
+      ...(await this.rbac.getAdminAccess(id)),
+      mfaEnabled: await this.mfa.isEnabled(id),
+    }
   }
 
   async list(query: ListAccountsQueryDto): Promise<Paginated<AdminView>> {
     const page = await this.accounts.list('admin', query)
-    const rolesByAdmin = await this.rolesFor(page.items.map((row) => row.id))
+    const ids = page.items.map((row) => row.id)
+    const [rolesByAdmin, mfaEnabled] = await Promise.all([
+      this.rolesFor(ids),
+      this.mfa.enabledAmong(ids),
+    ])
     return {
       ...page,
       items: page.items.map((row) => ({
         ...this.accounts.toPublic(row),
         roles: rolesByAdmin.get(row.id) ?? [],
+        mfaEnabled: mfaEnabled.has(row.id),
       })),
     }
   }
 
   async get(id: string): Promise<AdminView> {
     const account = await this.accounts.getPublic('admin', id)
-    const rolesByAdmin = await this.rolesFor([id])
-    return { ...account, roles: rolesByAdmin.get(id) ?? [] }
+    const [rolesByAdmin, mfaEnabled] = await Promise.all([
+      this.rolesFor([id]),
+      this.mfa.isEnabled(id),
+    ])
+    return { ...account, roles: rolesByAdmin.get(id) ?? [], mfaEnabled }
   }
 
   async create(dto: CreateAdminDto): Promise<AdminView> {

@@ -20,6 +20,8 @@ export interface IPublicUser {
 export interface IUserProfile extends IPublicUser {
   roles: string[]
   permissions: string[]
+  /** Two-factor authentication (authenticator app) is enabled; details in `GET /v1/admin/me/mfa`. */
+  mfaEnabled: boolean
 }
 
 export interface IRoleSummary {
@@ -34,6 +36,35 @@ export type IClientUser = IPublicUser
 /** Admin console accounts as returned by `/v1/admin/admins`. */
 export interface IAdminAccount extends IPublicUser {
   roles: IRoleSummary[]
+  mfaEnabled: boolean
+}
+
+/** `GET /v1/admin/me/mfa`. */
+export interface IMfaStatus {
+  totpEnabled: boolean
+  enabledAt: string | null
+  /** Unused recovery codes left. */
+  recoveryCodesRemaining: number
+}
+
+/** Pending authenticator setup: show `otpauthUri` as a QR code, `secret` for manual entry. */
+export interface ITotpSetup {
+  secret: string
+  otpauthUri: string
+  expiresIn: number
+}
+
+/** Shown once after enabling or regenerating; the server only keeps hashes. */
+export interface IRecoveryCodes {
+  recoveryCodes: string[]
+}
+
+/** Answer of `POST /auth/login` for admins with two-factor authentication: no session yet. */
+export interface IMfaChallenge {
+  mfaRequired: true
+  challengeToken: string
+  /** Seconds until the password has to be entered again. */
+  expiresIn: number
 }
 
 export interface ISession {

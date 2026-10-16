@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { cancelAdminUserDeletion, compactQuery, fetchAdminUsers, scheduleAdminUserDeletion, updateAdminUser } from '../admin-users.api'
-import { createAdmin, fetchAdmin, fetchAdmins, setAdminRoles, updateAdmin } from '../admins.api'
-import { forgotPassword, login, logout, resetPassword, resetPasswordPageUrl } from '../auth.api'
+import { createAdmin, fetchAdmin, fetchAdmins, resetAdminMfa, setAdminRoles, updateAdmin } from '../admins.api'
+import { forgotPassword, isMfaChallenge, login, loginMfa, logout, resetPassword, resetPasswordPageUrl } from '../auth.api'
 import {
   createEmbeddingModel,
   deleteEmbeddingModel,
@@ -11,7 +11,20 @@ import {
   testEmbeddingModel,
   updateEmbeddingModel,
 } from '../embedding-models.api'
-import { changePassword, fetchMe, fetchSessions, removeAvatar, revokeSession, updateMe, uploadAvatar } from '../me.api'
+import {
+  changePassword,
+  disableTotp,
+  enableTotp,
+  fetchMe,
+  fetchMfaStatus,
+  fetchSessions,
+  regenerateRecoveryCodes,
+  removeAvatar,
+  revokeSession,
+  startTotpSetup,
+  updateMe,
+  uploadAvatar,
+} from '../me.api'
 import { createRole, deleteRole, fetchPermissions, fetchRoles, updateRole } from '../roles.api'
 
 const apiFetch = vi.hoisted(() => vi.fn())
@@ -31,6 +44,29 @@ describe('auth transport', () => {
 
     await logout()
     expect(apiFetch).toHaveBeenLastCalledWith('/auth/logout', { method: 'post' })
+  })
+
+  it('completes two-factor sign-ins with a second request', async () => {
+    await loginMfa({ challengeToken: 'c'.repeat(43), code: '123456' })
+    expect(apiFetch).toHaveBeenCalledWith('/auth/login/mfa', {
+      method: 'post',
+      body: { challengeToken: 'c'.repeat(43), code: '123456' },
+    })
+
+    expect(isMfaChallenge({ mfaRequired: true, challengeToken: 'c', expiresIn: 300 })).toBe(true)
+    expect(isMfaChallenge({
+      id: 'a1',
+      email: 'a@b.test',
+      nickname: 'A',
+      avatarUrl: null,
+      status: 'active',
+      lastLoginAt: null,
+      deletionScheduledAt: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      roles: [],
+      permissions: [],
+      mfaEnabled: true,
+    })).toBe(false)
   })
 
   it('asks for a reset link that opens this app', async () => {
@@ -87,6 +123,25 @@ describe('current admin transport', () => {
     await revokeSession('s1')
     expect(apiFetch).toHaveBeenLastCalledWith('/me/sessions/s1', { method: 'delete' })
   })
+
+  it('manages two-factor authentication', async () => {
+    await fetchMfaStatus()
+    expect(apiFetch).toHaveBeenCalledWith('/me/mfa', { method: 'get' })
+    await startTotpSetup('pass-1')
+    expect(apiFetch).toHaveBeenLastCalledWith('/me/mfa/totp/setup', { method: 'post', body: { password: 'pass-1' } })
+    await enableTotp('123456')
+    expect(apiFetch).toHaveBeenLastCalledWith('/me/mfa/totp/enable', { method: 'post', body: { code: '123456' } })
+    await regenerateRecoveryCodes({ password: 'pass-1', code: '654321' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/me/mfa/recovery-codes', {
+      method: 'post',
+      body: { password: 'pass-1', code: '654321' },
+    })
+    await disableTotp({ password: 'pass-1', code: 'abcde-fghjk' })
+    expect(apiFetch).toHaveBeenLastCalledWith('/me/mfa/totp/disable', {
+      method: 'post',
+      body: { password: 'pass-1', code: 'abcde-fghjk' },
+    })
+  })
 })
 
 describe('admin transport', () => {
@@ -128,6 +183,8 @@ describe('admin transport', () => {
     expect(apiFetch).toHaveBeenLastCalledWith('/admins/a1', { method: 'patch', body: { status: 'disabled' } })
     await setAdminRoles('a1', ['r1', 'r2'])
     expect(apiFetch).toHaveBeenLastCalledWith('/admins/a1/roles', { method: 'put', body: { roleIds: ['r1', 'r2'] } })
+    await resetAdminMfa('a1')
+    expect(apiFetch).toHaveBeenLastCalledWith('/admins/a1/mfa', { method: 'delete' })
   })
 
   it('manages roles', async () => {

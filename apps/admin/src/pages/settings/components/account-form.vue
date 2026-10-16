@@ -13,6 +13,7 @@ import type { ChangePasswordValidator } from '../validators/account.validator'
 
 import { changePasswordValidator } from '../validators/account.validator'
 import SessionList from './session-list.vue'
+import TwoFactorCard from './two-factor-card.vue'
 
 const changePassword = useChangePasswordMutation()
 
@@ -73,6 +74,10 @@ const form = useForm({
       {{ $t('settings.security.submit') }}
     </Button>
   </form>
+
+  <Separator class="my-8" />
+
+  <TwoFactorCard />
 
   <Separator class="my-8" />
 
