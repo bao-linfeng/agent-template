@@ -1,143 +1,133 @@
-# Shadcn Vue Admin
-
-[![code style](https://antfu.me/badge-code-style.svg)](https://github.com/antfu/eslint-config)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Whbbit1999/shadcn-vue-admin/blob/main/LICENSE)
-[![Vue 3.5+](https://img.shields.io/badge/Vue-3.5+-brightgreen.svg?logo=vue.js)](https://vuejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-8+-4f30e8.svg?logo=vite)](https://vitejs.dev/)
-[![pnpm 10+](https://img.shields.io/badge/pnpm-10+-orange.svg?logo=pnpm)](https://pnpm.io/)
-[![TypeScript 6.0+](https://img.shields.io/badge/TypeScript-6.0+-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
+# Agent Template 管理端
 
 [English](./README.md) | 简体中文
 
-基于 **Shadcn-vue**、**Vue 3.5+** 和 **Vite** 构建的企业级管理仪表板 UI，专注于响应式设计、可访问性与开发者体验。
-本项目 Fork 自 [shadcn-admin](https://github.com/satnaing/shadcn-admin)
+[Agent Template](../../README.md) 中的 Vue 管理端，基于 [shadcn-vue-admin](https://github.com/Whbbit1999/shadcn-vue-admin) 改造，与客户端共用 `@repo/ui` 和 `@repo/utils`，通过独立的管理员账号体系对接 NestJS 服务端。
 
-![cover](.github/assets/shadcn-vue-admin.png)
+## 快速开始
 
-> ⚠️ 版本说明：本项目为可直接使用的起始模板，后续将持续新增组件与功能。
+使用 Node.js **24+** 和根目录固定的 **pnpm 11.25.0**。以下命令在仓库根目录执行：
 
-## ✨ 核心特性
-
-- ✅ 亮/暗色模式切换，支持 Pinia 持久化存储
-- ✅ 全局搜索命令面板
-- ✅ 符合可访问性标准的 shadcn-ui 侧边栏导航
-- ✅ 20+ 个预构建的功能页面
-- ✅ 基于 shadcn-vue 扩展的自定义组件库
-- ✅ 基于文件结构的自动路由生成系统
-- ✅ 国际化支持（vue-i18n v11+）
-- ✅ @tanstack/vue-form + Zod 表单验证
-- ✅ TanStack Table/Query & Unovis 数据可视化
-- ✅ 流畅动画支持（AutoAnimate、Motion-V、TW Animate CSS）
-
-## 🛠️ 技术栈与版本约束
-
-| 分类             | 工具与库（主版本号）                                                                                                                                       |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 核心框架         | [Vue 3.5+](https://vuejs.org/), [TypeScript 6+](https://www.typescriptlang.org/)                                                                           |
-| UI 组件          | [shadcn-vue](https://www.shadcn-vue.com), [reka-ui 2+](https://www.reka-ui.com/), [@lucide/vue](https://lucide.dev/)                                       |
-| 构建工具         | [Vite 8+](https://vitejs.dev/), [@vitejs/plugin-vue 6+](https://github.com/vitejs/vite-plugin-vue)                                                         |
-| 状态管理         | [Pinia 4+](https://pinia.vuejs.org/), [pinia-plugin-persistedstate 4+](https://prazdevs.github.io/pinia-plugin-persistedstate/)                            |
-| 路由管理         | [vue-router 5+](https://router.vuejs.org/), [vite-plugin-vue-layouts-next 3.3+](https://github.com/loicduong/vite-plugin-vue-layouts-next)                 |
-| 样式系统         | [Tailwind CSS 4+](https://tailwindcss.com/), [tw-animate-css 1+](https://github.com/Wombosvideo/tw-animate-css)                                            |
-| 数据处理         | [TanStack Vue Query 5+](https://tanstack.com/query/latest), [TanStack Vue Table 9+](https://tanstack.com/table/latest)                                     |
-| 表单验证         | [TanStack Vue Form](https://tanstack.com/form/latest/docs/overview), [Zod 4+](https://zod.dev/)                                                            |
-| 动画效果         | [@formkit/auto-animate 0.10+](https://auto-animate.formkit.com/), [motion-v 2+](https://motion-v.vercel.app/)                                              |
-| 国际化           | [vue-i18n 11+](https://vue-i18n.intlify.dev/)                                                                                                              |
-| HTTP 客户端      | [ofetch](https://github.com/unjs/ofetch)                                                                                                                   |
-| 代码规范与格式化 | [ESLint 10+](https://eslint.org/), [@antfu/eslint-config 9+](https://github.com/antfu/eslint-config)                                                       |
-| 自动导入         | [unplugin-auto-import 21+](https://github.com/antfu/unplugin-auto-import), [unplugin-vue-components 32+](https://github.com/antfu/unplugin-vue-components) |
-
-## 🚀 快速开始
-
-### 前置依赖（严格版本要求）
-
-- Node.js ≥ 24，pnpm 11.25.0（由仓库根目录固定）。
-- 从仓库根目录安装依赖，使用统一的工作区锁文件。
-
-### 安装步骤
-
-在 monorepo 根目录执行：
-
-```bash
+```sh
 pnpm install --frozen-lockfile
+cp apps/admin/.env.example apps/admin/.env
 pnpm -C apps/admin dev
 ```
 
-开发端口固定为 5175，端口占用时直接报错。环境变量和后端联调说明见[根 README](../../README.md)。修改实际应用 `src/`，不要修改嵌套的 `shadcn-vue-admin-main/` 上游副本。
+登录前按[服务端说明](../server/README.md)启动基础设施、执行迁移和种子初始化。访问 <http://localhost:5175/auth/sign-in>，使用服务端 `SEED_ADMIN_*` 配置的管理员账号。其他管理员通过 `/admins` 创建，管理端不开放注册。
 
-### 可用脚本
+开发端口固定为 **5175**，占用时直接报错。
 
-```bash
-pnpm dev             # 启动开发服务器
-pnpm build           # 生产构建（vue-tsc 类型检查 + vite 构建）
-pnpm build:analyze   # 构建并生成包体积分析报告（ANALYZE=true）
-pnpm preview         # 预览生产构建产物
-pnpm lint            # 执行 ESLint 代码检查
-pnpm lint:fix        # 自动修复代码规范问题
-pnpm check-types     # Vue/TypeScript 类型检查
-pnpm test            # 运行单元测试（单次）
-pnpm test:watch      # 运行单元测试（监听模式）
-pnpm test:coverage   # 运行单元测试并生成覆盖率报告
-pnpm release         # 使用 bumpp 升级版本
+## 已实现功能
+
+- Cookie 登录、会话恢复、401 并发共享刷新、退出和找回密码。
+- 个人资料、头像上传/删除、修改密码、会话列表与远程下线。
+- 客户端用户管理、管理员管理、角色管理、基于权限的菜单与路由访问。
+- Embedding 模型配置、连通性测试和默认模型选择。
+- 亮暗主题、侧边栏设置和命令面板。
+- 应用外壳与已接入服务端页面的中英文切换。
+
+### 页面与数据来源
+
+| 路径                                                                    | 用途                                | 数据来源      |
+| ----------------------------------------------------------------------- | ----------------------------------- | ------------- |
+| `/`                                                                     | 跳转 `/dashboard/`                  | 导航          |
+| `/dashboard/`                                                           | 仪表板图表和指标                    | 演示数据      |
+| `/auth/sign-in`、`/auth/sign-in-2`                                      | 两种登录布局                        | 服务端 API    |
+| `/auth/forgot-password`、`/auth/reset-password`                         | 找回/重置密码                       | 服务端 API    |
+| `/settings/`                                                            | 个人资料、头像                      | 服务端 API    |
+| `/settings/account`                                                     | 密码与会话管理                      | 服务端 API    |
+| `/users`                                                                | 搜索、分页、编辑和禁用客户端用户    | 服务端 API    |
+| `/admins`                                                               | 创建/编辑管理员、修改状态与分配角色 | 服务端 API    |
+| `/roles`                                                                | 角色和权限管理                      | 服务端 API    |
+| `/ai/embedding-models`                                                  | 模型增删改查、测试和默认模型        | 服务端 API    |
+| `/settings/appearance`、`/settings/notifications`、`/settings/display`  | 模板设置表单                        | 本地/演示行为 |
+| `/ai-talk`、`/apps`、`/tasks`、`/billing`、`/marketing`、`/help-center` | 模板示例页面                        | 演示数据      |
+| `/auth/otp`、`/errors/*`                                                | OTP 界面示例及错误页                | 静态展示      |
+
+AI Talk 尚未接入聊天服务；服务端已提供 RAG API，但本应用尚无知识库页面。
+
+## 后端对接
+
+将 `.env.example` 复制为 `.env`。默认 `VITE_SERVER_API_URL=http://localhost:3100`，`VITE_SERVER_API_PREFIX=/api`；环境校验位于 `src/validators/env.validator.ts`。
+
+`src/lib/api-client.ts` 创建的 `apiFetch` 基地址为 `<origin><prefix>/v1/admin`，业务模块使用 `/users`、`/me` 等相对路径。
+
+- 管理员和客户端用户的表、会话、Cookie 独立。客户端注册不会创建管理员。
+- `createApiClient` 统一携带 `credentials: 'include'`；业务请求遇到 401 时共享一次 `POST /auth/refresh`，然后重试一次。会话无法恢复时清空登录态，并将原本已登录的管理员带回 `/auth/sign-in`。
+- `src/stores/auth.ts` 仅在内存中保存管理员信息，路由守卫通过 `GET /me` 恢复会话，不持久化到 localStorage。
+- 默认布局页面需要登录；页面 `meta.permission` 控制访问，侧边栏和命令面板按 `GET /me` 的权限码过滤。
+- 忘记密码时将当前站点的 `/auth/reset-password` 作为 `resetUrl`，后端校验来源是否在 `APP_WEB_URL` 或 `CORS_ORIGINS` 中。
+
+| `src/services/api/` 模块  | 职责                      |
+| ------------------------- | ------------------------- |
+| `auth.api.ts`             | 登录、退出、忘记/重置密码 |
+| `me.api.ts`               | 资料、头像、密码、会话    |
+| `admin-users.api.ts`      | 客户端用户管理            |
+| `admins.api.ts`           | 管理员账号与角色分配      |
+| `roles.api.ts`            | 角色及权限目录            |
+| `embedding-models.api.ts` | Embedding 模型管理        |
+
+`example-*` 模块保留演示行为。
+
+## 技术栈与目录
+
+Vue 3.5、Vue Router 5、Vite 8、TypeScript 6、Tailwind CSS 4、Pinia、TanStack Vue Query/Table/Form、Zod、Unovis、vue-i18n。共享依赖版本以根 `pnpm-workspace.yaml` 的 catalog 为准。
+
+```text
+src/
+├── assets/          # CSS 入口和主题 token
+├── components/      # 应用组件，基础 UI 来自 @repo/ui
+├── composables/     # 认证、导航与主题逻辑
+├── constants/       # 应用配置和侧边栏数据
+├── layouts/         # 布局
+├── lib/             # 共享 HTTP 客户端实例
+├── pages/           # 文件路由页面
+├── plugins/         # 插件注册、Query、Pinia、i18n
+├── router/          # 路由与访问守卫
+├── services/api/    # API 函数与 query/mutation hooks
+├── stores/          # 认证、主题和侧边栏状态
+├── types/           # 类型及自动生成的路由声明
+└── validators/     # 环境变量校验
 ```
 
-## 📖 高级指南
+Vue Router 根据 `src/pages/` 生成路由，`vite-plugin-vue-layouts-next` 提供布局。`src/types/route-map.d.ts`、`auto-import.d.ts`、`auto-import-components.d.ts` 由 Vite 生成，不手动编辑。
 
-### 依赖维护
+### 国际化与主题
 
-- 修改依赖后更新根 `pnpm-lock.yaml`；安装策略统一配置在根 `pnpm-workspace.yaml`。
-- 不再自动安装模板 Git hooks。在当前包显式运行 `pnpm lint:fix`、`pnpm build` 和相关 `pnpm test` 检查，或在根目录使用 `pnpm -C apps/admin ...`。
+- 语言文件为 `src/plugins/i18n/en.json`、`zh.json`，中文键结构必须匹配英文 schema。
+- 使用 `@/plugins/i18n` 的 `setLocale()` 同步 vue-i18n、dayjs、`<html lang>` 和 `localStorage['app-locale']`，默认语言是英文。
+- 组件使用 `useI18n()` 或 `$t`，非组件代码导入 `t`。导航标题存消息键，Zod 校验文案在校验时调用 `t`。
+- 示例页面及外观/通知/展示设置仍有英文内容。
+- `src/assets/index.css` 在 `tailwindcss` 后导入 `@repo/ui/styles/theme.css`。在 `:root`、`.dark` 和主题类中定义完整颜色值，共享 Tailwind token 映射由 `packages/ui` 提供。
 
-### 主题定制
+## 命令与验证
 
-如需自定义网站样式，可使用 [tweakcn](https://tweakcn.com/editor/theme) 提供的预设样式：
+均从仓库根目录执行：
 
-1. 从 tweakcn 复制生成的 CSS 变量
-2. 将其粘贴到项目的 `index.css` 文件中
-3. 修改 `:root`、`:dark` 和 `@theme inline` 部分即可应用自定义样式
-
-### 布局定制（嵌套目录无 `index.vue` 场景）
-
-如果希望 `pages/errors/` 和 `pages/auth/` 等目录下的页面不使用默认布局，可按以下步骤操作：
-
-#### 步骤 1：创建目录级布局文件
-
-在 `pages/` 目录下创建与子目录同名的文件，如 `src/pages/errors.vue` 和 `src/pages/auth.vue`，内容如下：
-
-```vue
-<template>
-  <router-view />
-</template>
-
-<route lang="yml">
-meta:
-  layout: false # 禁用默认布局，适用于所有子路由
-</route>
+```sh
+pnpm -C apps/admin dev
+pnpm -C apps/admin lint
+pnpm -C apps/admin lint:fix
+pnpm -C apps/admin check-types
+pnpm -C apps/admin test
+pnpm -C apps/admin test:watch
+pnpm -C apps/admin test:coverage
+pnpm -C apps/admin build
+pnpm -C apps/admin build:analyze
+pnpm -C apps/admin preview
 ```
 
-#### 步骤 2：解决冗余路由问题
+`build` 先运行 Vue 类型检查，再由 Vite 构建到 `dist/`。`build:analyze` 只运行带包分析的 Vite 构建，需另跑 `check-types`。包内还保留了使用 bumpp 的 `release` 脚本。
 
-上述操作会生成空的父路由（如 `/errors/`、`/auth/`），可通过以下方式修复：
+Vitest 仅收集 `src/**/*.test.ts`，DOM 用例显式启用 happy-dom。单文件示例：
 
-1. 在目标目录中创建 `index.vue`（如 `pages/errors/index.vue`）
-2. 在该文件中添加重定向逻辑（基于 Vue 3.5+ 组合式 API）：
-
-```vue
-<script lang="ts" setup>
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-// 示例：重定向至 404 页面
-router.replace({ name: '/errors/404' })
-</script>
+```sh
+pnpm -C apps/admin test src/utils/__tests__/env.test.ts
 ```
 
-## 📄 许可证
+代码变更后运行 `lint:fix` 和相关测试，非简单变更需构建，核心逻辑变更需配套测试。共享 UI/utils 变更要同时验证 admin 和 client。约定见 [AGENTS.md](./AGENTS.md)。Git hooks 不会自动安装；`apps/admin/.github/workflows/` 是模板局部配置，不是仓库根级 CI。
 
-本项目采用 **MIT 许可证**，详情请参阅 [LICENSE](https://github.com/Whbbit1999/shadcn-vue-admin/blob/main/LICENSE) 文件。
+## 致谢与许可
 
-## 🤝 致谢
-
-- **开发者**：[Whbbit1999](https://github.com/Whbbit1999)
-- **原始设计**：[shadcn-admin](https://github.com/satnaing/shadcn-admin)
-- **核心依赖**：shadcn-vue、Vue.js、Vite、Tailwind CSS
+上游管理端模板采用 MIT 许可证，见 [LICENSE](./LICENSE)。感谢 [Whbbit1999](https://github.com/Whbbit1999/shadcn-vue-admin) 与原始设计 [shadcn-admin](https://github.com/satnaing/shadcn-admin)。

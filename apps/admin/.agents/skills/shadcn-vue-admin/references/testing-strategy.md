@@ -3,7 +3,7 @@
 ## Current State
 
 - Vitest is configured in `vite.config.ts`; `pnpm test` runs once and `pnpm test:watch` watches.
-- Tests are limited to `src/**/*.test.ts`, excluding the nested upstream template copy.
+- Tests are limited to `src/**/*.test.ts`.
 - `pnpm build` performs a Vue/TypeScript check and Vite build.
 
 ## Policy (Strong Constraints)

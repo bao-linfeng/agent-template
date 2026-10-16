@@ -1,156 +1,133 @@
-# Shadcn Vue Admin
-
-[![code style](https://antfu.me/badge-code-style.svg)](https://github.com/antfu/eslint-config)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Whbbit1999/shadcn-vue-admin/blob/main/LICENSE)
-[![Vue 3.5+](https://img.shields.io/badge/Vue-3.5+-brightgreen.svg?logo=vue.js)](https://vuejs.org/)
-[![Vite](https://img.shields.io/badge/Vite-8+-4f30e8.svg?logo=vite)](https://vitejs.dev/)
-[![pnpm 11+](https://img.shields.io/badge/pnpm-11.25.0-orange.svg?logo=pnpm)](https://pnpm.io/)
-[![TypeScript 6.0+](https://img.shields.io/badge/TypeScript-6.0+-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
+# Agent Template Admin
 
 [简体中文](./README-CN.md) | English
 
-基于 **shadcn-vue**、**Vue 3.5+** 和 **Vite 8** 构建的生产级管理后台 UI，聚焦响应式布局、无障碍访问和开发体验。本应用是 [agent-template](../../README.md) monorepo 的一部分，与 `apps/client` 共用 `@repo/ui` 组件库和 `@repo/utils` 工具函数。
+The Vue admin console in [Agent Template](../../README.md), based on [shadcn-vue-admin](https://github.com/Whbbit1999/shadcn-vue-admin). It shares `@repo/ui` components and `@repo/utils` with the client app and connects to the NestJS server using a separate admin account realm.
 
-> ⚠️ 版本说明：这是一个起步模板，将持续添加新组件和功能。
+## Quick start
 
-## ✨ 功能特性
+Use Node.js **24+** and the root-pinned **pnpm 11.25.0**. Run these commands from the repository root:
 
-- ✅ 亮色/暗色模式切换（Pinia 持久化）
-- ✅ 全局搜索命令面板
-- ✅ 基于文件系统的自动路由（vite-plugin-vue-layouts-next）
-- ✅ shadcn-vue 可访问侧边栏导航（权限码过滤）
-- ✅ 国际化（vue-i18n v11+）
-- ✅ 表单验证（TanStack Vue Form + Zod 4+）
-- ✅ 数据可视化（TanStack Table/Query + Unovis）
-- ✅ 动画支持（AutoAnimate、Motion-V、TW Animate CSS）
-- ✅ 已对接后端的完整认证与用户体系
-
-## 📄 页面列表
-
-| 路径                    | 说明                                             | 数据来源 |
-| ----------------------- | ------------------------------------------------ | -------- |
-| `/`                     | 首页（仪表板）                                   | 真实接口 |
-| `/auth/login`           | 登录                                             | 真实接口 |
-| `/auth/forgot-password` | 忘记密码                                         | 真实接口 |
-| `/auth/reset-password`  | 重置密码                                         | 真实接口 |
-| `/settings/*`           | 个人资料、头像、修改密码、外观、通知、展示       | 真实接口 |
-| `/users`                | 客户端用户管理（搜索、分页、编辑、禁用）         | 真实接口 |
-| `/admins`               | 管理员账号（新建、编辑、禁用、分配角色）         | 真实接口 |
-| `/roles`                | 角色管理                                         | 真实接口 |
-| `/ai/embedding-models`  | Embedding 模型配置（新增/编辑/测试/设默认/删除） | 真实接口 |
-| `/ai-talk`              | AI 对话界面（演示）                              | 演示数据 |
-| `/apps`                 | 应用列表（演示）                                 | 演示数据 |
-| `/tasks`                | 任务管理（演示）                                 | 演示数据 |
-| `/billing`              | 账单（演示）                                     | 演示数据 |
-| `/marketing`            | 营销（演示）                                     | 演示数据 |
-| `/help-center`          | 帮助中心（演示）                                 | 演示数据 |
-| `/errors/404` 等        | 错误页                                           | —        |
-
-## 🔌 后端对接
-
-管理端通过 `src/lib/api-client.ts` 与后端通信，底层是 `@repo/utils` 的 `createApiClient`（ofetch，Cookie 认证，`credentials: 'include'`）。
-
-- **接口基地址**：`VITE_SERVER_API_URL`（默认 `http://localhost:3100`）+ `VITE_SERVER_API_PREFIX`（默认 `/api`）
-- **账号体系**：管理端使用独立的管理员账号（`/api/v1/admin/auth/*`，不开放注册），与客户端用户互不相通；首个超级管理员由服务端 `pnpm db:seed` 创建，其他管理员在 `/admins` 页面新建
-- **自动刷新**：401 时调用 `POST /api/v1/admin/auth/refresh` 并重试一次，并发请求共享同一次刷新；刷新失败则清空登录态并跳转登录页
-- **权限过滤**：`GET /api/v1/admin/me` 返回 `roles` 和 `permissions`，用于控制侧边栏和命令面板的可见性；页面在 `<route>` 中声明 `meta.permission`
-- **找回密码**：发送 `resetUrl: http://localhost:5175/auth/reset-password`，后端校验来源必须在 `APP_WEB_URL` 或 `CORS_ORIGINS` 中
-
-已对接的 API 模块（`src/services/api/`）：
-
-| 模块                      | 接口                                               |
-| ------------------------- | -------------------------------------------------- |
-| `auth.api.ts`             | 登录、退出、忘记密码、重置密码（`/v1/admin/auth`） |
-| `me.api.ts`               | 个人资料、头像上传/删除、修改密码、会话列表与下线  |
-| `admin-users.api.ts`      | 客户端用户列表、编辑、禁用                         |
-| `admins.api.ts`           | 管理员账号列表、新建、编辑、禁用、分配角色         |
-| `roles.api.ts`            | 角色列表、创建、编辑、删除                         |
-| `embedding-models.api.ts` | Embedding 模型 CRUD 与连通性测试                   |
-
-## 🛠️ 技术栈
-
-| 分类          | 库与版本                                              |
-| ------------- | ----------------------------------------------------- |
-| 核心框架      | Vue 3.5+、TypeScript 6+                               |
-| UI 组件       | `@repo/ui`（shadcn-vue）、reka-ui 2+、`@lucide/vue`   |
-| 构建工具      | Vite 8+、`@vitejs/plugin-vue` 6+                      |
-| 状态管理      | Pinia 4+、pinia-plugin-persistedstate 4+              |
-| 路由          | Vue Router 5+、vite-plugin-vue-layouts-next 3.3+      |
-| 样式          | Tailwind CSS 4+、tw-animate-css 1+                    |
-| 数据请求      | TanStack Vue Query 5+、TanStack Vue Table 9+          |
-| 表单验证      | TanStack Vue Form、Zod 4+                             |
-| 动画          | `@formkit/auto-animate` 0.10+、motion-v 2+            |
-| 国际化        | vue-i18n 11+                                          |
-| HTTP 客户端   | ofetch（`@repo/utils` 的 `createApiClient`）          |
-| 自动导入      | unplugin-auto-import 21+、unplugin-vue-components 32+ |
-| Lint & 格式化 | ESLint 10+、`@repo/eslint-config`（Antfu）            |
-
-## 🚀 快速开始
-
-需要 Node.js ≥ 24，pnpm 固定为 **11.25.0**（由仓库根 `package.json` 的 `packageManager` 锁定）。
-
-从仓库根目录安装依赖（使用共享锁文件）：
-
-```bash
+```sh
 pnpm install --frozen-lockfile
+cp apps/admin/.env.example apps/admin/.env
+pnpm -C apps/admin dev
 ```
 
-复制环境变量文件并启动后端（参见 [apps/server/README.md](../server/README.md)），然后启动管理端：
+Prepare the [server infrastructure, migrations and seed data](../server/README.md) before signing in. Open <http://localhost:5175/auth/sign-in> and use the account configured by the server's `SEED_ADMIN_*` variables. Additional administrators are created on `/admins`; there is no admin registration endpoint.
 
-```bash
-cp .env.example .env
-pnpm -C apps/admin dev   # http://localhost:5175
-```
+The development port is fixed at **5175** and fails if occupied.
 
-### 可用脚本
+## Implemented features
 
-```bash
-pnpm dev             # 启动开发服务器（端口 5175，固定）
-pnpm build           # 类型检查（vue-tsc）+ 构建
-pnpm build:analyze   # 带 Bundle 分析的构建
-pnpm preview         # 预览生产构建
-pnpm lint            # ESLint 检查
-pnpm lint:fix        # 自动修复 lint 问题
-pnpm check-types     # Vue/TypeScript 类型检查
-pnpm test            # 单元测试（运行一次）
-pnpm test:watch      # 单元测试（监听模式）
-pnpm test:coverage   # 单元测试覆盖率报告
-```
+- Cookie authentication, session restoration, shared refresh on 401, sign-out and password recovery.
+- Profile and avatar management, password changes, session listing and remote sign-out.
+- Client user management, administrator management, roles and permission-based navigation/page access.
+- Embedding model configuration, connectivity testing and default-model selection.
+- Light/dark themes, sidebar customization and a command palette.
+- English/Chinese switching for the shell and server-connected pages.
 
-## 📁 项目结构
+### Routes and data sources
 
-```
+| Route                                                                   | Purpose                                                    | Data source         |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------- |
+| `/`                                                                     | Redirect to `/dashboard/`                                  | Navigation          |
+| `/dashboard/`                                                           | Dashboard charts and metrics                               | Demo data           |
+| `/auth/sign-in`, `/auth/sign-in-2`                                      | Sign-in layouts                                            | Server API          |
+| `/auth/forgot-password`, `/auth/reset-password`                         | Password recovery                                          | Server API          |
+| `/settings/`                                                            | Profile and avatar                                         | Server API          |
+| `/settings/account`                                                     | Password and sessions                                      | Server API          |
+| `/users`                                                                | Search, paginate, edit and disable client users            | Server API          |
+| `/admins`                                                               | Create/edit administrators, change status and assign roles | Server API          |
+| `/roles`                                                                | Role and permission management                             | Server API          |
+| `/ai/embedding-models`                                                  | Model CRUD, connection test and default selection          | Server API          |
+| `/settings/appearance`, `/settings/notifications`, `/settings/display`  | Template settings forms                                    | Local/demo behavior |
+| `/ai-talk`, `/apps`, `/tasks`, `/billing`, `/marketing`, `/help-center` | Template example pages                                     | Demo data           |
+| `/auth/otp`, `/errors/*`                                                | OTP UI example and error pages                             | Presentation        |
+
+AI Talk is a demo UI; there is no connected chat service. The server exposes RAG APIs, but this app has no knowledge-base page yet.
+
+## API and authentication
+
+Copy `.env.example` to `.env`. The default API origin is `VITE_SERVER_API_URL=http://localhost:3100` and the prefix is `VITE_SERVER_API_PREFIX=/api`. Validation lives in `src/validators/env.validator.ts`.
+
+`src/lib/api-client.ts` creates `apiFetch` with a base URL of `<origin><prefix>/v1/admin`. API modules use relative paths such as `/users` and `/me`.
+
+- Admins and client users have separate tables, sessions and cookies. Client registration does not create an admin account.
+- The shared `createApiClient` sends `credentials: 'include'`. A business request returning 401 triggers one shared `POST /auth/refresh` and one retry. An unrecoverable session is cleared and an already signed-in administrator is sent to `/auth/sign-in`.
+- `src/stores/auth.ts` stores the current administrator in memory. The router restores it with `GET /me`; it is not persisted to localStorage.
+- Default-layout pages require sign-in. `meta.permission` gates routes; sidebar and command-palette entries use permission codes from `GET /me`.
+- Password recovery sends the current origin's `/auth/reset-password` as `resetUrl`. The server checks its origin against `APP_WEB_URL` and `CORS_ORIGINS`.
+
+| API module in `src/services/api/` | Responsibility                             |
+| --------------------------------- | ------------------------------------------ |
+| `auth.api.ts`                     | Login, logout, forgot/reset password       |
+| `me.api.ts`                       | Profile, avatar, password and sessions     |
+| `admin-users.api.ts`              | Client user administration                 |
+| `admins.api.ts`                   | Administrator accounts and role assignment |
+| `roles.api.ts`                    | Roles and permission catalog               |
+| `embedding-models.api.ts`         | Embedding model management                 |
+
+The `example-*` modules contain demo behavior.
+
+## Stack and structure
+
+Vue 3.5, Vue Router 5, Vite 8, TypeScript 6, Tailwind CSS 4, Pinia, TanStack Vue Query/Table/Form, Zod, Unovis and vue-i18n. Shared dependency versions come from the root `pnpm-workspace.yaml` catalog.
+
+```text
 src/
-├── assets/          # 全局样式、主题 CSS
-├── components/      # 共享 UI 组件
-├── composables/     # use-auth, use-sidebar-navigation, use-system-theme 等
-├── config/          # 应用配置
-├── constants/       # 常量
-├── layouts/         # 页面布局（default, auth 等）
-├── lib/
-│   └── api-client.ts  # 统一 HTTP 客户端（Cookie + 自动刷新）
-├── pages/           # 文件路由页面（见页面列表）
-├── plugins/         # Vue 插件注册（src/plugins/index.ts）
-├── router/          # 路由守卫、权限拦截
-├── services/
-│   └── api/         # 按模块拆分的 API 函数
-├── stores/          # auth, theme, sidebar-config（Pinia）
-├── types/           # 自动生成的路由类型（勿手动编辑）
-├── utils/           # 工具函数
-└── validators/      # env.validator.ts（Zod 环境变量校验）
+├── assets/          # CSS entry and theme tokens
+├── components/      # Application components; base UI comes from @repo/ui
+├── composables/     # Auth, navigation and theme helpers
+├── constants/       # App configuration and sidebar data
+├── layouts/         # Generated layout integration
+├── lib/             # Shared HTTP client instance
+├── pages/           # File-based routes
+├── plugins/         # Plugin setup, Query, Pinia and i18n
+├── router/          # Router and access guards
+├── services/api/    # API functions and query/mutation hooks
+├── stores/          # Auth, theme and sidebar state
+├── types/           # Types including generated route declarations
+└── validators/     # Environment validation
 ```
 
-> 路由声明文件（`src/types/route-map.d.ts`、`auto-import.d.ts`、`auto-import-components.d.ts`）由 Vite 自动生成，请勿手动编辑。实际开发修改 `src/`，不要编辑嵌套的 `shadcn-vue-admin-main/` 上游副本。
+Vue Router generates routes from `src/pages/`; `vite-plugin-vue-layouts-next` supplies layouts. Vite also generates `src/types/route-map.d.ts`, `auto-import.d.ts` and `auto-import-components.d.ts`; edit their source inputs rather than these declarations.
 
-## 🎨 主题定制
+### Internationalization and themes
 
-使用 [tweakcn](https://tweakcn.com/editor/theme) 提供的预设样式，将生成的 CSS 变量复制到 `src/assets/index.css` 的 `:root`、`.dark` 和 `@theme inline` 部分即可。
+- Messages live in `src/plugins/i18n/en.json` and `zh.json`. Chinese messages must match the English schema.
+- Use `setLocale()` from `@/plugins/i18n` to update vue-i18n, dayjs, `<html lang>` and `localStorage['app-locale']` together. The default is English.
+- Components use `useI18n()` or `$t`; non-component code imports `t`. Navigation titles are message keys. Zod messages resolve `t` at validation time.
+- Example pages and the Appearance/Notifications/Display tabs still contain English content.
+- `src/assets/index.css` imports `@repo/ui/styles/theme.css` after `tailwindcss`. Define complete color values in `:root`, `.dark` and theme classes; shared Tailwind token mapping lives in `packages/ui`.
 
-## 📄 License
+## Commands and verification
 
-MIT License — 详见 [LICENSE](https://github.com/Whbbit1999/shadcn-vue-admin/blob/main/LICENSE)
+All commands below run from the repository root:
 
-## 🤝 Credits
+```sh
+pnpm -C apps/admin dev
+pnpm -C apps/admin lint
+pnpm -C apps/admin lint:fix
+pnpm -C apps/admin check-types
+pnpm -C apps/admin test
+pnpm -C apps/admin test:watch
+pnpm -C apps/admin test:coverage
+pnpm -C apps/admin build
+pnpm -C apps/admin build:analyze
+pnpm -C apps/admin preview
+```
 
-- **Developer**: [Whbbit1999](https://github.com/Whbbit1999)
-- **Original Design**: [shadcn-admin](https://github.com/satnaing/shadcn-admin)
+`build` runs Vue typechecking followed by Vite and writes `dist/`. `build:analyze` runs Vite with bundle analysis; run `check-types` separately for that script. The package also retains a `release` script using bumpp.
+
+Vitest includes only `src/**/*.test.ts`; DOM tests opt into happy-dom. For example:
+
+```sh
+pnpm -C apps/admin test src/utils/__tests__/env.test.ts
+```
+
+After code changes, run `lint:fix` and relevant tests; run `build` for non-trivial changes. Core logic changes require corresponding tests. Shared UI/utils changes need both admin and client verification. See [AGENTS.md](./AGENTS.md) for conventions. Git hooks are not installed automatically, and `apps/admin/.github/workflows/` is template-local rather than root repository CI.
+
+## Credits and license
+
+The upstream admin template is MIT-licensed; see [LICENSE](./LICENSE). Credits: [Whbbit1999](https://github.com/Whbbit1999/shadcn-vue-admin), with the original design from [shadcn-admin](https://github.com/satnaing/shadcn-admin).

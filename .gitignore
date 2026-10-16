@@ -35,3 +35,8 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Production deployment state (deploy/)
+deploy/.env
+deploy/backups/
+deploy/.deploy-history

@@ -8,7 +8,7 @@
 - `pnpm check-types` # Vue/TypeScript check
 - `pnpm test` # Run tests once; `pnpm test:watch` watches
 
-Install dependencies at the repository root; use its pnpm version, workspace settings, and lockfile. The nested `shadcn-vue-admin-main/` is an upstream copy excluded from lint/tests, not the app to edit.
+Install dependencies at the repository root; use its pnpm version, workspace settings, and lockfile.
 
 Run `pnpm lint:fix` after code changes.
 

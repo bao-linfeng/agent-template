@@ -1,0 +1,28 @@
+# Public entry point. Caddy obtains and renews certificates for each domain automatically
+# (DNS must point at this host and ports 80/443 must be reachable). Domains come from deploy/.env.
+{
+	email {$ACME_EMAIL}
+}
+
+(common) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
+
+{$API_DOMAIN} {
+	import common
+	# No response timeout and immediate flushing for text/event-stream, so SSE works without extra config.
+	reverse_proxy api:3100
+}
+
+{$ADMIN_DOMAIN} {
+	import common
+	reverse_proxy admin:8080
+}
+
+{$CLIENT_DOMAIN} {
+	import common
+	reverse_proxy client:8080
+}

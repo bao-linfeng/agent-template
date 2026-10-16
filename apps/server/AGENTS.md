@@ -77,6 +77,8 @@ test/                   e2e specs, setup (testcontainers global setup), support 
 ## Production notes
 
 - Required: `NODE_ENV=production`, `JWT_SECRET` (≥32 chars), `ENCRYPTION_KEY` (32 bytes base64), real `DATABASE_URL`/`REDIS_URL`/`STORAGE_*`/`SMTP_*`, `PUBLIC_URL`, `APP_WEB_URL`, `CORS_ORIGINS`; set `TRUST_PROXY=true` behind a proxy. Swagger is off and cookies are `Secure` by default in production.
-- Deploy: `pnpm build` → `node dist/scripts/migrate.js` (`db:migrate:prod`) → `node dist/main.js`. Seed once with `node dist/scripts/seed.js` and `SEED_ADMIN_*` (creates the first admin console account).
+- Deploy: `pnpm build` → `node dist/scripts/migrate.js` (`db:migrate:prod`) → `node dist/main.js`. Seed once with `node dist/scripts/seed.js` and `SEED_ADMIN_*` (creates the first admin console account). The production image (`Dockerfile`, built from the repository root) runs all three; `deploy/` wires them up with Docker Compose (`deploy/README.md`).
+- Migrations run in one transaction before the new release starts, and rollback redeploys the previous image without undoing them. Keep every migration compatible with the previous release's code (add nullable/defaulted columns; rename or drop in later releases), and never put non-transactional statements such as `CREATE INDEX CONCURRENTLY` in a migration. CI fails when the schema changed without `pnpm db:generate`.
+- New runtime files outside `dist/` and `drizzle/` must be copied into the image explicitly in `Dockerfile`.
 - Embedding base URLs are admin-controlled outbound requests; only grant `embedding-model:manage` to trusted administrators.
 - NestJS Observe is loaded only when `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` are set.

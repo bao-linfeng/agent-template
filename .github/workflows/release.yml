@@ -1,0 +1,67 @@
+# Builds the production images and pushes them to GHCR as ghcr.io/<owner>/<repo>/{server,admin,client}.
+# Trigger: push a tag like v1.2.3 (images get 1.2.3, 1.2, latest and sha-<commit>), or run it manually (sha-<commit>).
+# Vite bakes the API URL into the admin/client bundles: set the repository variables API_DOMAIN
+# (e.g. api.example.com) and optionally API_PREFIX (default api) under Settings → Secrets and variables → Actions.
+name: Release images
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    name: Publish ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        app: [server, admin, client]
+    steps:
+      - name: Require API_DOMAIN for the web images
+        if: matrix.app != 'server' && vars.API_DOMAIN == ''
+        run: |
+          echo "::error::Set the repository variable API_DOMAIN (e.g. api.example.com) before releasing."
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.app }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          build-args: |
+            VITE_SERVER_API_URL=https://${{ vars.API_DOMAIN }}
+            VITE_SERVER_API_PREFIX=/${{ vars.API_PREFIX || 'api' }}
+            VITE_API_BASE_URL=https://${{ vars.API_DOMAIN }}/${{ vars.API_PREFIX || 'api' }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,scope=${{ matrix.app }},mode=max

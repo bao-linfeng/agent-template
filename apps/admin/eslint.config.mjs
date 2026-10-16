@@ -5,7 +5,6 @@ export default defineConfig(
   {
     type: 'app',
     ignores: [
-      'shadcn-vue-admin-main/**',
       '**/build/**',
     ],
     settings: {

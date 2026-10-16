@@ -332,17 +332,23 @@ run.cancelled
 
 ### 4.5 发布与部署链路
 
-**当前状态：** 已有检查命令和本地基础设施，尚缺根级 CI 与完整应用部署配置。仓库中没有 Dockerfile 和 `.dockerignore`，`apps/admin/.github/` 下的工作流只属于上游模板，不是本仓库 CI。
+**当前状态：** 根级 CI、生产镜像、单机部署、备份恢复与依赖更新已补齐（2026-10-15），部署细节见 [`deploy/README.md`](../deploy/README.md)。
 
-**建议补齐：**
+| 项目 | 状态 |
+| --- | --- |
+| 提交或 PR 自动运行 lint、类型检查、测试和构建 | 已完成：`.github/workflows/ci.yml`，另含迁移与 schema 同步检查、server E2E、三个镜像的构建 |
+| server、admin、client 生产镜像（多阶段构建、非 root 用户、健康检查）及 `.dockerignore` | 已完成：`apps/*/Dockerfile`、根 `.dockerignore`；`release.yml` 在 `v*` tag 时推送 GHCR |
+| 可重复的应用部署流程与迁移步骤 | 已完成：`deploy/docker-compose.yml`（Caddy 网关）与 `deploy/scripts/deploy.sh`（备份 → 迁移 → 发布 → 就绪检查） |
+| 数据库备份与恢复演练、迁移失败时的回滚策略 | 已完成：`backup.sh`、`restore.sh --verify`；回滚依赖向后兼容迁移（expand/contract）与发布前备份 |
+| 依赖更新机制，配合 24 小时最小发布时间 | 已完成：`renovate.json`（`minimumReleaseAge: 1 day`），需在 GitHub 安装 Renovate App 后生效 |
+| API 与 Worker 独立部署 | 待 Agent 长任务出现后再做（当前 Worker 运行在 API 进程内） |
+| Agent 配置版本记录，运行绑定实际使用的版本 | 待 Agent 模块建立后随 3.4 的运行记录一起实现 |
 
-- 提交或 PR 自动运行 lint、类型检查、测试和构建。
-- server、admin、client 的生产镜像（多阶段构建、非 root 用户、健康检查）及 `.dockerignore`。
-- 可重复的应用部署流程与迁移步骤。
-- 数据库备份与恢复演练，以及迁移失败时的回滚策略（Drizzle 迁移只有正向 SQL）。
-- 依赖更新机制，如 Renovate，并与根配置中 24 小时最小发布时间的策略配合。
-- Agent 长任务出现后，支持 API 与 Worker 独立部署（当前 Worker 运行在 API 进程内）。
-- Agent 配置版本记录，运行绑定实际使用的版本。
+**仍需注意：**
+
+- 单机 Compose 替换容器时 API 有数秒中断；需要零停机或多实例时再迁移到 Kubernetes 等编排平台。
+- 备份保存在部署主机本地，需要另行同步到异地存储。
+- 前端镜像在构建时写入 API 地址，换域名需重新构建。
 
 ## 5. 通用基座能力缺口
 

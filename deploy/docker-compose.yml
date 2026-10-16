@@ -1,0 +1,172 @@
+# Single-host production stack: Caddy (HTTPS) → api / admin / client, plus PostgreSQL (pgvector), Redis and RustFS.
+# Run every command from this directory with deploy/.env in place (cp .env.example .env). See README.md.
+#
+#   scripts/deploy.sh [tag]            # pull images, back up, migrate, then roll out
+#   docker compose run --rm seed       # once: system roles + first super admin (SEED_ADMIN_*)
+#
+# Only the gateway publishes ports; databases and app containers stay on the internal network.
+name: agent-template
+
+x-server: &server
+  image: ${IMAGE_REGISTRY:?set IMAGE_REGISTRY in deploy/.env}/server:${IMAGE_TAG:-latest}
+  build:
+    context: ..
+    dockerfile: apps/server/Dockerfile
+  # Secrets and optional tuning (JWT_SECRET, ENCRYPTION_KEY, SMTP_*, THROTTLE_*, SEED_* ...).
+  env_file: .env
+  # Values derived from the stack; these win over env_file.
+  environment:
+    NODE_ENV: production
+    TRUST_PROXY: "true"
+    API_PREFIX: ${API_PREFIX:-api}
+    PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}
+    APP_WEB_URL: https://${CLIENT_DOMAIN:?set CLIENT_DOMAIN}
+    CORS_ORIGINS: https://${ADMIN_DOMAIN:?set ADMIN_DOMAIN},https://${CLIENT_DOMAIN}
+    # Use URL-safe passwords (e.g. openssl rand -hex 32): they are embedded in connection URLs.
+    DATABASE_URL: postgres://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}
+    REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379
+    STORAGE_ENDPOINT: http://rustfs:9000
+    STORAGE_FORCE_PATH_STYLE: "true"
+
+services:
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+      API_DOMAIN: ${API_DOMAIN}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN}
+      CLIENT_DOMAIN: ${CLIENT_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - admin
+      - client
+
+  api:
+    <<: *server
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_healthy
+
+  # One-off tasks (profile `ops` keeps them out of `docker compose up`).
+  migrate:
+    <<: *server
+    profiles: ["ops"]
+    restart: "no"
+    command: ["node", "dist/scripts/migrate.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    <<: *server
+    profiles: ["ops"]
+    restart: "no"
+    command: ["node", "dist/scripts/seed.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  admin:
+    image: ${IMAGE_REGISTRY}/admin:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_SERVER_API_URL: https://${API_DOMAIN}
+        VITE_SERVER_API_PREFIX: /${API_PREFIX:-api}
+    restart: unless-stopped
+
+  client:
+    image: ${IMAGE_REGISTRY}/client:${IMAGE_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: apps/client/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://${API_DOMAIN}/${API_PREFIX:-api}
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    volumes:
+      # PostgreSQL 18 images keep PGDATA under /var/lib/postgresql/<major>/docker.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test:
+        ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # BullMQ needs noeviction; AOF keeps queued jobs across restarts.
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory-policy",
+        "noeviction",
+        "--requirepass",
+        "${REDIS_PASSWORD}",
+      ]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:?set STORAGE_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_KEY:?set STORAGE_SECRET_KEY}
+      RUSTFS_CONSOLE_ENABLE: "false"
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-fsS",
+          "-o",
+          "/dev/null",
+          "http://127.0.0.1:9000/health",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
+  rustfs-data:
+  caddy-data:
+  caddy-config:

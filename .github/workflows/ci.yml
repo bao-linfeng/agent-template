@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Lint, types, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Version comes from the root package.json `packageManager`.
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm check-types
+
+      - run: pnpm test
+
+      - run: pnpm build
+
+      # Fails when src/database/schema changed without a generated migration in apps/server/drizzle.
+      - name: Migrations match the Drizzle schema
+        run: |
+          pnpm -C apps/server exec drizzle-kit generate --name ci-schema-drift
+          if [ -n "$(git status --porcelain apps/server/drizzle)" ]; then
+            git status --porcelain apps/server/drizzle
+            echo "::error::Schema changes without a migration: run pnpm -C apps/server db:generate --name <change> and commit it."
+            exit 1
+          fi
+
+  e2e:
+    name: Server e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # testcontainers uses the runner's Docker daemon.
+      - run: pnpm test:e2e
+
+  images:
+    name: Image (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: server
+            build-args: ""
+          # Placeholder URLs: CI only proves the images build; release.yml bakes the real ones.
+          - app: admin
+            build-args: VITE_SERVER_API_URL=https://api.example.com
+          - app: client
+            build-args: VITE_API_BASE_URL=https://api.example.com/api
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          build-args: ${{ matrix.build-args }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,scope=${{ matrix.app }},mode=max
