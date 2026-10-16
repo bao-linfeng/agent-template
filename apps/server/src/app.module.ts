@@ -10,6 +10,7 @@ import { RedisThrottlerStorage } from './common/throttling/redis-throttler.stora
 import { validateEnv, type Env } from './config/env.js'
 import { DatabaseModule } from './database/database.module.js'
 import { MailModule } from './infra/mail/mail.module.js'
+import { MetricsModule } from './infra/metrics/metrics.module.js'
 import { QueueModule } from './infra/queue/queue.module.js'
 import { REDIS, RedisModule } from './infra/redis/redis.module.js'
 import { StorageModule } from './infra/storage/storage.module.js'
@@ -91,6 +92,7 @@ import { observeImports } from './observe.js'
     CryptoModule,
     StorageModule,
     QueueModule,
+    MetricsModule,
     MailModule,
     AuditModule,
     SecurityModule,

@@ -46,6 +46,8 @@ export default async function setup(project: TestProject) {
     AUTH_THROTTLE_LIMIT: '150',
     THROTTLE_LIMIT: '10000',
     PUBLIC_URL: 'http://localhost:3100',
+    // Every test app binds its own metrics listener on a free port.
+    METRICS_PORT: '0',
     FAKE_EMBEDDINGS_URL: embeddings.baseUrl,
   }
 

@@ -41,6 +41,8 @@ COPY apps/server/drizzle ./drizzle
 COPY --from=build /repo/apps/server/dist ./dist
 USER node
 EXPOSE 3100
+# Prometheus metrics (METRICS_PORT): internal only, never publish it or route it through the gateway.
+EXPOSE 9464
 # Liveness only; readiness (database + Redis) is GET /<API_PREFIX>/health.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
   CMD ["node", "-e", "fetch(`http://127.0.0.1:${process.env.PORT}/${process.env.API_PREFIX ?? 'api'}/health/live`).then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]

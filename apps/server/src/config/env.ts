@@ -134,10 +134,23 @@ export const envSchema = z
     /** How long a finished personal data export stays downloadable before it is deleted. */
     ACCOUNT_EXPORT_TTL_HOURS: z.coerce.number().int().positive().default(72),
 
+    /** Prometheus metrics on a separate internal listener (`http://<METRICS_HOST>:<METRICS_PORT>/metrics`). */
+    METRICS_ENABLED: booleanString.default(true),
+    METRICS_HOST: z.string().default('0.0.0.0'),
+    /** Keep it unreachable from the internet (the gateway only proxies `PORT`); 0 picks a free port. */
+    METRICS_PORT: z.coerce.number().int().min(0).max(65_535).default(9464),
+
     OBSERVE_APP_KEY: z.string().optional(),
     OBSERVE_APP_SECRET: z.string().optional(),
   })
   .superRefine((env, ctx) => {
+    if (env.METRICS_ENABLED && env.METRICS_PORT === env.PORT) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['METRICS_PORT'],
+        message: 'METRICS_PORT must differ from PORT',
+      })
+    }
     if (env.NODE_ENV !== 'production') {
       return
     }

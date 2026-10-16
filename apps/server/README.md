@@ -11,7 +11,7 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 | 权限 `rbac`                          | 只作用于后台管理员：角色 + 权限码（`user:read`、`admin:create` 等，CASL）；系统角色 `super_admin` / `admin`。客户端用户没有角色，只能操作自己的数据                                                                                                                       |
 | AI `ai`                              | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                                                                                                                                                                                    |
 | RAG `rag`                            | 客户端用户自己的知识库（`/api/v1/client/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/v1/admin/rag/knowledge-bases` 查看/删除所有知识库                                                         |
-| 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Swagger、请求 ID 与结构化日志                                                                                                                                                                                           |
+| 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Prometheus 指标（独立内部端口）、Swagger、请求 ID 与结构化日志                                                                                                                                                          |
 
 ## 快速开始
 
@@ -27,6 +27,7 @@ pnpm dev                 # http://localhost:3100/api
 
 - Swagger：<http://localhost:3100/api/docs>，JSON：<http://localhost:3100/api/docs-json>
 - 就绪检查：<http://localhost:3100/api/health>（Postgres/Redis），存活检查：<http://localhost:3100/api/health/live>
+- Prometheus 指标：<http://localhost:9464/metrics>（独立监听，不走 API 端口；见下文“指标”）
 - Mailpit 收件箱（注册验证码和找回密码邮件）：<http://localhost:8025>
 - RustFS 控制台：<http://localhost:9001>（账号见 `.env` 中的 `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`）
 
@@ -103,6 +104,19 @@ pnpm -C apps/server build
 pnpm -C apps/server db:migrate:prod
 pnpm -C apps/server start:prod
 ```
+
+### 指标
+
+`METRICS_ENABLED`（默认开启）时，应用在 `METRICS_HOST:METRICS_PORT`（默认 `0.0.0.0:9464`）单独监听 `GET /metrics`，网关只转发 `PORT`，因此指标不会暴露到公网；不要发布这个端口。主要指标：
+
+| 指标 | 说明 |
+| --- | --- |
+| `http_server_request_duration_seconds{method,route,status_code,realm}` | 按路由模板统计的请求耗时（不含 `/health`；未匹配路由为 `unmatched`） |
+| `bullmq_queue_jobs{queue,state}` | 各队列各状态任务数，抓取时从 Redis 读取（缓存 10 秒，集群共享，用 `max by` 聚合） |
+| `bullmq_jobs_processed_total{queue,name,status}` / `bullmq_jobs_failed_final_total{queue,name}` | 本实例执行的任务次数 / 重试用尽或 `UnrecoverableError` 的最终失败 |
+| `bullmq_job_duration_seconds` / `bullmq_job_last_success_timestamp_seconds` | 单次执行耗时 / 每个任务名最近一次成功的时间（夜间定时任务据此告警） |
+| `pg_pool_connections{state}` / `pg_pool_waiting_requests` / `pg_pool_max_connections` | PostgreSQL 连接池 |
+| `process_*` / `nodejs_*` | Node 运行时（CPU、内存、GC、事件循环延迟） |
 
 首次部署需要种子数据时，在 `apps/server` 执行 `node dist/scripts/seed.js`。迁移文件在 `drizzle/`，数据库 schema 位于 `src/database/schema/`；修改 schema 后使用 `db:generate` 生成并提交迁移。
 
