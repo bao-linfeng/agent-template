@@ -62,7 +62,7 @@ export class AuthCookies {
     reply.setCookie(names.refresh, tokens.refreshToken, {
       ...this.base,
       path: paths.refresh,
-      maxAge: this.sessions.refreshTtlSeconds,
+      maxAge: tokens.refreshExpiresIn,
     })
   }
 

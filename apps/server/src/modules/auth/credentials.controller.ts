@@ -180,7 +180,7 @@ export abstract class CredentialsController<Profile> {
       accessToken: tokens.accessToken,
       expiresIn: this.sessions.accessTtlSeconds,
       refreshToken: tokens.refreshToken,
-      refreshExpiresIn: this.sessions.refreshTtlSeconds,
+      refreshExpiresIn: tokens.refreshExpiresIn,
     }
   }
 }

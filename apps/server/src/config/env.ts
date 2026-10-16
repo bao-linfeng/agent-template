@@ -58,6 +58,12 @@ export const envSchema = z
       .int()
       .positive()
       .default(7 * 24 * 60 * 60),
+    /** Client sessions slide by `REFRESH_TOKEN_TTL_SECONDS` on every refresh, but end this long after sign-in. */
+    CLIENT_SESSION_MAX_TTL_SECONDS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(30 * 24 * 60 * 60),
     PASSWORD_RESET_TTL_SECONDS: z.coerce
       .number()
       .int()

@@ -250,6 +250,79 @@ describe('auth & account (e2e)', () => {
       .expect(401)
   })
 
+  it('extends client sessions on refresh up to the absolute cap, but not admin sessions', async () => {
+    const day = 24 * 60 * 60
+    const maxAge = (setCookie: unknown, name: string) =>
+      Number(
+        /Max-Age=(\d+)/.exec(
+          (setCookie as string[]).find((c) => c.startsWith(`${name}=`))!,
+        )![1],
+      )
+    const expiry = async (table: string, id: string) => {
+      const { rows } = await t.pool.query<{
+        created_at: Date
+        expires_at: Date
+      }>(`select created_at, expires_at from ${table} where id = $1`, [id])
+      return rows[0]!
+    }
+
+    // Signed in 25 days ago with 1 day left: the refresh extends it, but only to 30 days after sign-in.
+    const { credentials } = await registerUser(t)
+    const login = await t
+      .http()
+      .post(`${CLIENT_API}/auth/login`)
+      .send(credentials)
+      .expect(200)
+    expect(
+      maxAge(login.headers['set-cookie'], 'refresh_token'),
+    ).toBeGreaterThan(7 * day - 60)
+    const refresh = cookieValue(login.headers['set-cookie'], 'refresh_token')!
+    const sessionId = refresh.split('.')[0]
+    await t.pool.query(
+      `update auth_sessions set created_at = now() - interval '25 days', expires_at = now() + interval '1 day' where id = $1`,
+      [sessionId],
+    )
+    const refreshed = await t
+      .http()
+      .post(`${CLIENT_API}/auth/refresh`)
+      .set('Cookie', `refresh_token=${refresh}`)
+      .expect(204)
+    const session = await expiry('auth_sessions', sessionId!)
+    expect(
+      session.expires_at.getTime() - session.created_at.getTime(),
+    ).toBeCloseTo(30 * day * 1000, -4)
+    const cookieAge = maxAge(refreshed.headers['set-cookie'], 'refresh_token')
+    expect(cookieAge).toBeGreaterThan(5 * day - 60)
+    expect(cookieAge).toBeLessThanOrEqual(5 * day)
+
+    // Admin sessions keep their end no matter how often they refresh.
+    const adminLogin = await t
+      .http()
+      .post(`${ADMIN_API}/auth/login`)
+      .send(ADMIN_LOGIN)
+      .expect(200)
+    const adminRefresh = cookieValue(
+      adminLogin.headers['set-cookie'],
+      'admin_refresh_token',
+    )!
+    const adminSessionId = adminRefresh.split('.')[0]!
+    await t.pool.query(
+      `update admin_sessions set expires_at = now() + interval '1 day' where id = $1`,
+      [adminSessionId],
+    )
+    const before = await expiry('admin_sessions', adminSessionId)
+    const adminRefreshed = await t
+      .http()
+      .post(`${ADMIN_API}/auth/refresh`)
+      .set('Cookie', `admin_refresh_token=${adminRefresh}`)
+      .expect(204)
+    const after = await expiry('admin_sessions', adminSessionId)
+    expect(after.expires_at.getTime()).toBe(before.expires_at.getTime())
+    expect(
+      maxAge(adminRefreshed.headers['set-cookie'], 'admin_refresh_token'),
+    ).toBeLessThanOrEqual(day)
+  })
+
   it('logout revokes the access token immediately', async () => {
     const { credentials } = await registerUser(t)
     const login = await t

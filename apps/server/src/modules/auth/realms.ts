@@ -56,6 +56,15 @@ export const REALM_ROUTES: Record<Realm, string> = {
  */
 export const BEARER_REALMS: ReadonlySet<Realm> = new Set<Realm>(['user'])
 
+/**
+ * Realms whose sessions slide: every refresh extends the session by `REFRESH_TOKEN_TTL_SECONDS`, capped
+ * at `CLIENT_SESSION_MAX_TTL_SECONDS` after sign-in, so active client users stay signed in. Admin
+ * sessions end `REFRESH_TOKEN_TTL_SECONDS` after sign-in no matter how often they refresh.
+ */
+export const SLIDING_SESSION_REALMS: ReadonlySet<Realm> = new Set<Realm>([
+  'user',
+])
+
 const realmBase = (realm: Realm) => `/v${API_VERSION}/${REALM_ROUTES[realm]}`
 
 export interface RealmCookies {

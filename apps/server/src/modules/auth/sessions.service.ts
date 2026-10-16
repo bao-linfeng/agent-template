@@ -15,12 +15,14 @@ import type { Database, DbExecutor } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
 import { revokedSessionKey, type AccessTokenPayload } from './auth.constants.js'
-import { REALM_TABLES, type Realm } from './realms.js'
+import { REALM_TABLES, SLIDING_SESSION_REALMS, type Realm } from './realms.js'
 
 export interface IssuedTokens {
   sessionId: string
   accessToken: string
   refreshToken: string
+  /** Seconds until the session (and so the refresh token) expires. */
+  refreshExpiresIn: number
 }
 
 /** Concurrent refreshes (several tabs) may present the just-rotated token for this long without being treated as theft. */
@@ -31,6 +33,7 @@ const ROTATION_GRACE_MS = 30_000
 export class SessionsService {
   readonly accessTtlSeconds: number
   readonly refreshTtlSeconds: number
+  readonly clientSessionMaxTtlSeconds: number
 
   constructor(
     @InjectDb() private readonly db: Database,
@@ -44,6 +47,10 @@ export class SessionsService {
     this.refreshTtlSeconds = config.get('REFRESH_TOKEN_TTL_SECONDS', {
       infer: true,
     })
+    this.clientSessionMaxTtlSeconds = config.get(
+      'CLIENT_SESSION_MAX_TTL_SECONDS',
+      { infer: true },
+    )
   }
 
   async create(
@@ -54,6 +61,7 @@ export class SessionsService {
   ): Promise<IssuedTokens> {
     const { sessions } = REALM_TABLES[realm]
     const secret = randomToken()
+    const expiresAt = this.nextExpiry(realm, new Date())
     const [session] = await executor
       .insert(sessions)
       .values({
@@ -61,11 +69,11 @@ export class SessionsService {
         refreshTokenHash: sha256(secret),
         ip: meta.ip,
         userAgent: meta.userAgent,
-        expiresAt: new Date(Date.now() + this.refreshTtlSeconds * 1000),
+        expiresAt,
         lastUsedAt: new Date(),
       })
       .returning({ id: sessions.id })
-    return this.issue(realm, user, session!.id, secret)
+    return this.issue(realm, user, session!.id, secret, expiresAt)
   }
 
   /** Exchanges a refresh token for a new pair; the old refresh token stops working. */
@@ -112,12 +120,16 @@ export class SessionsService {
     }
 
     const nextSecret = randomToken()
+    const expiresAt = SLIDING_SESSION_REALMS.has(realm)
+      ? this.nextExpiry(realm, session.createdAt)
+      : session.expiresAt
     const rotated = await this.db
       .update(sessions)
       .set({
         refreshTokenHash: sha256(nextSecret),
         previousRefreshTokenHash: session.refreshTokenHash,
         rotatedAt: new Date(),
+        expiresAt,
         lastUsedAt: new Date(),
         ip: meta.ip,
         userAgent: meta.userAgent,
@@ -132,7 +144,7 @@ export class SessionsService {
     if (rotated.length === 0) {
       throw new AppException('AUTH_REFRESH_TOKEN_INVALID')
     }
-    return this.issue(realm, user, session.id, nextSecret)
+    return this.issue(realm, user, session.id, nextSecret, expiresAt)
   }
 
   async revoke(realm: Realm, sessionId: string): Promise<void> {
@@ -231,6 +243,7 @@ export class SessionsService {
     user: { id: string; email: string },
     sessionId: string,
     secret: string,
+    expiresAt: Date,
   ): Promise<IssuedTokens> {
     const payload: AccessTokenPayload = {
       sub: user.id,
@@ -241,7 +254,32 @@ export class SessionsService {
     const accessToken = await this.jwt.signAsync(payload, {
       expiresIn: this.accessTtlSeconds,
     })
-    return { sessionId, accessToken, refreshToken: `${sessionId}.${secret}` }
+    return {
+      sessionId,
+      accessToken,
+      refreshToken: `${sessionId}.${secret}`,
+      refreshExpiresIn: Math.max(
+        0,
+        Math.floor((expiresAt.getTime() - Date.now()) / 1000),
+      ),
+    }
+  }
+
+  /**
+   * End of a session (re)issued now: `refreshTtlSeconds` from now, capped at `clientSessionMaxTtlSeconds`
+   * after sign-in for sliding realms (see `SLIDING_SESSION_REALMS`).
+   */
+  private nextExpiry(realm: Realm, signedInAt: Date): Date {
+    const extended = Date.now() + this.refreshTtlSeconds * 1000
+    if (!SLIDING_SESSION_REALMS.has(realm)) {
+      return new Date(extended)
+    }
+    return new Date(
+      Math.min(
+        extended,
+        signedInAt.getTime() + this.clientSessionMaxTtlSeconds * 1000,
+      ),
+    )
   }
 
   /** Access tokens live at most `accessTtlSeconds`, so the revocation marker can expire with them. */
