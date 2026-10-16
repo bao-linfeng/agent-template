@@ -59,7 +59,7 @@ scripts/deploy.sh 1.0.0            # 或 scripts/deploy.sh --build
 docker compose run --rm seed       # 只需一次：系统角色、首个超级管理员、默认 Embedding 模型
 ```
 
-`ENCRYPTION_KEY` 加密数据库中的模型 API Key，丢失后已保存的密钥无法解密，需与备份分开妥善保管。密码会拼进连接 URL，请用 `openssl rand -hex 32` 生成 URL 安全的值。
+`ENCRYPTION_KEY` 加密数据库中的模型 API Key 和管理员双因素认证（TOTP）密钥，丢失后这些数据无法解密，需与备份分开妥善保管；更换方法见「加密密钥轮换」。密码会拼进连接 URL，请用 `openssl rand -hex 32` 生成 URL 安全的值。
 
 使用托管 PostgreSQL / Redis / S3 时：在 `docker-compose.yml` 中删除对应服务及 `depends_on`，把 `x-server.environment` 里的 `DATABASE_URL`、`REDIS_URL`、`STORAGE_ENDPOINT` 改为托管地址（托管 S3 通常还需 `STORAGE_FORCE_PATH_STYLE=false`）。PostgreSQL 必须提供 pgvector 扩展；Redis 必须使用 `noeviction` 策略（BullMQ 要求）。此时 `backup.sh`/`restore.sh` 不再适用，改用云厂商的快照与时间点恢复。
 
@@ -222,6 +222,24 @@ API 设置 `OTEL_EXPORTER_OTLP_ENDPOINT` 后，每个请求在 Tempo 中有一�
 - 监控栈和 API 运行在同一台主机上，主机宕机或断网时不会有任何告警。建议再用一个外部拨测服务（云厂商的站点监控、UptimeRobot 等）定时访问 `https://<API_DOMAIN>/api/health`。
 - 没有采集主机指标（磁盘、内存）和 PostgreSQL/Redis 自身指标；需要时可加入 node-exporter、postgres-exporter、redis-exporter，并在 `prometheus.yml` 中增加抓取任务。
 - 数据保留由 `PROMETHEUS_RETENTION`（默认 `15d`）和 `TEMPO_RETENTION`（默认 `168h`）控制，按磁盘空间调整。监控数据不在 `backup.sh` 的备份范围内。
+
+## 加密密钥轮换
+
+密钥泄露、人员变动或合规要求定期更换时，按下面的步骤轮换 `ENCRYPTION_KEY`。除重建 API 容器时的几秒外不需要停机，也不需要维护窗口：
+
+1. 生成新密钥：`openssl rand -base64 32`。
+2. 在 `.env` 中把当前值移到 `ENCRYPTION_KEYS_PREVIOUS`（已有旧密钥时用逗号追加），`ENCRYPTION_KEY` 改为新密钥，然后执行 `docker compose up -d --wait api` 重建 API。此后新写入的数据使用新密钥，旧数据仍可用旧密钥解密。
+3. 把已保存的数据改用新密钥加密（复用 `migrate` 服务的镜像和配置，脚本可重复执行，不影响运行中的 API）：
+
+   ```sh
+   docker compose run --rm migrate node dist/scripts/reencrypt-secrets.js
+   docker compose run --rm migrate node dist/scripts/reencrypt-secrets.js --dry-run
+   ```
+
+   `--dry-run` 只做检查：所有数据都已使用新密钥时退出码为 0，否则为 1，并列出仍在使用旧密钥和无法解密的数量。无法解密的数据（例如密钥早已丢失）会列出行 id，需要人工处理，例如重新填写模型 API Key，或在管理端为对应管理员重置双因素认证。
+4. 至少等待 10 分钟，让 Redis 中尚未完成的 TOTP 绑定过期，然后清空 `ENCRYPTION_KEYS_PREVIOUS` 并再次执行 `docker compose up -d --wait api`。
+
+密文格式没有变化，回滚到上一版镜像时，用当前 `ENCRYPTION_KEY` 加密的数据仍可读取。旧版本不认识 `ENCRYPTION_KEYS_PREVIOUS`，所以完成第 3 步之前不要回滚。轮换前的备份仍是用旧密钥加密的：从这类备份恢复时，需要把旧密钥放回 `ENCRYPTION_KEYS_PREVIOUS`，所以旧密钥要保存到这些备份过期为止。
 
 ## 日常运维
 

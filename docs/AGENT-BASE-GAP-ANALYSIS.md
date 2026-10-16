@@ -369,7 +369,7 @@ run.cancelled
 | 指标与链路追踪 | 已完成：Prometheus 指标（`apps/server/src/infra/metrics`，独立内部端口 9464）、OpenTelemetry 链路追踪（`apps/server/src/tracing.ts`，OTLP 上报 Tempo），以及 `deploy/observability` 的监控栈（Prometheus、Alertmanager、Grafana、Tempo）和告警规则（API 不可用、错误率、延迟、连接池、队列积压与停滞、任务最终失败、定时任务未执行），通知渠道为邮件与企业微信、飞书、钉钉机器人 | P1 |
 | 数据库连接防护 | 已完成：`createPool` 设置 `statement_timeout`（默认 30 s）、`idle_in_transaction_session_timeout`（默认 60 s）与取连接超时（默认 5 s），可通过 `DATABASE_*_TIMEOUT_MS` 调整；连接错误由监听器记录，不再因未处理的 `error` 事件导致进程退出；迁移与建向量索引不受语句超时限制 | P1 |
 | 上传内容校验 | 已完成：头像按文件头（magic bytes）识别 PNG/JPEG/GIF/WebP 并拒绝 SVG，文档上传时严格 UTF-8 解码；设置 `CLAMAV_HOST` 后头像与文档在写入存储前经 clamd 扫描（`apps/server/src/infra/antivirus`，fail closed：感染 422、扫描不可用 503），部署通过 `antivirus` profile 启用，指标 `upload_scans_total` 与告警 `UploadScanFailing` | P1，开放用户上传前补齐 |
-| 加密密钥轮换 | `SecretBox` 密文带 `v1` 版本前缀，但只支持单个 `ENCRYPTION_KEY`，更换密钥需要手动迁移 | P1 |
+| 加密密钥轮换 | 已完成：`SecretBox` 用 `ENCRYPTION_KEY` 加密，同时可用 `ENCRYPTION_KEYS_PREVIOUS` 中的旧密钥解密；密文格式仍为 `v1`，上一版本可以读取；`reencrypt-secrets` 脚本（`apps/server/src/database/reencrypt-secrets.ts`，可 `--dry-run`）把模型 API Key 与管理员 TOTP 密钥改用新密钥加密，操作步骤见 `deploy/README.md`「加密密钥轮换」 | P1 |
 | 系统配置与功能开关 | 没有运行时可修改的系统配置，所有开关依赖环境变量和重启 | 按需 |
 | 站内通知 | 只有邮件通知，没有站内消息 | 按需，长任务完成通知时需要 |
 

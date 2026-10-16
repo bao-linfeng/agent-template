@@ -52,6 +52,7 @@ docker compose exec ollama ollama pull bge-m3
 | `db:generate`                                 | 修改 `src/database/schema` 后生成迁移 SQL                                       |
 | `db:migrate` / `db:migrate:prod`              | 开发环境（drizzle-kit）/ 生产环境（`dist/scripts/migrate.js`）应用迁移          |
 | `db:seed`                                     | 幂等初始化数据                                                                  |
+| `db:reencrypt`                                | 轮换 `ENCRYPTION_KEY` 后把已存密文改用新密钥加密（`--dry-run` 只检查）          |
 | `db:studio`                                   | Drizzle Studio                                                                  |
 | `lint` / `check-types` / `format`             | oxlint / tsc / Prettier                                                         |
 | `test`                                        | 单元测试（离线）                                                                |
@@ -97,6 +98,8 @@ docker compose exec ollama ollama pull bge-m3
 环境变量以 `src/config/env.ts` 为准，示例见 [.env.example](./.env.example)。应用从服务端工作目录依次加载 `.env.local`、`.env`，已有进程变量优先；`NODE_ENV=test` 时跳过文件。Docker Compose 默认读取 `.env`，使用 `.env.local` 覆盖连接参数时需与基础设施保持一致。
 
 生产环境设置 `NODE_ENV=production`、至少 32 字符的 `JWT_SECRET`、32 字节 Base64 编码的 `ENCRYPTION_KEY`，以及实际的数据库、Redis、对象存储、SMTP、`PUBLIC_URL`、`APP_WEB_URL`、`CORS_ORIGINS`。反向代理后按部署设置 `TRUST_PROXY`。生产默认关闭 Swagger、启用 Secure Cookie；链路追踪仅在配置 `OTEL_EXPORTER_OTLP_ENDPOINT` 时启用（见下文“链路追踪”）。
+
+更换 `ENCRYPTION_KEY` 时，把旧密钥放进 `ENCRYPTION_KEYS_PREVIOUS`（逗号分隔，只用于解密），运行 `db:reencrypt` 把模型 API Key 和管理员 TOTP 密钥改用新密钥加密，`db:reencrypt --dry-run` 确认没有遗留后再删除旧密钥。完整步骤见 [deploy/README.md](../../deploy/README.md) 的「加密密钥轮换」。
 
 从仓库根目录执行：
 

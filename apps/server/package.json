@@ -27,6 +27,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:migrate:prod": "node dist/scripts/migrate.js",
     "db:seed": "nest build && node dist/scripts/seed.js",
+    "db:reencrypt": "nest build && node dist/scripts/reencrypt-secrets.js",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

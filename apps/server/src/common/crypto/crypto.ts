@@ -26,20 +26,30 @@ export function safeEqualHex(a: string, b: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right)
 }
 
-/** Symmetric encryption for secrets at rest. Output format: `v1.<iv>.<tag>.<ciphertext>` (base64url). */
+/**
+ * Symmetric encryption for secrets at rest. Output format: `v1.<iv>.<tag>.<ciphertext>` (base64url).
+ *
+ * Key rotation: new values are always encrypted with the current key; previous keys only decrypt.
+ * The payload names no key, so `decrypt` tries the current key first, then the previous ones (the GCM
+ * tag rejects a wrong key). Keeping the format unchanged lets the previous release read every value
+ * written with the key it knows. `scripts/reencrypt-secrets.ts` moves stored values to the current key.
+ */
 export class SecretBox {
-  private readonly key: Buffer
+  private readonly keys: readonly Buffer[]
 
-  constructor(base64Key: string) {
-    this.key = Buffer.from(base64Key, 'base64')
-    if (this.key.length !== 32) {
-      throw new Error('SecretBox key must be 32 bytes')
-    }
+  constructor(currentKey: string, previousKeys: readonly string[] = []) {
+    this.keys = [currentKey, ...previousKeys].map((value) => {
+      const key = Buffer.from(value, 'base64')
+      if (key.length !== 32) {
+        throw new Error('SecretBox key must be 32 bytes')
+      }
+      return key
+    })
   }
 
   encrypt(plaintext: string): string {
     const iv = randomBytes(IV_BYTES)
-    const cipher = createCipheriv(CIPHER, this.key, iv)
+    const cipher = createCipheriv(CIPHER, this.keys[0]!, iv)
     const ciphertext = Buffer.concat([
       cipher.update(plaintext, 'utf8'),
       cipher.final(),
@@ -51,20 +61,54 @@ export class SecretBox {
       .join('.')
   }
 
+  /** Decrypts with the current or any previous key; throws when none of them matches. */
   decrypt(payload: string): string {
-    const [version, iv, tag, ciphertext] = payload.split('.')
-    if (version !== VERSION || !iv || !tag || ciphertext === undefined) {
-      throw new Error('Unsupported encrypted payload')
+    const parts = parsePayload(payload)
+    for (const key of this.keys) {
+      const plaintext = open(parts, key)
+      if (plaintext !== null) {
+        return plaintext
+      }
     }
-    const decipher = createDecipheriv(
-      CIPHER,
-      this.key,
-      Buffer.from(iv, 'base64url'),
+    throw new Error(
+      'Encrypted value cannot be decrypted with ENCRYPTION_KEY or ENCRYPTION_KEYS_PREVIOUS',
     )
-    decipher.setAuthTag(Buffer.from(tag, 'base64url'))
+  }
+
+  /** Whether `payload` was encrypted with the current key (false for previous or unknown keys). */
+  isCurrent(payload: string): boolean {
+    return open(parsePayload(payload), this.keys[0]!) !== null
+  }
+}
+
+interface PayloadParts {
+  iv: Buffer
+  tag: Buffer
+  ciphertext: Buffer
+}
+
+function parsePayload(payload: string): PayloadParts {
+  const [version, iv, tag, ciphertext] = payload.split('.')
+  if (version !== VERSION || !iv || !tag || ciphertext === undefined) {
+    throw new Error('Unsupported encrypted payload')
+  }
+  return {
+    iv: Buffer.from(iv, 'base64url'),
+    tag: Buffer.from(tag, 'base64url'),
+    ciphertext: Buffer.from(ciphertext, 'base64url'),
+  }
+}
+
+/** Plaintext, or null when the authentication tag does not match (wrong key or tampered data). */
+function open(parts: PayloadParts, key: Buffer): string | null {
+  const decipher = createDecipheriv(CIPHER, key, parts.iv)
+  decipher.setAuthTag(parts.tag)
+  try {
     return Buffer.concat([
-      decipher.update(Buffer.from(ciphertext, 'base64url')),
+      decipher.update(parts.ciphertext),
       decipher.final(),
     ]).toString('utf8')
+  } catch {
+    return null
   }
 }

@@ -28,7 +28,7 @@ export const embeddingModels = pgTable(
     baseUrl: text().notNull(),
     model: varchar({ length: 200 }).notNull(),
     dimensions: integer().notNull(),
-    /** AES-256-GCM ciphertext produced by `CryptoService`; never returned by the API. */
+    /** AES-256-GCM ciphertext produced by `SecretBox`; never returned by the API. */
     apiKeyEncrypted: text(),
     /** Max inputs per embeddings request. */
     batchSize: integer().notNull().default(32),
