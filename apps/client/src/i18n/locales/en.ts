@@ -193,6 +193,7 @@ export default {
       resendCode: 'Send again',
       resendIn: 'Send again in {seconds}s',
       codeSent: 'We sent a verification code to {email}. It is valid for {minutes} minutes.',
+      closed: 'Registration is currently closed. If you already have an account, please sign in.',
     },
     forgot: {
       title: 'Forgot password',

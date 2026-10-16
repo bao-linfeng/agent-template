@@ -10,6 +10,7 @@ import AuthShell from '@/components/account/AuthShell.vue'
 import TextField from '@/components/account/TextField.vue'
 import { takeFlash } from '@/composables/useFlash'
 import { errorMessage } from '@/lib/api'
+import { usePublicSettings } from '@/lib/settings'
 import { checkEmail, collectErrors, safeRedirect } from '@/lib/validation'
 import { useSessionStore } from '@/stores/session'
 
@@ -21,6 +22,7 @@ const session = useSessionStore()
 const form = reactive({ email: '', password: '' })
 const errors = shallowRef<Partial<Record<keyof typeof form, string>>>({})
 const notice = takeFlash()
+const { registrationOpen } = usePublicSettings()
 
 const { mutate: login, isPending: submitting, error } = useMutation({
   mutationFn: session.login,
@@ -89,7 +91,7 @@ function submit() {
         {{ submitting ? t('account.login.submitting') : t('account.login.submit') }}
       </Button>
     </form>
-    <template #footer>
+    <template v-if="registrationOpen" #footer>
       {{ t('account.login.noAccount') }}
       <RouterLink :to="{ path: '/register', query: route.query }" class="font-medium text-primary hover:underline">
         {{ t('account.login.register') }}
