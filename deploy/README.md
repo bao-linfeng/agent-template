@@ -8,17 +8,22 @@ Internet ──443──▶ gateway (Caddy, 自动 HTTPS)
                     ├─ ADMIN_DOMAIN  → admin  (nginx 静态站, :8080)
                     └─ CLIENT_DOMAIN → client (nginx 静态站, :8080)
 api ──▶ postgres (pgvector) / redis / rustfs   —— 仅内网，不发布端口
+
+可选监控（profile observability）：
+prometheus ──抓取──▶ api:9464   ──告警──▶ alertmanager ──▶ 邮件 / alert-relay ──▶ 企业微信、飞书、钉钉
+api ──OTLP──▶ tempo:4318          grafana (127.0.0.1:3000) ──查询──▶ prometheus / tempo / alertmanager
 ```
 
-| 文件                 | 作用                                                                               |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| `docker-compose.yml` | 生产编排；`migrate`、`seed` 属于 `ops` profile，只能通过 `docker compose run` 执行 |
-| `.env.example`       | 域名、镜像、密钥、SMTP、备份配置模板，复制为 `.env`（已被 git 忽略）               |
-| `Caddyfile`          | 三个域名的反向代理与证书                                                           |
-| `nginx/`             | admin/client 镜像使用的 SPA 配置（history 回退、静态资源长缓存、安全响应头）       |
-| `scripts/deploy.sh`  | 发布：拉取或构建镜像 → 启动基础设施 → 发布前备份 → 迁移 → 滚动更新 → 就绪检查      |
-| `scripts/backup.sh`  | 备份 PostgreSQL 与对象存储，按保留天数清理                                         |
-| `scripts/restore.sh` | `--verify` 恢复演练（临时库，不停机）或正式恢复                                    |
+| 文件                 | 作用                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `docker-compose.yml` | 生产编排；`migrate`、`seed` 属于 `ops` profile，只能通过 `docker compose run` 执行；监控组件属于 `observability` profile |
+| `.env.example`       | 域名、镜像、密钥、SMTP、监控告警、备份配置模板，复制为 `.env`（已被 git 忽略）                                           |
+| `Caddyfile`          | 三个域名的反向代理与证书                                                                                                 |
+| `nginx/`             | admin/client 镜像使用的 SPA 配置（history 回退、静态资源长缓存、安全响应头）                                             |
+| `observability/`     | Prometheus 抓取配置与告警规则（含 `promtool` 测试）、Alertmanager、IM 告警转发、Tempo、Grafana 数据源与仪表盘            |
+| `scripts/deploy.sh`  | 发布：拉取或构建镜像 → 启动基础设施 → 发布前备份 → 迁移 → 滚动更新 → 就绪检查                                            |
+| `scripts/backup.sh`  | 备份 PostgreSQL 与对象存储，按保留天数清理                                                                               |
+| `scripts/restore.sh` | `--verify` 恢复演练（临时库，不停机）或正式恢复                                                                          |
 
 ## 镜像
 
@@ -110,6 +115,93 @@ scripts/restore.sh backups/<目录>                   # 正式恢复：输入 re
   ```
 
 - 建议每月对最新备份执行一次 `--verify` 演练，确认备份确实可恢复。
+
+## 监控与告警
+
+`observability` profile 在同一台主机上运行一套监控栈，配置都在 `observability/`：
+
+| 服务           | 镜像                | 作用                                                                                                  |
+| -------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `prometheus`   | `prom/prometheus`   | 每 15 秒抓取 `api:9464/metrics`（API 的内部指标端口，Caddy 不转发），评估告警规则，默认保留 15 天     |
+| `alertmanager` | `prom/alertmanager` | 分组、去重、抑制告警，发送邮件和 IM 机器人消息                                                        |
+| `alert-relay`  | `node:24-alpine`    | 把 Alertmanager webhook 转成企业微信、飞书、钉钉群机器人的消息格式（`alert-relay/relay.mjs`，无依赖） |
+| `tempo`        | `grafana/tempo`     | 接收 API 的 OTLP 链路（`tempo:4318`），本地卷存储，默认保留 7 天                                      |
+| `grafana`      | `grafana/grafana`   | 预置 Prometheus、Tempo、Alertmanager 数据源和「API 概览」仪表盘，只监听 `127.0.0.1`                   |
+
+### 启用
+
+在 `.env` 中设置（变量说明见 `.env.example` 的 Monitoring 一节）：
+
+```sh
+COMPOSE_PROFILES=observability                 # docker compose 与 scripts/deploy.sh 都会启动监控服务
+OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318  # API 上报链路；未启用 profile 时不要设置
+GRAFANA_ADMIN_PASSWORD=<强密码>                # 必填，未设置时 Grafana 拒绝启动
+ALERT_EMAIL_TO=ops@example.com                 # 可选，多个收件人用逗号分隔
+ALERT_WECOM_WEBHOOK_URL=...                    # 可选，企业微信、飞书、钉钉按需填写
+```
+
+然后执行 `scripts/deploy.sh <tag>`，或只启动监控组件：`docker compose up -d --wait`（API 需要重建才能读到新的 `OTEL_EXPORTER_OTLP_ENDPOINT`，`up -d` 会自动处理）。之后修改 `.env` 中的告警设置，同样执行 `docker compose up -d`：Compose 会重建配置有变化的容器，Alertmanager 在启动时重新生成配置。修改 `observability/` 下的挂载文件则需要 `docker compose restart <服务>`。
+
+Grafana 不对公网开放，通过 SSH 隧道访问：
+
+```sh
+ssh -L 3000:127.0.0.1:3000 <主机>    # 然后打开 http://localhost:3000，用户 admin
+```
+
+`GRAFANA_ADMIN_PASSWORD` 只在 `grafana-data` 卷首次创建时生效，之后改密码用 `docker compose exec grafana grafana cli admin reset-admin-password <新密码>`。仪表盘来自仓库中的 JSON 文件（`observability/grafana/dashboards/`），界面上的修改不能保存，需要改文件后提交。
+
+### 告警规则
+
+规则在 `observability/prometheus/rules/api.yml`，阈值是起点，按实际流量调整：
+
+| 告警                   | 级别     | 条件                                                              |
+| ---------------------- | -------- | ----------------------------------------------------------------- |
+| `ApiDown`              | critical | 1 分钟抓取不到 API 指标（进程停止、重启失败或卡死）               |
+| `HighErrorRate`        | critical | 5 分钟内 5xx 比例 > 5%，持续 5 分钟（每秒请求数 < 0.1 时不告警）  |
+| `HighLatency`          | warning  | p95 响应时间 > 1 秒，持续 10 分钟                                 |
+| `DbPoolSaturated`      | warning  | 数据库连接池持续 5 分钟有查询在等待空闲连接                       |
+| `EventLoopLag`         | warning  | 事件循环延迟 p99 > 500ms，持续 5 分钟                             |
+| `QueueBacklog`         | warning  | 某队列等待中的任务 > 100，持续 15 分钟                            |
+| `QueueStalled`         | critical | 某队列有等待中的任务，但 15 分钟内没有完成任何任务，持续 15 分钟  |
+| `JobFailures`          | warning  | 15 分钟内有任务重试耗尽后最终失败                                 |
+| `ScheduledJobMissed`   | warning  | `audit`、`maintenance` 队列的夜间定时任务超过 26 小时没有成功执行 |
+| `MonitoringTargetDown` | warning  | Alertmanager 或 Tempo 5 分钟无法抓取                              |
+
+- `ApiDown` 触发时，同时出现的其他 API 告警会被抑制，只发一条。critical 告警每小时重复提醒，warning 每 4 小时。
+- 主动关闭某个定时任务（例如 `STORAGE_ORPHAN_SWEEP_ENABLED=false`）后，它的 `ScheduledJobMissed` 会持续到最后一次成功记录超过 7 天，期间在 Grafana（Alerting → Silences）或 Alertmanager 中静默即可。
+- 修改规则后先运行单元测试，再重新加载：
+
+  ```sh
+  docker run --rm -v ./observability/prometheus:/etc/prometheus:ro --entrypoint promtool \
+    prom/prometheus:v3.15.0 test rules /etc/prometheus/tests/api.test.yml
+  docker compose restart prometheus
+  ```
+
+### 告警渠道
+
+所有渠道都是可选的，未配置的渠道直接跳过；全部未配置时告警只在 Grafana 中显示。每个渠道单独重试，一个渠道失败不会导致其他渠道重复发送。
+
+- **邮件**：复用 API 的 `SMTP_HOST`、`SMTP_PORT`、`SMTP_SECURE`、`SMTP_USER`、`SMTP_PASSWORD`，发件人默认 `MAIL_FROM`（可用 `ALERT_EMAIL_FROM` 覆盖），收件人为 `ALERT_EMAIL_TO`。`SMTP_SECURE=true` 时直接使用 TLS（465 端口），否则要求 STARTTLS（内网明文 SMTP 可设 `ALERT_SMTP_REQUIRE_TLS=false`）。
+- **企业微信**：群设置 → 添加群机器人，复制 webhook 地址到 `ALERT_WECOM_WEBHOOK_URL`，发送 markdown 消息（超过 4096 字节时省略后面的告警）。
+- **飞书**：群设置 → 群机器人 → 自定义机器人，地址填 `ALERT_FEISHU_WEBHOOK_URL`；开启「签名校验」时把密钥填到 `ALERT_FEISHU_SECRET`。发送卡片消息，告警为红色，恢复为绿色。
+- **钉钉**：群设置 → 机器人 → 自定义机器人，地址填 `ALERT_DINGTALK_WEBHOOK_URL`；安全设置选「加签」时把密钥填到 `ALERT_DINGTALK_SECRET`，选「自定义关键词」时可用 `告警` 和 `恢复`，所有消息都包含其中之一。
+
+消息中的时间按 `ALERT_TIMEZONE`（默认 `Asia/Shanghai`）显示。测试渠道最简单的方法是临时停止 API（`docker compose stop api`），约 2 分钟后收到 `ApiDown`，启动后约 5 分钟收到恢复通知。
+
+### 查链路
+
+API 设置 `OTEL_EXPORTER_OTLP_ENDPOINT` 后，每个请求在 Tempo 中有一条链路，包含数据库查询、Redis 命令、对外请求和它触发的队列任务。链路 ID 可从以下位置获取：
+
+- API 日志的 `trace_id` 字段（`docker compose logs api | grep <关键字>`）；
+- 响应头 `traceparent`（`00-<链路 ID>-<span ID>-01` 的第二段）。
+
+在 Grafana 中打开「API 概览」右上角的「查链路（Tempo）」，或 Explore → Tempo，输入链路 ID 查询；也可以用 TraceQL 搜索，例如 `{ span.http.route = "/api/v1/client/auth/login" && status = error }`。
+
+### 局限
+
+- 监控栈和 API 运行在同一台主机上，主机宕机或断网时不会有任何告警。建议再用一个外部拨测服务（云厂商的站点监控、UptimeRobot 等）定时访问 `https://<API_DOMAIN>/api/health`。
+- 没有采集主机指标（磁盘、内存）和 PostgreSQL/Redis 自身指标；需要时可加入 node-exporter、postgres-exporter、redis-exporter，并在 `prometheus.yml` 中增加抓取任务。
+- 数据保留由 `PROMETHEUS_RETENTION`（默认 `15d`）和 `TEMPO_RETENTION`（默认 `168h`）控制，按磁盘空间调整。监控数据不在 `backup.sh` 的备份范围内。
 
 ## 日常运维
 

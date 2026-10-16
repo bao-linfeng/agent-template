@@ -1,0 +1,17 @@
+# Routing and inhibition. entrypoint.sh appends the `receivers` section built from deploy/.env (email and IM bots).
+route:
+  receiver: default
+  group_by: [alertname, queue]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: ['severity="critical"']
+      receiver: default
+      repeat_interval: 1h
+
+inhibit_rules:
+  # While the API is down its other alerts are consequences, not separate incidents.
+  - source_matchers: ['alertname="ApiDown"']
+    target_matchers:
+      - 'alertname=~"HighErrorRate|HighLatency|DbPoolSaturated|EventLoopLag|Queue.*|JobFailures|ScheduledJobMissed"'

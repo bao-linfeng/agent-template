@@ -68,6 +68,44 @@ jobs:
       # testcontainers uses the runner's Docker daemon.
       - run: pnpm test:e2e
 
+  observability:
+    name: Monitoring config
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: deploy/observability
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Alert relay tests
+        run: node --test alert-relay/relay.test.mjs
+
+      # Same images as deploy/docker-compose.yml, so Renovate updates cannot drift from what is tested.
+      - name: Prometheus config and alert rule tests
+        run: |
+          image="$(grep -oE 'prom/prometheus:[^ "]+' ../docker-compose.yml)"
+          run() { docker run --rm -v "$PWD/prometheus:/etc/prometheus:ro" --entrypoint promtool "$image" "$@"; }
+          run check config /etc/prometheus/prometheus.yml
+          run test rules /etc/prometheus/tests/api.test.yml
+
+      - name: Alertmanager config renders
+        run: |
+          image="$(grep -oE 'prom/alertmanager:[^ "]+' ../docker-compose.yml)"
+          docker run --rm -v "$PWD/alertmanager:/etc/alertmanager:ro" --entrypoint /bin/sh \
+            -e ALERT_EMAIL_TO=ops@example.com -e MAIL_FROM='Ops <ops@example.com>' \
+            -e SMTP_HOST=smtp.example.com -e SMTP_PORT=465 -e SMTP_SECURE=true \
+            -e SMTP_USER=ops -e SMTP_PASSWORD="it's \$ecret" \
+            -e ALERT_WECOM_WEBHOOK_URL=https://example.com -e ALERT_FEISHU_WEBHOOK_URL=https://example.com \
+            -e ALERT_DINGTALK_WEBHOOK_URL=https://example.com \
+            "$image" /etc/alertmanager/entrypoint.sh check
+          docker run --rm -v "$PWD/alertmanager:/etc/alertmanager:ro" --entrypoint /bin/sh \
+            "$image" /etc/alertmanager/entrypoint.sh check
+
   images:
     name: Image (${{ matrix.app }})
     runs-on: ubuntu-latest

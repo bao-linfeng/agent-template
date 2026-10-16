@@ -1,0 +1,194 @@
+# Unit tests for rules/api.yml (kept outside rules/ so Prometheus does not load them as rule files):
+#   docker run --rm -v ./observability/prometheus:/etc/prometheus:ro --entrypoint promtool \
+#     prom/prometheus:v3.15.0 test rules /etc/prometheus/tests/api.test.yml
+rule_files:
+  - ../rules/api.yml
+
+evaluation_interval: 30s
+
+tests:
+  - name: api availability
+    interval: 15s
+    input_series:
+      - series: 'up{job="api", instance="api:9464"}'
+        values: "1x4 0x12"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: ApiDown
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: ApiDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: api
+              instance: api:9464
+            exp_annotations:
+              summary: API 无法访问
+              description: Prometheus 连续 1 分钟抓取不到 api:9464 的指标，API 进程可能已停止、重启失败或卡死。
+
+  - name: error rate and latency
+    interval: 1m
+    input_series:
+      # 1 request/s, 10% of them 5xx, all slower than 1s.
+      - series: 'http_server_request_duration_seconds_count{route="/api/v1/a", status_code="200"}'
+        values: "0+54x20"
+      - series: 'http_server_request_duration_seconds_count{route="/api/v1/a", status_code="500"}'
+        values: "0+6x20"
+      - series: 'http_server_request_duration_seconds_bucket{route="/api/v1/a", status_code="200", le="1"}'
+        values: "0x20"
+      - series: 'http_server_request_duration_seconds_bucket{route="/api/v1/a", status_code="200", le="2.5"}'
+        values: "0+54x20"
+      - series: 'http_server_request_duration_seconds_bucket{route="/api/v1/a", status_code="200", le="+Inf"}'
+        values: "0+54x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: HighErrorRate
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: API 5xx 错误率过高
+              description: 最近 5 分钟 10% 的请求返回 5xx（阈值 5%）。在 Grafana 中按路由查看，并用日志里的 trace_id 在 Tempo 中定位。
+      - eval_time: 16m
+        alertname: HighLatency
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: API 响应变慢
+              description: 最近 10 分钟 p95 响应时间为 2.425s（阈值 1s）。
+
+  - name: idle traffic does not alert
+    interval: 1m
+    input_series:
+      # One failed request every 20 minutes is below the traffic floor.
+      - series: 'http_server_request_duration_seconds_count{route="/api/v1/a", status_code="500"}'
+        values: "1x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: HighErrorRate
+        exp_alerts: []
+
+  - name: queue backlog and stalls
+    interval: 1m
+    input_series:
+      - series: 'bullmq_queue_jobs{queue="mail", state="waiting", instance="api:9464"}'
+        values: "150x30"
+      - series: 'bullmq_jobs_processed_total{queue="mail", name="send", status="completed"}'
+        values: "0+10x30"
+      - series: 'bullmq_queue_jobs{queue="rag-ingest", state="waiting", instance="api:9464"}'
+        values: "3x30"
+      - series: 'bullmq_jobs_processed_total{queue="rag-ingest", name="ingest", status="completed"}'
+        values: "5x30"
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: QueueBacklog
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              queue: mail
+            exp_annotations:
+              summary: 队列积压
+              description: 队列 mail 持续 15 分钟有超过 100 个任务等待处理（当前 150 个）。
+      - eval_time: 20m
+        alertname: QueueStalled
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              queue: rag-ingest
+            exp_annotations:
+              summary: 队列停止处理
+              description: 队列 rag-ingest 有 3 个任务在等待，但 15 分钟内没有完成任何任务。Worker 可能已停止，或单个任务长时间卡住。
+
+  - name: final job failures
+    interval: 1m
+    input_series:
+      # Prometheus starts scraping at t=0.
+      - series: 'up{job="api", instance="api:9464"}'
+        values: "1x40"
+      # Existed before Prometheus started, fails again at 20m.
+      - series: 'bullmq_jobs_failed_final_total{queue="account-export", name="export"}'
+        values: "2x19 3x20"
+      # Created by its first failure at 22m (no earlier sample for increase()).
+      - series: 'bullmq_jobs_failed_final_total{queue="mail", name="send"}'
+        values: "_x21 1x18"
+    alert_rule_test:
+      # Existing counters do not look new on the first start.
+      - eval_time: 10m
+        alertname: JobFailures
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: JobFailures
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              queue: account-export
+              name: export
+            exp_annotations:
+              summary: 后台任务最终失败
+              description: 队列 account-export 的 export 任务在 15 分钟内有任务重试耗尽后失败。失败任务保留在 Redis 中，错误详情见 API 日志。
+          - exp_labels:
+              severity: warning
+              queue: mail
+              name: send
+            exp_annotations:
+              summary: 后台任务最终失败
+              description: 队列 mail 的 send 任务在 15 分钟内有任务重试耗尽后失败。失败任务保留在 Redis 中，错误详情见 API 日志。
+      - eval_time: 40m
+        alertname: JobFailures
+        exp_alerts: []
+
+  - name: scheduled jobs
+    interval: 1h
+    input_series:
+      # Succeeded at t=0, then the API restarted and the job never ran again.
+      - series: 'bullmq_job_last_success_timestamp_seconds{queue="maintenance", name="account-purge"}'
+        values: "0"
+      # Succeeds every day.
+      - series: 'bullmq_job_last_success_timestamp_seconds{queue="audit", name="prune"}'
+        values: "0x23 86400x24"
+      # Not a scheduled queue.
+      - series: 'bullmq_job_last_success_timestamp_seconds{queue="mail", name="send"}'
+        values: "0"
+    alert_rule_test:
+      - eval_time: 25h
+        alertname: ScheduledJobMissed
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: ScheduledJobMissed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              queue: maintenance
+              name: account-purge
+            exp_annotations:
+              summary: 定时任务未按时完成
+              description: 队列 maintenance 的定时任务 account-purge 已 1d 3h 0m 0s 没有成功执行（每天执行一次）。
+
+  - name: database pool and event loop
+    interval: 1m
+    input_series:
+      - series: 'pg_pool_waiting_requests{instance="api:9464"}'
+        values: "0 3x10"
+      - series: 'nodejs_eventloop_lag_p99_seconds{instance="api:9464"}'
+        values: "0.01 0.8x10"
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: DbPoolSaturated
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: api:9464
+            exp_annotations:
+              summary: 数据库连接池耗尽
+              description: "api:9464 持续 5 分钟有查询在等待空闲连接（当前 3 个）。检查慢查询，或调大 DATABASE_POOL_MAX。"
+      - eval_time: 8m
+        alertname: EventLoopLag
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: api:9464
+            exp_annotations:
+              summary: Node.js 事件循环阻塞
+              description: "api:9464 事件循环延迟 p99 持续 5 分钟高于 500ms（当前 800ms），通常是 CPU 密集计算或同步 IO。"

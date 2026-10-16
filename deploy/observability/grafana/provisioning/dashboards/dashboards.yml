@@ -1,0 +1,11 @@
+apiVersion: 1
+
+# Dashboards are files in the repository: edit them in git, UI changes cannot be saved.
+providers:
+  - name: agent-template
+    folder: Agent Template
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards

@@ -1,0 +1,31 @@
+# Scrapes the API's internal metrics listener (METRICS_PORT, never proxied by Caddy) and the monitoring stack itself.
+# Retention: PROMETHEUS_RETENTION in deploy/.env (default 15d). Check with:
+#   docker compose exec prometheus promtool check config /etc/prometheus/prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: api
+    static_configs:
+      - targets: ["api:9464"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["alertmanager:9093"]
+
+  - job_name: tempo
+    static_configs:
+      - targets: ["tempo:3200"]

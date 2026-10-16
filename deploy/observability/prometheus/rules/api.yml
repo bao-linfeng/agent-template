@@ -1,0 +1,121 @@
+# Alert rules for the API (apps/server/src/infra/metrics). Thresholds are starting points: tune them here and
+# keep api.test.yml in sync (promtool test rules /etc/prometheus/rules/api.test.yml).
+# Counters with labels only appear after their first increment, so "new series" checks (`unless ... offset`)
+# complement `increase()`, which cannot see the first increment of a series.
+groups:
+  - name: api
+    rules:
+      - alert: ApiDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: API 无法访问
+          description: Prometheus 连续 1 分钟抓取不到 {{ $labels.instance }} 的指标，API 进程可能已停止、重启失败或卡死。
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_server_request_duration_seconds_count{status_code=~"5.."}[5m]))
+              / sum(rate(http_server_request_duration_seconds_count[5m]))
+          ) > 0.05
+          and sum(rate(http_server_request_duration_seconds_count[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: API 5xx 错误率过高
+          description: 最近 5 分钟 {{ $value | humanizePercentage }} 的请求返回 5xx（阈值 5%）。在 Grafana 中按路由查看，并用日志里的 trace_id 在 Tempo 中定位。
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket[5m]))) > 1
+          and sum(rate(http_server_request_duration_seconds_count[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: API 响应变慢
+          description: 最近 10 分钟 p95 响应时间为 {{ $value | humanizeDuration }}（阈值 1s）。
+
+      - alert: DbPoolSaturated
+        expr: max by (instance) (pg_pool_waiting_requests) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 数据库连接池耗尽
+          description: "{{ $labels.instance }} 持续 5 分钟有查询在等待空闲连接（当前 {{ $value }} 个）。检查慢查询，或调大 DATABASE_POOL_MAX。"
+
+      - alert: EventLoopLag
+        expr: max by (instance) (nodejs_eventloop_lag_p99_seconds) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Node.js 事件循环阻塞
+          description: "{{ $labels.instance }} 事件循环延迟 p99 持续 5 分钟高于 500ms（当前 {{ $value | humanizeDuration }}），通常是 CPU 密集计算或同步 IO。"
+
+  - name: queues
+    rules:
+      # Every instance reports the same Redis counts: take the max per queue, not the sum.
+      - alert: QueueBacklog
+        expr: max by (queue) (sum by (queue, instance) (bullmq_queue_jobs{state=~"waiting|prioritized"})) > 100
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 队列积压
+          description: 队列 {{ $labels.queue }} 持续 15 分钟有超过 100 个任务等待处理（当前 {{ $value }} 个）。
+
+      - alert: QueueStalled
+        expr: |
+          max by (queue) (sum by (queue, instance) (bullmq_queue_jobs{state=~"waiting|prioritized"})) > 0
+          unless on (queue) sum by (queue) (increase(bullmq_jobs_processed_total[15m])) > 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: 队列停止处理
+          description: 队列 {{ $labels.queue }} 有 {{ $value }} 个任务在等待，但 15 分钟内没有完成任何任务。Worker 可能已停止，或单个任务长时间卡住。
+
+      # Second branch: series created by their first failure. It needs the API scraped 15m ago, otherwise every
+      # existing counter would look new when Prometheus starts for the first time.
+      - alert: JobFailures
+        expr: |
+          sum by (queue, name) (increase(bullmq_jobs_failed_final_total[15m])) > 0
+          or (
+            sum by (queue, name) (bullmq_jobs_failed_final_total unless bullmq_jobs_failed_final_total offset 15m)
+            and on () group(up{job="api"} offset 15m)
+          )
+        labels:
+          severity: warning
+        annotations:
+          summary: 后台任务最终失败
+          description: 队列 {{ $labels.queue }} 的 {{ $labels.name }} 任务在 15 分钟内有任务重试耗尽后失败。失败任务保留在 Redis 中，错误详情见 API 日志。
+
+      # The audit and maintenance queues only carry job-scheduler jobs that run nightly. The gauge restarts empty
+      # with the API, so the 7d window keeps the last success across restarts. A scheduler disabled on purpose
+      # (e.g. STORAGE_ORPHAN_SWEEP_ENABLED=false) keeps firing until its last value leaves the window: silence it.
+      - alert: ScheduledJobMissed
+        expr: |
+          time() - max by (queue, name) (
+            max_over_time(bullmq_job_last_success_timestamp_seconds{queue=~"audit|maintenance"}[7d])
+          ) > 26 * 3600
+        labels:
+          severity: warning
+        annotations:
+          summary: 定时任务未按时完成
+          description: 队列 {{ $labels.queue }} 的定时任务 {{ $labels.name }} 已 {{ $value | humanizeDuration }} 没有成功执行（每天执行一次）。
+
+  - name: monitoring
+    rules:
+      - alert: MonitoringTargetDown
+        expr: up{job=~"alertmanager|tempo"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 监控组件不可用
+          description: "{{ $labels.job }} 连续 5 分钟无法抓取。Alertmanager 不可用时告警无法发出，Tempo 不可用时链路数据会丢失。"
