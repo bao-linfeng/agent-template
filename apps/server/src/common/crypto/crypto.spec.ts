@@ -43,5 +43,49 @@ describe('SecretBox', () => {
     expect(() => new SecretBox(Buffer.alloc(16).toString('base64'))).toThrow(
       /32 bytes/,
     )
+    expect(
+      () =>
+        new SecretBox(Buffer.alloc(32, 7).toString('base64'), [
+          Buffer.alloc(16).toString('base64'),
+        ]),
+    ).toThrow(/32 bytes/)
+  })
+
+  it('rejects malformed payloads', () => {
+    expect(() => box.decrypt('v2.a.b.c')).toThrow(/Unsupported/)
+    expect(() => box.decrypt('not-encrypted')).toThrow(/Unsupported/)
+    expect(() => box.isCurrent('not-encrypted')).toThrow(/Unsupported/)
+  })
+})
+
+describe('SecretBox key rotation', () => {
+  const oldKey = Buffer.alloc(32, 1).toString('base64')
+  const olderKey = Buffer.alloc(32, 2).toString('base64')
+  const newKey = Buffer.alloc(32, 3).toString('base64')
+  const rotated = new SecretBox(newKey, [oldKey, olderKey])
+
+  it('decrypts values written with any previous key', () => {
+    expect(rotated.decrypt(new SecretBox(oldKey).encrypt('a'))).toBe('a')
+    expect(rotated.decrypt(new SecretBox(olderKey).encrypt('b'))).toBe('b')
+  })
+
+  it('encrypts with the current key only, in the format the previous release reads', () => {
+    const payload = rotated.encrypt('sk-secret')
+    expect(payload).toMatch(/^v1\./)
+    expect(new SecretBox(newKey).decrypt(payload)).toBe('sk-secret')
+    expect(() => new SecretBox(oldKey).decrypt(payload)).toThrow()
+  })
+
+  it('tells current values from ones on a previous key', () => {
+    expect(rotated.isCurrent(rotated.encrypt('a'))).toBe(true)
+    expect(rotated.isCurrent(new SecretBox(oldKey).encrypt('a'))).toBe(false)
+  })
+
+  it('names both settings when no key matches', () => {
+    const unknown = new SecretBox(Buffer.alloc(32, 4).toString('base64'))
+    expect(() => rotated.decrypt(unknown.encrypt('a'))).toThrow(
+      /ENCRYPTION_KEY or ENCRYPTION_KEYS_PREVIOUS/,
+    )
+    expect(rotated.isCurrent(unknown.encrypt('a'))).toBe(false)
   })
 })

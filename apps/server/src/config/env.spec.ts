@@ -88,6 +88,29 @@ describe('validateEnv', () => {
     expect(env.SWAGGER_ENABLED).toBe(false)
   })
 
+  it('accepts previous encryption keys for rotation', () => {
+    const current = Buffer.alloc(32, 1).toString('base64')
+    const previous = [2, 3].map((fill) =>
+      Buffer.alloc(32, fill).toString('base64'),
+    )
+    expect(validateEnv({}).ENCRYPTION_KEYS_PREVIOUS).toEqual([])
+    expect(
+      validateEnv({
+        ENCRYPTION_KEY: current,
+        ENCRYPTION_KEYS_PREVIOUS: previous.join(', '),
+      }).ENCRYPTION_KEYS_PREVIOUS,
+    ).toEqual(previous)
+    expect(() =>
+      validateEnv({ ENCRYPTION_KEYS_PREVIOUS: `${previous[0]},short` }),
+    ).toThrow(/ENCRYPTION_KEYS_PREVIOUS/)
+    expect(() =>
+      validateEnv({
+        ENCRYPTION_KEY: current,
+        ENCRYPTION_KEYS_PREVIOUS: `${previous[0]},${current}`,
+      }),
+    ).toThrow(/must not contain ENCRYPTION_KEY/)
+  })
+
   it('rejects malformed values with a readable message', () => {
     expect(() => validateEnv({ ENCRYPTION_KEY: 'short' })).toThrow(
       /ENCRYPTION_KEY/,

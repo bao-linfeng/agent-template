@@ -100,8 +100,13 @@ export const envSchema = z
     PASSWORD_HASH_ROUNDS: z.coerce.number().int().min(4).max(15).default(12),
     COOKIE_SECURE: booleanString.optional(),
     COOKIE_DOMAIN: z.string().optional(),
-    /** AES-256-GCM key for secrets stored in the database (e.g. embedding provider API keys). */
+    /** AES-256-GCM key for secrets stored in the database (embedding provider API keys, admin TOTP secrets). */
     ENCRYPTION_KEY: base64Key32.optional(),
+    /**
+     * Comma-separated keys replaced by `ENCRYPTION_KEY`; they only decrypt values written before the
+     * rotation. Remove them once `reencrypt-secrets` reports nothing left on them.
+     */
+    ENCRYPTION_KEYS_PREVIOUS: csv.pipe(z.array(base64Key32)).default([]),
 
     THROTTLE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
     THROTTLE_LIMIT: z.coerce.number().int().positive().default(120),
@@ -187,6 +192,21 @@ export const envSchema = z
         code: 'custom',
         path: ['METRICS_PORT'],
         message: 'METRICS_PORT must differ from PORT',
+      })
+    }
+    const currentKey = Buffer.from(
+      env.ENCRYPTION_KEY ?? DEV_ENCRYPTION_KEY,
+      'base64',
+    )
+    if (
+      env.ENCRYPTION_KEYS_PREVIOUS.some((key) =>
+        Buffer.from(key, 'base64').equals(currentKey),
+      )
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ENCRYPTION_KEYS_PREVIOUS'],
+        message: 'ENCRYPTION_KEYS_PREVIOUS must not contain ENCRYPTION_KEY',
       })
     }
     if (env.NODE_ENV !== 'production') {

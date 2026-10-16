@@ -10,7 +10,10 @@ import { SecretBox } from './crypto.js'
       provide: SecretBox,
       inject: [ConfigService],
       useFactory: (config: ConfigService<Env, true>) =>
-        new SecretBox(config.get('ENCRYPTION_KEY', { infer: true })),
+        new SecretBox(
+          config.get('ENCRYPTION_KEY', { infer: true }),
+          config.get('ENCRYPTION_KEYS_PREVIOUS', { infer: true }),
+        ),
     },
   ],
   exports: [SecretBox],

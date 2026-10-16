@@ -7,7 +7,7 @@ import {
   runMigrations,
 } from '../../src/database/database.js'
 import { seedDatabase } from '../../src/database/seed.js'
-import { E2E_ADMIN } from '../support/constants.js'
+import { E2E_ADMIN, E2E_PREVIOUS_ENCRYPTION_KEY } from '../support/constants.js'
 import { startFakeClamd } from '../support/fake-clamd.js'
 import { startFakeEmbeddings } from '../support/fake-embeddings.js'
 
@@ -48,6 +48,8 @@ export default async function setup(project: TestProject) {
     AUTH_THROTTLE_LIMIT: '150',
     THROTTLE_LIMIT: '10000',
     PUBLIC_URL: 'http://localhost:3100',
+    // A rotated-out key that still decrypts (see test/secret-rotation.e2e-spec.ts).
+    ENCRYPTION_KEYS_PREVIOUS: E2E_PREVIOUS_ENCRYPTION_KEY,
     // Every test app binds its own metrics listener on a free port.
     METRICS_PORT: '0',
     FAKE_EMBEDDINGS_URL: embeddings.baseUrl,
