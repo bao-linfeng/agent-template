@@ -2,7 +2,7 @@
 
 ## 环境要求
 
-- Node.js **24 或更高版本**。
+- Node.js **24.22 或更高版本**（Windows 上 24.15 等较早的 24.x 跑全量 server e2e 时，Vitest 子进程会随机原生崩溃，退出码 0xC0000409，表现为 "Worker exited unexpectedly"）。
 - pnpm **11.25.0**，由根 `package.json` 的 `packageManager` 固定。
 - 所有工作区共用根 `pnpm-workspace.yaml` 和 `pnpm-lock.yaml`，依赖统一在仓库根目录安装。
 

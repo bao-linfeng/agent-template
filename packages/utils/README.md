@@ -65,7 +65,7 @@ await api('/users/me', { method: 'PATCH', body: { nickname: 'Ada' } })
 
 ## 开发
 
-使用根目录的 Node.js 24+ / pnpm 11.25.0 环境安装依赖：`pnpm install --frozen-lockfile`。以下命令在仓库根目录运行：
+使用根目录的 Node.js 24.22+ / pnpm 11.25.0 环境安装依赖：`pnpm install --frozen-lockfile`。以下命令在仓库根目录运行：
 
 ```bash
 pnpm -C packages/utils lint:fix

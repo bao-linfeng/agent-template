@@ -43,7 +43,7 @@ import { cn } from '@repo/ui/lib/utils'
 
 ## 添加新组件
 
-先从仓库根目录安装依赖（Node.js 24+、pnpm 11.25.0）。添加组件时以 `packages/ui` 为 CLI 工作目录，其 `components.json` 别名已指向 `@repo/ui/*`；当前包没有安装 `shadcn-vue` CLI，使用临时 CLI 或已准备好的 CLI 执行 `add <component-name>`。
+先从仓库根目录安装依赖（Node.js 24.22+、pnpm 11.25.0）。添加组件时以 `packages/ui` 为 CLI 工作目录，其 `components.json` 别名已指向 `@repo/ui/*`；当前包没有安装 `shadcn-vue` CLI，使用临时 CLI 或已准备好的 CLI 执行 `add <component-name>`。
 
 生成后：
 

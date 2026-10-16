@@ -2,7 +2,7 @@
 
 基于 [`@antfu/eslint-config`](https://github.com/antfu/eslint-config) 的共享 ESLint 配置，供 admin、client、docs、`@repo/ui`、`@repo/utils` 使用。
 
-包入口为 `index.js`，命名导出和默认导出均为 `defineConfig`。服务端使用自己的 oxlint/Prettier，不消费此配置。依赖从仓库根目录安装，使用 Node.js 24+ 和 pnpm 11.25.0。
+包入口为 `index.js`，命名导出和默认导出均为 `defineConfig`。服务端使用自己的 oxlint/Prettier，不消费此配置。依赖从仓库根目录安装，使用 Node.js 24.22+ 和 pnpm 11.25.0。
 
 ## 使用
 
