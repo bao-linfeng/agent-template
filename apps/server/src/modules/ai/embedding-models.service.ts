@@ -232,10 +232,18 @@ export class EmbeddingModelsService {
         params: { max: MAX_EMBEDDING_DIMENSIONS },
       })
     }
-    await this.pool.query(
-      `CREATE INDEX CONCURRENTLY IF NOT EXISTS rag_chunks_embedding_${dimensions}_hnsw ON rag_chunks ` +
-        `USING hnsw ((embedding::vector(${dimensions})) vector_cosine_ops) WHERE dimensions = ${dimensions}`,
-    )
+    // Building over many chunks exceeds DATABASE_STATEMENT_TIMEOUT_MS: use a connection without it and
+    // discard the connection afterwards instead of returning the changed session to the pool.
+    const client = await this.pool.connect()
+    try {
+      await client.query('SET statement_timeout = 0')
+      await client.query(
+        `CREATE INDEX CONCURRENTLY IF NOT EXISTS rag_chunks_embedding_${dimensions}_hnsw ON rag_chunks ` +
+          `USING hnsw ((embedding::vector(${dimensions})) vector_cosine_ops) WHERE dimensions = ${dimensions}`,
+      )
+    } finally {
+      client.release(true)
+    }
   }
 
   private async probe(target: EmbeddingTarget): Promise<EmbeddingTestResult> {

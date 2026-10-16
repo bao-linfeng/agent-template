@@ -5,7 +5,7 @@ import { createDatabase, createPool } from '../database/database.js'
 import { seedDatabase } from '../database/seed.js'
 
 const env = validateEnv(process.env)
-const pool = createPool(env.DATABASE_URL, 1)
+const pool = createPool(env.DATABASE_URL, { max: 1 })
 try {
   const adminEmail = process.env.SEED_ADMIN_EMAIL
   const adminPassword = process.env.SEED_ADMIN_PASSWORD

@@ -26,6 +26,20 @@ describe('validateEnv', () => {
     expect(env.CORS_ORIGINS).toEqual(['https://a.test', 'https://b.test'])
   })
 
+  it('limits database statements, idle transactions and connection waits', () => {
+    const env = validateEnv({})
+    expect(env.DATABASE_STATEMENT_TIMEOUT_MS).toBe(30_000)
+    expect(env.DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS).toBe(60_000)
+    expect(env.DATABASE_CONNECTION_TIMEOUT_MS).toBe(5_000)
+    expect(
+      validateEnv({ DATABASE_STATEMENT_TIMEOUT_MS: '0' })
+        .DATABASE_STATEMENT_TIMEOUT_MS,
+    ).toBe(0)
+    expect(() => validateEnv({ DATABASE_CONNECTION_TIMEOUT_MS: '-1' })).toThrow(
+      /DATABASE_CONNECTION_TIMEOUT_MS/,
+    )
+  })
+
   it('keeps the metrics listener off the API port', () => {
     expect(validateEnv({}).METRICS_PORT).toBe(9464)
     expect(() => validateEnv({ PORT: '9464' })).toThrow(

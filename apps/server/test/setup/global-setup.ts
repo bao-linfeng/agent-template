@@ -52,7 +52,7 @@ export default async function setup(project: TestProject) {
   }
 
   await runMigrations(env.DATABASE_URL)
-  const pool = createPool(env.DATABASE_URL, 1)
+  const pool = createPool(env.DATABASE_URL, { max: 1 })
   await seedDatabase(createDatabase(pool), {
     admin: E2E_ADMIN,
     embedding: {

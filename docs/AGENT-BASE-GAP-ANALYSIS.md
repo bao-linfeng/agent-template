@@ -367,7 +367,7 @@ run.cancelled
 | 账号注销与数据导出 | 只能删除头像、会话等，无法注销账号或导出个人数据；没有软删除与数据保留策略 | P1，面向公众上线前补齐 |
 | 第三方登录／SSO／双因素认证 | 均未实现；Bearer 通道已就绪，但没有微信、企业 SSO 等身份接入，管理员没有 TOTP | 按目标用户决定，管理员 TOTP 建议 P1 |
 | 指标与链路追踪 | 已完成：Prometheus 指标（`apps/server/src/infra/metrics`，独立内部端口 9464）、OpenTelemetry 链路追踪（`apps/server/src/tracing.ts`，OTLP 上报 Tempo），以及 `deploy/observability` 的监控栈（Prometheus、Alertmanager、Grafana、Tempo）和告警规则（API 不可用、错误率、延迟、连接池、队列积压与停滞、任务最终失败、定时任务未执行），通知渠道为邮件与企业微信、飞书、钉钉机器人 | P1 |
-| 数据库连接防护 | `createPool` 只配置了 `max`，没有 `statement_timeout`、`idle_in_transaction_session_timeout` 与连接超时 | P1 |
+| 数据库连接防护 | 已完成：`createPool` 设置 `statement_timeout`（默认 30 s）、`idle_in_transaction_session_timeout`（默认 60 s）与取连接超时（默认 5 s），可通过 `DATABASE_*_TIMEOUT_MS` 调整；连接错误由监听器记录，不再因未处理的 `error` 事件导致进程退出；迁移与建向量索引不受语句超时限制 | P1 |
 | 上传内容校验 | 未见基于文件内容（magic bytes）的类型识别，也没有病毒扫描 | P1，开放用户上传前补齐 |
 | 加密密钥轮换 | `SecretBox` 密文带 `v1` 版本前缀，但只支持单个 `ENCRYPTION_KEY`，更换密钥需要手动迁移 | P1 |
 | 系统配置与功能开关 | 没有运行时可修改的系统配置，所有开关依赖环境变量和重启 | 按需 |

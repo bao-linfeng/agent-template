@@ -45,6 +45,24 @@ export const envSchema = z
 
     DATABASE_URL: z.string().default('postgres://app:app@localhost:5432/app'),
     DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
+    /** PostgreSQL cancels statements running longer than this; 0 = no limit. Migrations always run without it. */
+    DATABASE_STATEMENT_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .default(30_000),
+    /** PostgreSQL ends sessions that keep a transaction open without running anything this long, releasing their locks; 0 = never. */
+    DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .default(60_000),
+    /** Requests fail after waiting this long for a free pooled connection or a new one; 0 = wait forever. */
+    DATABASE_CONNECTION_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .default(5_000),
     REDIS_URL: z.string().default('redis://localhost:6379'),
 
     JWT_SECRET: z.string().min(32).optional(),
