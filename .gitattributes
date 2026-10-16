@@ -3,3 +3,6 @@
 **/Dockerfile text eol=lf
 deploy/Caddyfile text eol=lf
 deploy/nginx/*.conf text eol=lf
+
+# Mounted into Linux containers (deploy/docker-compose.yml observability profile).
+deploy/observability/** text eol=lf

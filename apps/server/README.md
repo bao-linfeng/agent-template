@@ -127,6 +127,8 @@ pnpm -C apps/server start:prod
 - 日志行带 `trace_id` / `span_id`，可按链路 ID 搜索日志。
 - `OTEL_TRACES_SAMPLER_ARG`（0–1，默认 1）控制新链路的采样比例；`OTEL_SERVICE_NAME`、`OTEL_EXPORTER_OTLP_HEADERS`、`OTEL_RESOURCE_ATTRIBUTES` 等标准变量同样生效，`OTEL_SDK_DISABLED=true` 可临时关闭。
 
+生产部署的监控栈（Prometheus 抓取、告警规则、Grafana 仪表盘、Tempo）见 [deploy/README.md](../../deploy/README.md) 的「监控与告警」。
+
 首次部署需要种子数据时，在 `apps/server` 执行 `node dist/scripts/seed.js`。迁移文件在 `drizzle/`，数据库 schema 位于 `src/database/schema/`；修改 schema 后使用 `db:generate` 生成并提交迁移。
 
 ## 目录与验证

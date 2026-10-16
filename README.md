@@ -172,7 +172,7 @@ pnpm -C apps/client build
 
 ## 生产部署
 
-server、admin、client 各有生产镜像（`apps/*/Dockerfile`，以仓库根目录为构建上下文，非 root 运行，带健康检查）。`deploy/` 提供单机 Docker Compose 部署：Caddy 自动 HTTPS、发布前备份、迁移失败不影响运行中版本、按标签回滚，以及 PostgreSQL/对象存储的备份与恢复演练脚本。推送 `v*` tag 时 `.github/workflows/release.yml` 把镜像推送到 GHCR。详见 [deploy/README.md](deploy/README.md)。
+server、admin、client 各有生产镜像（`apps/*/Dockerfile`，以仓库根目录为构建上下文，非 root 运行，带健康检查）。`deploy/` 提供单机 Docker Compose 部署：Caddy 自动 HTTPS、发布前备份、迁移失败不影响运行中版本、按标签回滚，以及 PostgreSQL/对象存储的备份与恢复演练脚本；可选的 `observability` profile 提供 Prometheus、Alertmanager、Grafana 和 Tempo，告警通过邮件和企业微信、飞书、钉钉机器人发送。推送 `v*` tag 时 `.github/workflows/release.yml` 把镜像推送到 GHCR。详见 [deploy/README.md](deploy/README.md)。
 
 ## 开发指引
 
