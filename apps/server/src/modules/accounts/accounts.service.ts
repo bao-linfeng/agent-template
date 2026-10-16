@@ -26,6 +26,7 @@ import { isUniqueViolation } from '../../database/errors.js'
 import type { UserRow, UserStatus } from '../../database/schema/index.js'
 import { mailTemplates } from '../../infra/mail/mail.templates.js'
 import { MailService } from '../../infra/mail/mail.service.js'
+import { AntivirusService } from '../../infra/antivirus/antivirus.service.js'
 import { StorageService } from '../../infra/storage/storage.service.js'
 import { PasswordHasher } from '../auth/password-hasher.service.js'
 import { REALM_TABLES, type Realm } from '../auth/realms.js'
@@ -68,6 +69,7 @@ export class AccountsService {
   constructor(
     @InjectDb() private readonly db: Database,
     private readonly storage: StorageService,
+    private readonly antivirus: AntivirusService,
     private readonly sessions: SessionsService,
     private readonly hasher: PasswordHasher,
     private readonly mail: MailService,
@@ -193,6 +195,7 @@ export class AccountsService {
     if (!type) {
       throw new AppException('ACCOUNT_AVATAR_UNSUPPORTED')
     }
+    await this.antivirus.assertClean(buffer)
     const { accounts } = REALM_TABLES[realm]
     const account = await this.getOrThrow(realm, id)
     const key = avatarKey(id, `${randomUUID()}.${type.ext}`)

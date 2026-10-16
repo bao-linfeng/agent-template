@@ -192,3 +192,30 @@ tests:
             exp_annotations:
               summary: Node.js 事件循环阻塞
               description: "api:9464 事件循环延迟 p99 持续 5 分钟高于 500ms（当前 800ms），通常是 CPU 密集计算或同步 IO。"
+
+  - name: upload scan failures
+    interval: 1m
+    input_series:
+      - series: 'up{job="api", instance="api:9464"}'
+        values: "1x40"
+      # clamd answered until 20m, then failed twice.
+      - series: 'upload_scans_total{instance="api:9464", result="clean"}'
+        values: "5x40"
+      - series: 'upload_scans_total{instance="api:9464", result="error"}'
+        values: "_x19 1 2x20"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: UploadScanFailing
+        exp_alerts: []
+      - eval_time: 22m
+        alertname: UploadScanFailing
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              instance: api:9464
+            exp_annotations:
+              summary: 上传文件无法进行病毒扫描
+              description: api:9464 最近 10 分钟有上传因 clamd 不可用或报错被拒绝（503 UPLOAD_SCAN_UNAVAILABLE）。检查 clamav 容器状态和 API 日志。
+      - eval_time: 35m
+        alertname: UploadScanFailing
+        exp_alerts: []

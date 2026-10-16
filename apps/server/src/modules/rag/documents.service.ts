@@ -13,6 +13,7 @@ import type { UploadedFile } from '../../common/http/multipart.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { documents, type DocumentRow } from '../../database/schema/index.js'
+import { AntivirusService } from '../../infra/antivirus/antivirus.service.js'
 import { QUEUES } from '../../infra/queue/queue.module.js'
 import { StorageService } from '../../infra/storage/storage.service.js'
 import {
@@ -33,6 +34,7 @@ export class DocumentsService {
   constructor(
     @InjectDb() private readonly db: Database,
     private readonly storage: StorageService,
+    private readonly antivirus: AntivirusService,
     @InjectQueue(QUEUES.ragIngest) private readonly queue: Queue<IngestJob>,
   ) {}
 
@@ -93,6 +95,7 @@ export class DocumentsService {
       }
       throw error
     }
+    await this.antivirus.assertClean(file.buffer)
     const title = (file.fields.title?.trim() || file.filename).slice(0, 255)
     return this.store(kb, userId, {
       title,

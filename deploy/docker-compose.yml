@@ -6,6 +6,7 @@
 #
 # Only the gateway publishes ports; databases and app containers stay on the internal network.
 # Optional monitoring (Prometheus, Alertmanager, Grafana, Tempo): COMPOSE_PROFILES=observability in deploy/.env.
+# Optional malware scan of uploads (clamd): COMPOSE_PROFILES=antivirus plus CLAMAV_HOST=clamav in deploy/.env.
 name: agent-template
 
 # Rotated container logs (docker compose logs still works): at most LOG_MAX_FILES × LOG_MAX_SIZE per container.
@@ -180,6 +181,17 @@ services:
       timeout: 3s
       retries: 10
 
+  # --- Malware scan (profile `antivirus`: COMPOSE_PROFILES=antivirus and CLAMAV_HOST=clamav, see README.md) ---
+  # clamd with freshclam keeping the signatures current; needs ~1.5-3 GB RAM. The image's healthcheck
+  # allows a few minutes for the first signature download, and the API rejects uploads (503) until clamd answers.
+  clamav:
+    image: clamav/clamav:1.4
+    profiles: ["antivirus"]
+    restart: unless-stopped
+    logging: *logging
+    volumes:
+      - clamav-data:/var/lib/clamav
+
   # --- Monitoring (profile `observability`: COMPOSE_PROFILES=observability in deploy/.env, see README.md) ---
   # Prometheus scrapes api:9464 and evaluates observability/prometheus/rules; Alertmanager sends email and,
   # through alert-relay, WeCom/Feishu/DingTalk bot messages; the API exports traces to Tempo when
@@ -313,6 +325,7 @@ volumes:
   postgres-data:
   redis-data:
   rustfs-data:
+  clamav-data:
   caddy-data:
   caddy-config:
   prometheus-data:

@@ -85,6 +85,7 @@ docker compose exec ollama ollama pull bge-m3
 - 管理员通过 `/api/v1/admin/ai/embedding-models` 配置 OpenAI 兼容 Embedding 服务。API Key 使用 `ENCRYPTION_KEY` 加密，接口仅返回 `hasApiKey`；默认种子模型为 Ollama `bge-m3`、1024 维。
 - 客户端通过 `/api/v1/client/rag/knowledge-bases` 管理自己的知识库。每个知识库绑定一个模型，上传文件或通过 `/:id/documents/text` 提交文本，再通过 `/:id/search` 检索。
 - 上传目前支持 UTF-8 的 txt/md/csv/json/html；不包含 PDF/DOCX 解析。默认文档上限 20 MiB（`UPLOAD_MAX_BYTES`），头像上限 2 MiB（`AVATAR_MAX_BYTES`）。
+- 头像按文件头（magic bytes）识别 PNG/JPEG/GIF/WebP，忽略客户端声明的类型；文档在上传时即做严格 UTF-8 解码。设置 `CLAMAV_HOST` 后，两类文件通过校验后还会交给 clamd 扫描再写入存储：检出病毒返回 422 `UPLOAD_INFECTED`，clamd 不可用时返回 503 `UPLOAD_SCAN_UNAVAILABLE`（fail closed）。本地用 `docker compose --profile antivirus up -d` 启动 clamd 并设置 `CLAMAV_HOST=localhost`；生产见 [deploy/README.md](../../deploy/README.md) 的「上传病毒扫描」。
 - 文档经 BullMQ 在 API 进程内后台切分、批量向量化并写入 pgvector；状态为 `pending → processing → ready | failed`，可通过文档查询接口查看，或通过 `/:id/documents/:documentId/reindex` 重试。
 - 模型维度最高 2000；按维度建立部分 HNSW 索引。已被知识库使用的模型不能修改 `model` 或 `dimensions`，知识库也不能切换绑定模型。
 - 后台 `/api/v1/admin/rag/knowledge-bases` 可查看/删除所有用户知识库，受 `knowledge-base:read` / `knowledge-base:manage` 控制。
@@ -116,6 +117,7 @@ pnpm -C apps/server start:prod
 | `bullmq_jobs_processed_total{queue,name,status}` / `bullmq_jobs_failed_final_total{queue,name}` | 本实例执行的任务次数 / 重试用尽或 `UnrecoverableError` 的最终失败 |
 | `bullmq_job_duration_seconds` / `bullmq_job_last_success_timestamp_seconds` | 单次执行耗时 / 每个任务名最近一次成功的时间（夜间定时任务据此告警） |
 | `pg_pool_connections{state}` / `pg_pool_waiting_requests` / `pg_pool_max_connections` | PostgreSQL 连接池 |
+| `upload_scans_total{result}` | 上传文件的病毒扫描结果（`clean` / `infected` / `error`，仅设置 `CLAMAV_HOST` 时） |
 | `process_*` / `nodejs_*` | Node 运行时（CPU、内存、GC、事件循环延迟） |
 
 ### 链路追踪

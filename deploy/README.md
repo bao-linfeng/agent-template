@@ -12,18 +12,21 @@ api ──▶ postgres (pgvector) / redis / rustfs   —— 仅内网，不发�
 可选监控（profile observability）：
 prometheus ──抓取──▶ api:9464   ──告警──▶ alertmanager ──▶ 邮件 / alert-relay ──▶ 企业微信、飞书、钉钉
 api ──OTLP──▶ tempo:4318          grafana (127.0.0.1:3000) ──查询──▶ prometheus / tempo / alertmanager
+
+可选上传病毒扫描（profile antivirus）：
+api ──INSTREAM──▶ clamav:3310 (clamd + freshclam)
 ```
 
-| 文件                 | 作用                                                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `docker-compose.yml` | 生产编排；`migrate`、`seed` 属于 `ops` profile，只能通过 `docker compose run` 执行；监控组件属于 `observability` profile |
-| `.env.example`       | 域名、镜像、密钥、SMTP、监控告警、备份配置模板，复制为 `.env`（已被 git 忽略）                                           |
-| `Caddyfile`          | 三个域名的反向代理与证书                                                                                                 |
-| `nginx/`             | admin/client 镜像使用的 SPA 配置（history 回退、静态资源长缓存、安全响应头）                                             |
-| `observability/`     | Prometheus 抓取配置与告警规则（含 `promtool` 测试）、Alertmanager、IM 告警转发、Tempo、Grafana 数据源与仪表盘            |
-| `scripts/deploy.sh`  | 发布：拉取或构建镜像 → 启动基础设施 → 发布前备份 → 迁移 → 滚动更新 → 就绪检查                                            |
-| `scripts/backup.sh`  | 备份 PostgreSQL 与对象存储，按保留天数清理                                                                               |
-| `scripts/restore.sh` | `--verify` 恢复演练（临时库，不停机）或正式恢复                                                                          |
+| 文件                 | 作用                                                                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker-compose.yml` | 生产编排；`migrate`、`seed` 属于 `ops` profile，只能通过 `docker compose run` 执行；监控组件属于 `observability` profile，clamd 属于 `antivirus` profile |
+| `.env.example`       | 域名、镜像、密钥、SMTP、监控告警、备份配置模板，复制为 `.env`（已被 git 忽略）                                                                           |
+| `Caddyfile`          | 三个域名的反向代理与证书                                                                                                                                 |
+| `nginx/`             | admin/client 镜像使用的 SPA 配置（history 回退、静态资源长缓存、安全响应头）                                                                             |
+| `observability/`     | Prometheus 抓取配置与告警规则（含 `promtool` 测试）、Alertmanager、IM 告警转发、Tempo、Grafana 数据源与仪表盘                                            |
+| `scripts/deploy.sh`  | 发布：拉取或构建镜像 → 启动基础设施 → 发布前备份 → 迁移 → 滚动更新 → 就绪检查                                                                            |
+| `scripts/backup.sh`  | 备份 PostgreSQL 与对象存储，按保留天数清理                                                                                                               |
+| `scripts/restore.sh` | `--verify` 恢复演练（临时库，不停机）或正式恢复                                                                                                          |
 
 ## 镜像
 
@@ -116,6 +119,20 @@ scripts/restore.sh backups/<目录>                   # 正式恢复：输入 re
 
 - 建议每月对最新备份执行一次 `--verify` 演练，确认备份确实可恢复。
 
+## 上传病毒扫描
+
+头像和知识库文件在通过格式校验（头像按文件头识别图片类型，文档必须是 UTF-8 文本）之后、写入对象存储之前，会交给 ClamAV 的 clamd 扫描。默认关闭，在 `.env` 中启用：
+
+```sh
+COMPOSE_PROFILES=antivirus          # 已启用监控时写成 observability,antivirus
+CLAMAV_HOST=clamav
+```
+
+- `clamav` 容器内的 freshclam 自动更新病毒库，病毒库保存在 `clamav-data` 卷。首次启动需要下载几百 MB 的病毒库，几分钟后才会变为 healthy，`scripts/deploy.sh` 的 `--wait` 会等它就绪。clamd 常驻内存约 1.5–3 GB，启用前确认主机内存足够。
+- 设置 `CLAMAV_HOST` 后扫描失败即拒绝上传（fail closed）：检出病毒返回 422 `UPLOAD_INFECTED`，clamd 不可用、超时（`CLAMAV_TIMEOUT_MS`，默认 30 秒）或报错时返回 503 `UPLOAD_SCAN_UNAVAILABLE`，文件都不会写入存储。指标 `upload_scans_total{result="clean|infected|error"}` 记录扫描结果，启用监控时 `UploadScanFailing` 会告警。
+- clamd 拒绝超过 `StreamMaxLength`（clamd.conf）的文件流；调大 `UPLOAD_MAX_BYTES`（默认 20 MiB）时要保证它仍小于该值，否则这些文件会被拒绝并返回 503。
+- 已经在存储中的旧文件不会补扫。未设置 `CLAMAV_HOST` 的生产实例启动时会在日志中警告。
+
 ## 监控与告警
 
 `observability` profile 在同一台主机上运行一套监控栈，配置都在 `observability/`：
@@ -168,6 +185,7 @@ ssh -L 3000:127.0.0.1:3000 <主机>    # 然后打开 http://localhost:3000，�
 | `JobFailures`          | warning  | 15 分钟内有任务重试耗尽后最终失败                                 |
 | `ScheduledJobMissed`   | warning  | `audit`、`maintenance` 队列的夜间定时任务超过 26 小时没有成功执行 |
 | `MonitoringTargetDown` | warning  | Alertmanager 或 Tempo 5 分钟无法抓取                              |
+| `UploadScanFailing`    | warning  | 10 分钟内有上传因 clamd 不可用或报错被拒绝（仅启用病毒扫描时）    |
 
 - `ApiDown` 触发时，同时出现的其他 API 告警会被抑制，只发一条。critical 告警每小时重复提醒，warning 每 4 小时。
 - 主动关闭某个定时任务（例如 `STORAGE_ORPHAN_SWEEP_ENABLED=false`）后，它的 `ScheduledJobMissed` 会持续到最后一次成功记录超过 7 天，期间在 Grafana（Alerting → Silences）或 Alertmanager 中静默即可。

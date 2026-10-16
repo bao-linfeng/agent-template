@@ -127,6 +127,13 @@ export const envSchema = z
       .int()
       .positive()
       .default(20 * 1024 * 1024),
+    /**
+     * clamd (ClamAV daemon) that scans every uploaded file before it is stored; scanning is off when unset.
+     * When set, uploads fail closed (503) while clamd is unreachable. Keep `UPLOAD_MAX_BYTES` below its `StreamMaxLength`.
+     */
+    CLAMAV_HOST: z.string().trim().optional(),
+    CLAMAV_PORT: z.coerce.number().int().positive().max(65_535).default(3310),
+    CLAMAV_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
 
     SMTP_HOST: z.string().default('localhost'),
     SMTP_PORT: z.coerce.number().int().positive().default(1025),

@@ -8,11 +8,12 @@ import {
 } from '../../src/database/database.js'
 import { seedDatabase } from '../../src/database/seed.js'
 import { E2E_ADMIN } from '../support/constants.js'
+import { startFakeClamd } from '../support/fake-clamd.js'
 import { startFakeEmbeddings } from '../support/fake-embeddings.js'
 
-/** Starts throwaway Postgres (pgvector), Redis and RustFS containers plus a fake embeddings server. */
+/** Starts throwaway Postgres (pgvector), Redis and RustFS containers plus fake embeddings and clamd servers. */
 export default async function setup(project: TestProject) {
-  const [postgres, redis, rustfs, embeddings] = await Promise.all([
+  const [postgres, redis, rustfs, embeddings, clamd] = await Promise.all([
     new PostgreSqlContainer('pgvector/pgvector:pg18')
       .withDatabase('app')
       .withUsername('app')
@@ -31,6 +32,7 @@ export default async function setup(project: TestProject) {
       .withWaitStrategy(Wait.forListeningPorts())
       .start(),
     startFakeEmbeddings(),
+    startFakeClamd(),
   ])
 
   const env = {
@@ -49,6 +51,9 @@ export default async function setup(project: TestProject) {
     // Every test app binds its own metrics listener on a free port.
     METRICS_PORT: '0',
     FAKE_EMBEDDINGS_URL: embeddings.baseUrl,
+    // Every upload goes through the malware scan (see FAKE_MALWARE / FAKE_SCAN_ERROR).
+    CLAMAV_HOST: clamd.host,
+    CLAMAV_PORT: String(clamd.port),
   }
 
   await runMigrations(env.DATABASE_URL)
@@ -70,6 +75,7 @@ export default async function setup(project: TestProject) {
 
   return async () => {
     embeddings.server.close()
+    await clamd.close()
     await Promise.all([postgres.stop(), redis.stop(), rustfs.stop()])
   }
 }
