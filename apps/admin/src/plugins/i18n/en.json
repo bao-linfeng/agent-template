@@ -170,6 +170,7 @@
     "admins": "Admins",
     "roles": "Roles",
     "embeddingModels": "Embedding Models",
+    "auditLogs": "Audit Log",
     "auth": "Auth",
     "signIn": "Sign In",
     "signIn2": "Sign In (2 Col)",
@@ -351,6 +352,7 @@
     "ROLE_NOT_FOUND": "Role not found.",
     "ROLE_SUPER_ADMIN_IMMUTABLE": "Permissions of super_admin cannot be changed.",
     "ROLE_SYSTEM_UNDELETABLE": "System roles cannot be deleted.",
+    "AUDIT_LOG_NOT_FOUND": "Audit log entry not found.",
     "SERVICE_UNAVAILABLE": "The service is temporarily unavailable.",
     "SESSION_NOT_FOUND": "Session not found.",
     "TIMEOUT": "The server took too long to respond.",
@@ -412,6 +414,52 @@
     "deleteTitle": "Delete role {name}?",
     "deleteAffects": "{count} admin(s) will lose its permissions.",
     "deleteUnused": "No admin has this role."
+  },
+  "auditLogs": {
+    "title": "Audit Log",
+    "description": "Changes made through the API by admins and client users, including rejected and failed requests.",
+    "total": "{count} entries",
+    "searchPlaceholder": "Search email, action or path...",
+    "allRealms": "All accounts",
+    "allOutcomes": "All results",
+    "realms": {
+      "admin": "Admin",
+      "user": "Client user",
+      "none": "Public"
+    },
+    "outcomes": {
+      "success": "Succeeded",
+      "failure": "Failed"
+    },
+    "from": "From",
+    "to": "To",
+    "anonymous": "Anonymous",
+    "view": "View details",
+    "detailDescription": "Passwords, tokens and API keys are stored as [redacted].",
+    "onlyActor": "Only this actor",
+    "onlyResource": "Only this resource",
+    "actorFilter": "Actor: {value}",
+    "resourceFilter": "Resource: {value}",
+    "clearFilter": "Clear filter",
+    "durationMs": "{value} ms",
+    "fields": {
+      "time": "Time",
+      "actor": "Actor",
+      "realm": "Account type",
+      "operation": "Operation",
+      "action": "Action",
+      "route": "Route",
+      "resource": "Resource ID",
+      "result": "Result",
+      "error": "Error",
+      "duration": "Duration",
+      "ip": "IP address",
+      "userAgent": "User agent",
+      "requestId": "Request ID",
+      "params": "Route parameters",
+      "query": "Query",
+      "body": "Request body"
+    }
   },
   "embeddingModels": {
     "title": "Embedding Models",

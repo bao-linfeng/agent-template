@@ -7,6 +7,7 @@ import type { Env } from '../../config/env.js'
 export const QUEUES = {
   mail: 'mail',
   ragIngest: 'rag-ingest',
+  audit: 'audit',
 } as const
 
 @Module({

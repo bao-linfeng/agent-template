@@ -7,7 +7,7 @@ import {
   type ExceptionFilter,
   type ValidationError,
 } from '@nestjs/common'
-import type { FastifyReply } from 'fastify'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import { AppException, type ErrorBody } from './app.exception.js'
 import { codeForStatus, ERRORS, isErrorCode } from './error-codes.js'
 
@@ -98,8 +98,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionsHandler')
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    const reply = host.switchToHttp().getResponse<FastifyReply>()
+    const http = host.switchToHttp()
+    const reply = http.getResponse<FastifyReply>()
     const body = toErrorBody(exception)
+    const audit = http.getRequest<FastifyRequest | undefined>()?.audit
+    if (audit) {
+      audit.errorCode = body.code
+    }
     if (body.statusCode >= 500 && !(exception instanceof HttpException)) {
       this.logger.error(exception)
     }

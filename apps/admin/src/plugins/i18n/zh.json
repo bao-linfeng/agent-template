@@ -170,6 +170,7 @@
     "admins": "管理员",
     "roles": "角色",
     "embeddingModels": "Embedding 模型",
+    "auditLogs": "审计日志",
     "auth": "认证",
     "signIn": "登录",
     "signIn2": "登录（双栏）",
@@ -351,6 +352,7 @@
     "ROLE_NOT_FOUND": "角色不存在。",
     "ROLE_SUPER_ADMIN_IMMUTABLE": "不能修改 super_admin 的权限。",
     "ROLE_SYSTEM_UNDELETABLE": "系统角色不能删除。",
+    "AUDIT_LOG_NOT_FOUND": "审计日志不存在。",
     "SERVICE_UNAVAILABLE": "服务暂时不可用。",
     "SESSION_NOT_FOUND": "会话不存在。",
     "TIMEOUT": "服务器响应超时，请稍后重试。",
@@ -412,6 +414,52 @@
     "deleteTitle": "删除角色 {name}？",
     "deleteAffects": "{count} 个管理员将失去该角色的权限。",
     "deleteUnused": "没有管理员使用此角色。"
+  },
+  "auditLogs": {
+    "title": "审计日志",
+    "description": "管理员和客户端用户通过接口进行的变更操作，包括被拒绝和失败的请求。",
+    "total": "共 {count} 条",
+    "searchPlaceholder": "搜索邮箱、动作或路径...",
+    "allRealms": "全部账号",
+    "allOutcomes": "全部结果",
+    "realms": {
+      "admin": "管理员",
+      "user": "客户端用户",
+      "none": "公开接口"
+    },
+    "outcomes": {
+      "success": "成功",
+      "failure": "失败"
+    },
+    "from": "开始日期",
+    "to": "结束日期",
+    "anonymous": "匿名",
+    "view": "查看详情",
+    "detailDescription": "密码、令牌和 API Key 等敏感字段以 [redacted] 保存。",
+    "onlyActor": "只看该操作人",
+    "onlyResource": "只看该资源",
+    "actorFilter": "操作人：{value}",
+    "resourceFilter": "资源：{value}",
+    "clearFilter": "清除筛选",
+    "durationMs": "{value} 毫秒",
+    "fields": {
+      "time": "时间",
+      "actor": "操作人",
+      "realm": "账号类型",
+      "operation": "操作",
+      "action": "动作",
+      "route": "路由",
+      "resource": "资源 ID",
+      "result": "结果",
+      "error": "错误",
+      "duration": "耗时",
+      "ip": "IP 地址",
+      "userAgent": "User Agent",
+      "requestId": "请求 ID",
+      "params": "路由参数",
+      "query": "查询参数",
+      "body": "请求体"
+    }
   },
   "embeddingModels": {
     "title": "Embedding 模型",

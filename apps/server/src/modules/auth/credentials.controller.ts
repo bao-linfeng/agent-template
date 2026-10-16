@@ -7,6 +7,7 @@ import {
   type HttpRequest,
 } from '../../common/http/request.js'
 import type { AccountRow } from '../accounts/accounts.service.js'
+import { Audit, setAuditActor } from '../audit/audit-context.js'
 import { AuthCookies } from './auth-cookies.service.js'
 import { AuthService } from './auth.service.js'
 import {
@@ -72,12 +73,15 @@ export abstract class CredentialsController<Profile> {
       dto,
       requestMeta(request),
     )
+    setAuditActor(request, account)
     return this.signIn(bearer, reply, tokens, await this.profile(account))
   }
 
   /** Rotates the session: 204 with new cookies, or 200 with new `BearerTokens` for bearer clients. */
   @Post('refresh')
   @HttpCode(204)
+  // Runs every few minutes per session; only rejected refreshes (expired, replayed) are worth keeping.
+  @Audit({ mode: 'failures' })
   @authTransportHeader
   async refresh(
     @Body() dto: RefreshTokenDto,

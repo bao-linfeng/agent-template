@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+import type { IncomingMessage } from 'node:http'
 import fastifyCookie from '@fastify/cookie'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyMultipart from '@fastify/multipart'
@@ -15,6 +17,7 @@ import {
   validationException,
 } from './common/errors/exception.filter.js'
 import type { Env } from './config/env.js'
+import { registerAuditHook } from './modules/audit/audit.hook.js'
 import { REALM_COOKIES } from './modules/auth/realms.js'
 
 export function createFastifyAdapter(): FastifyAdapter {
@@ -23,6 +26,17 @@ export function createFastifyAdapter(): FastifyAdapter {
       process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
     // Request logging is handled by nestjs-pino.
     logger: false,
+    // Accept the caller's `x-request-id` (bounded) or generate a UUID. Fastify stores it on the raw
+    // request too, so the HTTP logs (pino-http) and the audit log use the same id.
+    requestIdHeader: false,
+    genReqId: (request: IncomingMessage) => {
+      const incoming = request.headers['x-request-id']
+      return typeof incoming === 'string' &&
+        incoming.length > 0 &&
+        incoming.length <= 100
+        ? incoming
+        : randomUUID()
+    },
   })
 }
 
@@ -36,6 +50,12 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
   app.useLogger(app.get(Logger))
   app.enableShutdownHooks()
 
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .addHook('onRequest', async (request, reply) => {
+      void reply.header('x-request-id', request.id)
+    })
   await app.register(fastifyCookie)
   await app.register(fastifyHelmet, {
     // JSON API: no HTML to protect with CSP, and avatars must be embeddable by the web apps.
@@ -69,6 +89,8 @@ export async function configureApp(app: NestFastifyApplication): Promise<void> {
   )
   // Every error response is `{ statusCode, code, message, params?, details? }` (see common/errors).
   app.useGlobalFilters(new AllExceptionsFilter())
+  // Audit trail of API requests (see modules/audit), written after each response.
+  registerAuditHook(app)
 
   if (config.get('SWAGGER_ENABLED', { infer: true })) {
     const document = SwaggerModule.createDocument(

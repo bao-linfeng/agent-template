@@ -1,4 +1,4 @@
-import { BadgeHelpIcon, BellDotIcon, BirdIcon, BoxesIcon, BrainCircuitIcon, BugIcon, ComponentIcon, CreditCardIcon, KeyRoundIcon, LayoutDashboardIcon, ListTodoIcon, PaletteIcon, PictureInPicture2Icon, PodcastIcon, SettingsIcon, ShieldCheckIcon, SquareUserRoundIcon, UserCogIcon, UserIcon, UsersIcon } from '@lucide/vue'
+import { BadgeHelpIcon, BellDotIcon, BirdIcon, BoxesIcon, BrainCircuitIcon, BugIcon, ComponentIcon, CreditCardIcon, KeyRoundIcon, LayoutDashboardIcon, ListTodoIcon, PaletteIcon, PictureInPicture2Icon, PodcastIcon, ScrollTextIcon, SettingsIcon, ShieldCheckIcon, SquareUserRoundIcon, UserCogIcon, UserIcon, UsersIcon } from '@lucide/vue'
 
 import type { NavGroup, NavItem } from '@/components/app-sidebar/types'
 
@@ -31,6 +31,7 @@ export const navData: NavGroup[] = [
       { title: 'nav.admins', url: '/admins', icon: UserCogIcon, permission: 'admin:read' },
       { title: 'nav.roles', url: '/roles', icon: ShieldCheckIcon, permission: 'role:read' },
       { title: 'nav.embeddingModels', url: '/ai/embedding-models', icon: BrainCircuitIcon, permission: 'embedding-model:read' },
+      { title: 'nav.auditLogs', url: '/audit-logs', icon: ScrollTextIcon, permission: 'audit-log:read' },
     ],
   },
   {

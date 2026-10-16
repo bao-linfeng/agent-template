@@ -109,6 +109,13 @@ export const envSchema = z
     SMTP_PASSWORD: z.string().optional(),
     MAIL_FROM: z.string().default('Agent Template <no-reply@example.com>'),
 
+    /** Records API requests in `audit_logs` (see `modules/audit`). */
+    AUDIT_LOG_ENABLED: booleanString.default(true),
+    /** Also record GET/HEAD requests; writes are always recorded. */
+    AUDIT_LOG_READS: booleanString.default(false),
+    /** Rows older than this are deleted daily; 0 keeps them forever. */
+    AUDIT_LOG_RETENTION_DAYS: z.coerce.number().int().min(0).default(180),
+
     OBSERVE_APP_KEY: z.string().optional(),
     OBSERVE_APP_SECRET: z.string().optional(),
   })

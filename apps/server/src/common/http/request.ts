@@ -1,4 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { AuditContext } from '../../modules/audit/audit-context.js'
 import type { Realm } from '../../modules/auth/realms.js'
 import type { AppAbility } from '../../modules/rbac/ability.js'
 
@@ -15,6 +16,8 @@ declare module 'fastify' {
     user?: AuthUser
     /** Admin routes only; set lazily by `PoliciesGuard` / `RbacService.abilityForRequest`. */
     ability?: AppAbility
+    /** Set by `AuditGuard` on every routed request; read by the audit `onResponse` hook. */
+    audit?: AuditContext
   }
 }
 

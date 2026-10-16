@@ -1,7 +1,6 @@
-import { randomUUID } from 'node:crypto'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { APP_GUARD } from '@nestjs/core'
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import type { Redis } from 'ioredis'
 import { LoggerModule } from 'nestjs-pino'
@@ -16,6 +15,8 @@ import { StorageModule } from './infra/storage/storage.module.js'
 import { AccountsModule } from './modules/accounts/accounts.module.js'
 import { AdminsModule } from './modules/admins/admins.module.js'
 import { AiModule } from './modules/ai/ai.module.js'
+import { AuditGuard, AuditInterceptor } from './modules/audit/audit.guard.js'
+import { AuditModule } from './modules/audit/audit.module.js'
 import { AuthModule } from './modules/auth/auth.module.js'
 import { AUTH_THROTTLE_KEY } from './modules/auth/decorators.js'
 import { JwtAuthGuard } from './modules/auth/jwt-auth.guard.js'
@@ -45,15 +46,7 @@ import { observeImports } from './observe.js'
             config.get('NODE_ENV', { infer: true }) === 'development'
               ? { target: 'pino-pretty', options: { singleLine: true } }
               : undefined,
-          genReqId: (request, reply) => {
-            const incoming = request.headers['x-request-id']
-            const id =
-              typeof incoming === 'string' && incoming.length <= 100
-                ? incoming
-                : randomUUID()
-            reply.setHeader('x-request-id', id)
-            return id
-          },
+          // The request id comes from Fastify (`genReqId` in `createFastifyAdapter`); pino-http reuses `req.id`.
           redact: {
             paths: [
               'req.headers.cookie',
@@ -96,6 +89,7 @@ import { observeImports } from './observe.js'
     StorageModule,
     QueueModule,
     MailModule,
+    AuditModule,
     SecurityModule,
     RbacModule,
     AccountsModule,
@@ -108,10 +102,12 @@ import { observeImports } from './observe.js'
     ...observeImports,
   ],
   providers: [
-    // Order matters: rate limit → authenticate → authorize.
+    // Order matters: audit context (never blocks) → rate limit → authenticate → authorize.
+    { provide: APP_GUARD, useClass: AuditGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PoliciesGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule {}

@@ -17,7 +17,7 @@ NestJS 12 + Fastify API that is meant to be built on, not a demo. Keep new code 
 src/
   main.ts               entry: imports config/load-env.js first, then boots Fastify via setup-app.ts
   setup-app.ts          every HTTP-level setting (cookie, helmet, multipart, CORS, /api prefix, ValidationPipe, exception filter, Swagger) — shared with e2e
-  app.module.ts         module wiring + global guards: ThrottlerGuard → JwtAuthGuard → PoliciesGuard
+  app.module.ts         module wiring + global guards: AuditGuard → ThrottlerGuard → JwtAuthGuard → PoliciesGuard (+ AuditInterceptor)
   config/               load-env.ts (.env.local, .env; skipped when NODE_ENV=test) and env.ts (zod schema = single source of env truth)
   database/             Drizzle schema (schema/*.ts), DatabaseModule (DRIZZLE / PG_POOL), migrations runner, seed, pg error helpers
   infra/                redis, storage (S3/RustFS), queue (BullMQ root + QUEUES names), mail (queue + processor + templates)
@@ -30,6 +30,7 @@ src/
     rbac/               permission catalog, CASL ability, PoliciesGuard, @RequirePermissions/@CheckPolicies/@CurrentAbility, /v1/admin/roles
     ai/                 embedding model registry (/v1/admin/ai/embedding-models) + OpenAI-compatible EmbeddingClient
     rag/                knowledge bases, documents, ingest worker, RetrievalService, /v1/client/rag/knowledge-bases (own) + /v1/admin/rag/knowledge-bases (all)
+    audit/              unified audit trail (`audit_logs`): AuditGuard/AuditInterceptor, onResponse hook, @Audit, batched AuditService, nightly prune job, /v1/admin/audit-logs
     health/             /health (db + redis), /health/live (public, unversioned)
   scripts/              migrate.ts, seed.ts (compiled to dist/scripts)
 drizzle/                generated SQL migrations + meta (commit them)
@@ -47,6 +48,13 @@ test/                   e2e specs, setup (testcontainers global setup), support 
 - Background work: register a queue name in `infra/queue/queue.module.ts` `QUEUES`, `BullModule.registerQueue` in the feature module, and a `@Processor` extending `WorkerHost`. Throw `UnrecoverableError` for permanent failures. Workers run inside the API process.
 - Files: use `StorageService` (`putObject`, `getObject`, `deletePrefix`, `getPresignedUrl`). Keys are server-generated (`avatars/<accountId>/<uuid>.<ext>` for both realms, `rag/<kbId>/<docId>/source.<ext>`), never raw user input. Read uploads with `readSingleFile(request, maxBytes)` (field `file`).
 - Mail: add a template function to `infra/mail/mail.templates.ts`, then `MailService.send(to, template(...))`. Never send synchronously.
+
+## Audit log
+
+- Every request that reaches a Nest route is audited into `audit_logs` without extra code: writes (POST/PUT/PATCH/DELETE) always, GET/HEAD only with `AUDIT_LOG_READS=true`; requests rejected by guards (401/403/429) and failed ones are included with their error `code`. `AuditGuard` (first global guard, never blocks) attaches `request.audit`, `AuditInterceptor` remembers the returned `id` as `resourceId` (otherwise route `:id`), `AllExceptionsFilter` sets `errorCode`, and the `onResponse` hook from `registerAuditHook` (`setup-app.ts`) hands the row to `AuditService`, which inserts in batches after the response and flushes on shutdown. Unknown paths and body-parse errors never reach a route and are not audited.
+- Rows store realm, actor id/email (copied, no FK), action (`<Controller>.<handler>`), method, route pattern, path, params, sanitized query/body, status, duration, IP, user agent and `x-request-id`. Bodies are sanitized by `sanitize()` in `audit-context.ts`: keys matching password/secret/token/api key/authorization/cookie become `[redacted]` (null/empty stay visible), long strings/arrays are truncated, multipart bodies are not stored. Never log secrets under other key names: add them with `@Audit({ redact: ['field'] })`.
+- Tune routes with `@Audit({ action?, mode?, redact? })` (`mode`: `always` also records reads, `failures` only >= 400 as on `auth/refresh`, `never`). Public sign-in routes call `setAuditActor(request, account)` so successful logins/registrations have an actor; failed ones keep the submitted email.
+- Admins read it via `GET /v1/admin/audit-logs` (filters: `realm`, `actorId`, `action`, `method`, `resourceId`, `outcome`, `from`/`to`, `keyword`) with `audit-log:read`. `AUDIT_LOG_RETENTION_DAYS` (default 180, 0 = forever) is enforced by a BullMQ job scheduler on queue `audit` at 03:00. `AUDIT_LOG_ENABLED=false` turns collection off. `id` is `uuidv7()` (PostgreSQL 18), so lists sort by `createdAt, id`.
 
 ## Auth and permissions
 

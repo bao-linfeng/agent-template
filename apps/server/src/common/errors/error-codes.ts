@@ -189,6 +189,12 @@ export const ERRORS = {
     message: 'System roles cannot be deleted',
   },
 
+  // Audit log
+  AUDIT_LOG_NOT_FOUND: {
+    status: HttpStatus.NOT_FOUND,
+    message: 'Audit log entry not found',
+  },
+
   // Embedding models and providers
   EMBEDDING_MODEL_NOT_FOUND: {
     status: HttpStatus.NOT_FOUND,

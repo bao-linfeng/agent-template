@@ -6,6 +6,7 @@ import { adminUserRoles, roles } from './rbac.js'
 import { adminUsers, users } from './users.js'
 
 export * from './ai.js'
+export * from './audit.js'
 export * from './auth.js'
 export * from './rag.js'
 export * from './rbac.js'

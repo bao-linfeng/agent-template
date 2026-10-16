@@ -10,6 +10,7 @@ import {
   type AccountRow,
   type PublicAccount,
 } from '../../accounts/accounts.service.js'
+import { Audit, setAuditActor } from '../../audit/audit-context.js'
 import { AuthCookies } from '../auth-cookies.service.js'
 import { AuthService, type SentCode } from '../auth.service.js'
 import { usesBearerTransport } from '../bearer.js'
@@ -63,6 +64,7 @@ export class AuthController extends CredentialsController<PublicAccount> {
    */
   @Post('register')
   @AuthThrottle()
+  @Audit({ redact: ['code'] })
   @authTransportHeader
   async register(
     @Body() dto: RegisterDto,
@@ -74,6 +76,7 @@ export class AuthController extends CredentialsController<PublicAccount> {
       dto,
       requestMeta(request),
     )
+    setAuditActor(request, account)
     return this.signIn(bearer, reply, tokens, this.accounts.toPublic(account))
   }
 }

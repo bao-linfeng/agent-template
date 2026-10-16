@@ -16,6 +16,7 @@ export const SUBJECTS = {
   role: 'Role',
   'embedding-model': 'EmbeddingModel',
   'knowledge-base': 'KnowledgeBase',
+  'audit-log': 'AuditLog',
 } as const
 export type SubjectName = (typeof SUBJECTS)[keyof typeof SUBJECTS]
 
@@ -34,6 +35,7 @@ export const PERMISSIONS = {
   'embedding-model:manage': '管理 Embedding 模型配置',
   'knowledge-base:read': '查看所有用户的知识库',
   'knowledge-base:manage': '管理所有用户的知识库',
+  'audit-log:read': '查看审计日志',
 } as const satisfies Record<string, string>
 export type Permission = keyof typeof PERMISSIONS
 
