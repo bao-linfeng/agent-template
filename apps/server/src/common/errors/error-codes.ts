@@ -154,6 +154,10 @@ export const ERRORS = {
     status: HttpStatus.BAD_REQUEST,
     message: 'Authentication code or recovery code is invalid',
   },
+  AUTH_REGISTRATION_DISABLED: {
+    status: HttpStatus.FORBIDDEN,
+    message: 'Registration is currently closed',
+  },
   PERMISSION_DENIED: {
     status: HttpStatus.FORBIDDEN,
     message: 'You do not have permission to perform this action',
@@ -270,6 +274,16 @@ export const ERRORS = {
   ROLE_SYSTEM_UNDELETABLE: {
     status: HttpStatus.BAD_REQUEST,
     message: 'System roles cannot be deleted',
+  },
+
+  // Runtime settings (admin console)
+  SETTING_UNKNOWN: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Unknown setting',
+  },
+  SETTING_INVALID: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Invalid value for this setting',
   },
 
   // Audit log

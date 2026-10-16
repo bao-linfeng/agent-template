@@ -110,8 +110,9 @@ groups:
           description: 队列 {{ $labels.queue }} 的 {{ $labels.name }} 任务在 15 分钟内有任务重试耗尽后失败。失败任务保留在 Redis 中，错误详情见 API 日志。
 
       # The audit and maintenance queues only carry job-scheduler jobs that run nightly. The gauge restarts empty
-      # with the API, so the 7d window keeps the last success across restarts. A scheduler disabled on purpose
-      # (e.g. STORAGE_ORPHAN_SWEEP_ENABLED=false) keeps firing until its last value leaves the window: silence it.
+      # with the API, so the 7d window keeps the last success across restarts. Tasks switched off through runtime
+      # settings stay scheduled and still succeed; one removed by an env switch (AUDIT_LOG_RETENTION_DAYS=0)
+      # keeps firing until its last value leaves the window: silence it.
       - alert: ScheduledJobMissed
         expr: |
           time() - max by (queue, name) (

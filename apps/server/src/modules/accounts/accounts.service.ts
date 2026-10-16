@@ -31,6 +31,7 @@ import { StorageService } from '../../infra/storage/storage.service.js'
 import { PasswordHasher } from '../auth/password-hasher.service.js'
 import { REALM_TABLES, type Realm } from '../auth/realms.js'
 import { SessionsService } from '../auth/sessions.service.js'
+import { SettingsService } from '../settings/settings.service.js'
 import { avatarKey, detectImageType } from './avatar.js'
 import type {
   AdminUpdateAccountDto,
@@ -64,7 +65,6 @@ const DAY_MS = 24 * 60 * 60 * 1000
 export class AccountsService {
   private readonly logger = new Logger(AccountsService.name)
   private readonly avatarBaseUrl: string
-  private readonly deletionGraceDays: number
 
   constructor(
     @InjectDb() private readonly db: Database,
@@ -73,15 +73,13 @@ export class AccountsService {
     private readonly sessions: SessionsService,
     private readonly hasher: PasswordHasher,
     private readonly mail: MailService,
+    private readonly settings: SettingsService,
     config: ConfigService<Env, true>,
   ) {
     const publicUrl = config
       .get('PUBLIC_URL', { infer: true })
       .replace(/\/$/, '')
     this.avatarBaseUrl = `${publicUrl}/${config.get('API_PREFIX', { infer: true })}/avatars`
-    this.deletionGraceDays = config.get('ACCOUNT_DELETION_GRACE_DAYS', {
-      infer: true,
-    })
   }
 
   async findById(
@@ -279,7 +277,7 @@ export class AccountsService {
   }
 
   /**
-   * Marks the account for deletion `ACCOUNT_DELETION_GRACE_DAYS` from now and signs it out everywhere.
+   * Marks the account for deletion `account.deletionGraceDays` (runtime setting) from now and signs it out everywhere.
    * Until then it can be restored (`cancelDeletion`); afterwards the nightly purge
    * (`modules/maintenance`) deletes it with all its data. Repeated calls keep the first schedule.
    */
@@ -291,7 +289,8 @@ export class AccountsService {
       .set({
         deletionRequestedAt: now,
         deletionScheduledAt: new Date(
-          now.getTime() + this.deletionGraceDays * DAY_MS,
+          now.getTime() +
+            this.settings.get('account.deletionGraceDays') * DAY_MS,
         ),
       })
       .where(and(eq(accounts.id, id), isNull(accounts.deletionScheduledAt)))

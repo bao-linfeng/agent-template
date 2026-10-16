@@ -30,6 +30,7 @@ export default {
     AUTH_INVALID_CREDENTIALS: 'Email or password is incorrect.',
     AUTH_REFRESH_TOKEN_INVALID: 'Your session has expired, please sign in again.',
     AUTH_REFRESH_TOKEN_MISSING: 'Your session has expired, please sign in again.',
+    AUTH_REGISTRATION_DISABLED: 'Registration is currently closed.',
     AUTH_REQUIRED: 'Please sign in first.',
     AUTH_RESET_TOKEN_INVALID: 'The reset link is invalid or has expired.',
     AUTH_RESET_URL_UNTRUSTED: 'The reset link points to an untrusted address.',

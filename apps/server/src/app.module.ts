@@ -31,6 +31,7 @@ import { MfaModule } from './modules/mfa/mfa.module.js'
 import { RagModule } from './modules/rag/rag.module.js'
 import { PoliciesGuard } from './modules/rbac/policies.js'
 import { RbacModule } from './modules/rbac/rbac.module.js'
+import { SettingsModule } from './modules/settings/settings.module.js'
 import { UsersModule } from './modules/users/users.module.js'
 
 @Module({
@@ -98,6 +99,7 @@ import { UsersModule } from './modules/users/users.module.js'
     TracingModule,
     MailModule,
     AuditModule,
+    SettingsModule,
     SecurityModule,
     RbacModule,
     AccountsModule,

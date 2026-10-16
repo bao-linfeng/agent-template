@@ -31,6 +31,7 @@ const zh: typeof en = {
     AUTH_INVALID_CREDENTIALS: '邮箱或密码错误。',
     AUTH_REFRESH_TOKEN_INVALID: '会话已过期，请重新登录。',
     AUTH_REFRESH_TOKEN_MISSING: '会话已过期，请重新登录。',
+    AUTH_REGISTRATION_DISABLED: '暂未开放注册。',
     AUTH_REQUIRED: '请先登录。',
     AUTH_RESET_TOKEN_INVALID: '重置链接无效或已过期。',
     AUTH_RESET_URL_UNTRUSTED: '重置链接指向的地址不受信任。',

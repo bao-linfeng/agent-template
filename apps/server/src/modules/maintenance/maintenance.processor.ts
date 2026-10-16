@@ -1,9 +1,8 @@
 import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Logger, OnApplicationBootstrap } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { UnrecoverableError, type Job, type Queue } from 'bullmq'
-import type { Env } from '../../config/env.js'
 import { QUEUES } from '../../infra/queue/queue.module.js'
+import { SettingsService } from '../settings/settings.service.js'
 import { AccountExportsCleanup } from './account-exports.cleanup.js'
 import { AuthRecordsCleanup } from './auth-records.cleanup.js'
 import { DeletedAccountsCleanup } from './deleted-accounts.cleanup.js'
@@ -23,12 +22,14 @@ export const ORPHAN_GRACE_MS = DAY_MS
 
 /**
  * Nightly housekeeping (server time) on the `maintenance` queue. BullMQ job schedulers run each job once
- * per cluster; a disabled task has its schedule removed on boot.
+ * per cluster. Every task stays scheduled; the ones behind a runtime setting (`modules/settings`) check it
+ * when they run and finish without work while it is off, so switching them needs no restart and keeps
+ * `ScheduledJobMissed` quiet.
  * - 03:15 `account-exports-prune`: data exports past `expiresAt` (`ACCOUNT_EXPORT_TTL_HOURS`), stuck ones.
- * - 03:30 `auth-records-prune`: sessions and reset tokens `AUTH_RECORD_RETENTION_DAYS` after they ended.
- * - 03:45 `account-purge`: client accounts whose deletion grace period (`ACCOUNT_DELETION_GRACE_DAYS`) ended.
- * - 04:00 `storage-orphan-sweep`: unreferenced avatar/RAG/export objects (`STORAGE_ORPHAN_SWEEP_ENABLED`).
- * The two account jobs always run: they keep the promises made to users (deletion, export expiry).
+ * - 03:30 `auth-records-prune`: sessions and reset tokens `maintenance.authRecordRetentionDays` after they
+ *   ended (0 = keep).
+ * - 03:45 `account-purge`: client accounts whose deletion grace period (`account.deletionGraceDays`) ended.
+ * - 04:00 `storage-orphan-sweep`: unreferenced avatar/RAG/export objects (`maintenance.storageOrphanSweepEnabled`).
  */
 @Processor(QUEUES.maintenance)
 export class MaintenanceProcessor
@@ -36,8 +37,6 @@ export class MaintenanceProcessor
   implements OnApplicationBootstrap
 {
   private readonly logger = new Logger(MaintenanceProcessor.name)
-  private readonly authRetentionDays: number
-  private readonly orphanSweepEnabled: boolean
 
   constructor(
     private readonly authRecords: AuthRecordsCleanup,
@@ -45,34 +44,20 @@ export class MaintenanceProcessor
     private readonly deletedAccounts: DeletedAccountsCleanup,
     private readonly accountExports: AccountExportsCleanup,
     @InjectQueue(QUEUES.maintenance) private readonly queue: Queue,
-    config: ConfigService<Env, true>,
+    private readonly settings: SettingsService,
   ) {
     super()
-    this.authRetentionDays = config.get('AUTH_RECORD_RETENTION_DAYS', {
-      infer: true,
-    })
-    this.orphanSweepEnabled = config.get('STORAGE_ORPHAN_SWEEP_ENABLED', {
-      infer: true,
-    })
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.schedule(
-      MAINTENANCE_JOBS.accountExportsPrune,
-      '15 3 * * *',
-      true,
-    )
-    await this.schedule(
-      MAINTENANCE_JOBS.authRecordsPrune,
-      '30 3 * * *',
-      this.authRetentionDays > 0,
-    )
-    await this.schedule(MAINTENANCE_JOBS.accountPurge, '45 3 * * *', true)
-    await this.schedule(
-      MAINTENANCE_JOBS.storageOrphanSweep,
-      '0 4 * * *',
-      this.orphanSweepEnabled,
-    )
+    for (const [id, pattern] of [
+      [MAINTENANCE_JOBS.accountExportsPrune, '15 3 * * *'],
+      [MAINTENANCE_JOBS.authRecordsPrune, '30 3 * * *'],
+      [MAINTENANCE_JOBS.accountPurge, '45 3 * * *'],
+      [MAINTENANCE_JOBS.storageOrphanSweep, '0 4 * * *'],
+    ] as const) {
+      await this.queue.upsertJobScheduler(id, { pattern }, { name: id })
+    }
   }
 
   async process(job: Job): Promise<void> {
@@ -91,7 +76,7 @@ export class MaintenanceProcessor
   }
 
   private async pruneAuthRecords(): Promise<void> {
-    const days = this.authRetentionDays
+    const days = this.settings.get('maintenance.authRecordRetentionDays')
     if (days <= 0) {
       return
     }
@@ -106,7 +91,7 @@ export class MaintenanceProcessor
   }
 
   private async sweepOrphanObjects(): Promise<void> {
-    if (!this.orphanSweepEnabled) {
+    if (!this.settings.get('maintenance.storageOrphanSweepEnabled')) {
       return
     }
     const deleted = await this.orphanObjects.run(
@@ -126,18 +111,6 @@ export class MaintenanceProcessor
     const deleted = await this.accountExports.run(new Date())
     if (deleted > 0) {
       this.logger.log(`Deleted ${deleted} expired data exports`)
-    }
-  }
-
-  private async schedule(
-    id: string,
-    pattern: string,
-    enabled: boolean,
-  ): Promise<void> {
-    if (enabled) {
-      await this.queue.upsertJobScheduler(id, { pattern }, { name: id })
-    } else {
-      await this.queue.removeJobScheduler(id)
     }
   }
 }

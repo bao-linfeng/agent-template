@@ -363,6 +363,8 @@
     "ROLE_SUPER_ADMIN_IMMUTABLE": "不能修改 super_admin 的权限。",
     "ROLE_SYSTEM_UNDELETABLE": "系统角色不能删除。",
     "AUDIT_LOG_NOT_FOUND": "审计日志不存在。",
+    "SETTING_UNKNOWN": "未知的设置项：{key}。",
+    "SETTING_INVALID": "设置项 {key} 的值无效。",
     "SERVICE_UNAVAILABLE": "服务暂时不可用。",
     "SESSION_NOT_FOUND": "会话不存在。",
     "TIMEOUT": "服务器响应超时，请稍后重试。",
