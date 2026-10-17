@@ -512,15 +512,57 @@
     "saved": "已保存 {count} 项设置。",
     "resetDone": "已恢复默认值。",
     "groups": {
-      "auth": "注册与登录",
+      "auth": "注册与验证",
       "account": "账号",
-      "maintenance": "数据维护"
+      "maintenance": "数据维护",
+      "rateLimit": "限流",
+      "session": "会话"
     },
     "items": {
       "auth": {
         "registrationEnabled": {
           "title": "允许展示端用户注册",
           "description": "关闭后展示端隐藏注册入口，服务端拒绝注册和发送注册验证码（AUTH_REGISTRATION_DISABLED）；已有用户仍可登录。"
+        },
+        "passwordResetTtlSeconds": {
+          "title": "重置密码链接有效期（秒）",
+          "description": "邮件中重置密码链接的有效时长，只影响之后发出的链接；上限为 PASSWORD_RESET_TTL_SECONDS。"
+        },
+        "emailCodeTtlSeconds": {
+          "title": "邮件验证码有效期（秒）",
+          "description": "邮件验证码的有效时长，只影响之后发出的验证码；上限为 EMAIL_CODE_TTL_SECONDS。"
+        },
+        "emailCodeResendSeconds": {
+          "title": "验证码重发间隔（秒）",
+          "description": "同一邮箱再次发送验证码前至少等待的时长，只能调到不低于 EMAIL_CODE_RESEND_SECONDS。"
+        },
+        "emailCodeMaxAttempts": {
+          "title": "验证码可输错次数",
+          "description": "每个验证码允许输错的次数，用完即作废。"
+        }
+      },
+      "rateLimit": {
+        "defaultLimit": {
+          "title": "每窗口请求上限",
+          "description": "同一 IP 在 THROTTLE_TTL_SECONDS 内对同一接口的请求上限，超出返回 429；只能调到不高于 THROTTLE_LIMIT。"
+        },
+        "authLimit": {
+          "title": "凭据接口每窗口请求上限",
+          "description": "登录、注册、验证码、找回密码和两步验证接口同一 IP 在 AUTH_THROTTLE_TTL_SECONDS 内的请求上限；只能调到不高于 AUTH_THROTTLE_LIMIT，遇到撞库时可临时调低。"
+        }
+      },
+      "session": {
+        "adminTtlSeconds": {
+          "title": "管理端会话有效期（秒）",
+          "description": "管理端会话自登录起到期，刷新不会延长（28800 = 8 小时）；只影响之后的登录，上限为 REFRESH_TOKEN_TTL_SECONDS。"
+        },
+        "clientIdleTtlSeconds": {
+          "title": "展示端会话闲置超时（秒）",
+          "description": "展示端会话无活动超过该时长即过期，每次刷新令牌重新计时（86400 = 1 天）；上限为 REFRESH_TOKEN_TTL_SECONDS。"
+        },
+        "clientMaxTtlSeconds": {
+          "title": "展示端会话最长有效期（秒）",
+          "description": "展示端用户登录后最多保持这么久，即使一直在用也需重新登录；上限为 CLIENT_SESSION_MAX_TTL_SECONDS。"
         }
       },
       "account": {

@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { randomInt } from 'node:crypto'
 import type { Redis } from 'ioredis'
 import { sha256 } from '../../common/crypto/crypto.js'
 import { AppException } from '../../common/errors/app.exception.js'
-import type { Env } from '../../config/env.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
 import { normalizeEmail } from '../accounts/accounts.service.js'
+import { SettingsService } from '../settings/settings.service.js'
 import type { Realm } from './realms.js'
 
 /** What a code proves; a code issued for one purpose is never accepted for another. */
@@ -21,8 +20,6 @@ export interface IssuedCode {
   resendAfter: number
 }
 
-/** Wrong guesses allowed per code before it is discarded (keeps 6 digits unguessable). */
-export const VERIFICATION_CODE_MAX_ATTEMPTS = 5
 const CODE_LENGTH = 6
 
 // KEYS[1] = code hash; ARGV = candidate hash, max attempts. Returns 1 when the code matched (and is consumed).
@@ -44,13 +41,14 @@ return 0
 /**
  * Short numeric codes sent by email to prove ownership of an address. Codes live in Redis only
  * (hashed, with a TTL); one code per realm/purpose/email is valid at a time, requests for a new one
- * are rate limited per email and a code dies after `VERIFICATION_CODE_MAX_ATTEMPTS` wrong guesses.
+ * are rate limited per email and a code dies after `auth.emailCodeMaxAttempts` wrong guesses. Lifetime
+ * and resend interval are the runtime settings `auth.emailCodeTtlSeconds` / `auth.emailCodeResendSeconds`.
  */
 @Injectable()
 export class VerificationCodesService {
   constructor(
     @InjectRedis() private readonly redis: Redis,
-    private readonly config: ConfigService<Env, true>,
+    private readonly settings: SettingsService,
   ) {}
 
   /** Creates a new code (replacing the previous one); 429 while the resend cooldown runs. */
@@ -60,12 +58,8 @@ export class VerificationCodesService {
     email: string,
   ): Promise<IssuedCode> {
     const key = this.key(realm, purpose, email)
-    const expiresIn = this.config.get('EMAIL_CODE_TTL_SECONDS', {
-      infer: true,
-    })
-    const resendAfter = this.config.get('EMAIL_CODE_RESEND_SECONDS', {
-      infer: true,
-    })
+    const expiresIn = this.settings.get('auth.emailCodeTtlSeconds')
+    const resendAfter = this.settings.get('auth.emailCodeResendSeconds')
     const cooldown = await this.redis.set(
       `${key}:cooldown`,
       '1',
@@ -103,7 +97,7 @@ export class VerificationCodesService {
       1,
       this.key(realm, purpose, email),
       this.hash(email, code),
-      VERIFICATION_CODE_MAX_ATTEMPTS,
+      this.settings.get('auth.emailCodeMaxAttempts'),
     )
     if (matched !== 1) {
       throw new AppException('AUTH_CODE_INVALID')

@@ -32,6 +32,7 @@ import { RagModule } from './modules/rag/rag.module.js'
 import { PoliciesGuard } from './modules/rbac/policies.js'
 import { RbacModule } from './modules/rbac/rbac.module.js'
 import { SettingsModule } from './modules/settings/settings.module.js'
+import { SettingsService } from './modules/settings/settings.service.js'
 import { UsersModule } from './modules/users/users.module.js'
 
 @Module({
@@ -68,21 +69,26 @@ import { UsersModule } from './modules/users/users.module.js'
       }),
     }),
     ThrottlerModule.forRootAsync({
-      inject: [ConfigService, REDIS],
-      useFactory: (config: ConfigService<Env, true>, redis: Redis) => ({
+      inject: [ConfigService, REDIS, SettingsService],
+      useFactory: (
+        config: ConfigService<Env, true>,
+        redis: Redis,
+        settings: SettingsService,
+      ) => ({
         storage: new RedisThrottlerStorage(redis),
+        // Windows come from env; limits are runtime settings bounded by the env limits.
         throttlers: [
           {
             name: 'default',
             ttl: config.get('THROTTLE_TTL_SECONDS', { infer: true }) * 1000,
-            limit: config.get('THROTTLE_LIMIT', { infer: true }),
+            limit: () => settings.get('rateLimit.defaultLimit'),
           },
           {
             // Only routes decorated with @AuthThrottle().
             name: 'auth',
             ttl:
               config.get('AUTH_THROTTLE_TTL_SECONDS', { infer: true }) * 1000,
-            limit: config.get('AUTH_THROTTLE_LIMIT', { infer: true }),
+            limit: () => settings.get('rateLimit.authLimit'),
             skipIf: (context) =>
               !Reflect.getMetadata(AUTH_THROTTLE_KEY, context.getHandler()),
           },

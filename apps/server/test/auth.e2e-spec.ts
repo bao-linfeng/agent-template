@@ -1,4 +1,4 @@
-import { VERIFICATION_CODE_MAX_ATTEMPTS } from '../src/modules/auth/verification-codes.service.js'
+import { VERIFICATION_CODE_MAX_ATTEMPTS } from '../src/modules/auth/auth.constants.js'
 import {
   ADMIN_API,
   API,

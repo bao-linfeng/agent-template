@@ -229,9 +229,7 @@ export class AuthService {
 
     const { resetTokens } = REALM_TABLES[realm]
     const token = randomToken()
-    const ttlSeconds = this.config.get('PASSWORD_RESET_TTL_SECONDS', {
-      infer: true,
-    })
+    const ttlSeconds = this.settings.get('auth.passwordResetTtlSeconds')
     await this.db.transaction(async (tx) => {
       // Only the latest link stays valid.
       await tx
