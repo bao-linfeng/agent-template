@@ -27,6 +27,7 @@ vi.mock('@repo/utils', async importOriginal => ({
   },
 }))
 vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => queryClient }))
+vi.mock('@/lib/query-client', () => ({ queryClient: { removeQueries: vi.fn() } }))
 vi.mock('@/lib/api-client', () => ({ apiFetch }))
 vi.mock('vue-sonner', () => ({ toast }))
 vi.mock('vue-router', () => ({ useRouter: () => router }))

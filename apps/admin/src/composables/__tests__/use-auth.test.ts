@@ -23,6 +23,7 @@ vi.mock('@/services/api/me.api', () => ({}))
 vi.mock('@/lib/api-client', () => ({ getErrorMessage: vi.fn() }))
 vi.mock('vue-router', () => ({ useRouter: () => router }))
 vi.mock('@tanstack/vue-query', () => ({ useQueryClient: () => ({ clear: vi.fn() }) }))
+vi.mock('@/lib/query-client', () => ({ queryClient: { removeQueries: vi.fn() } }))
 
 const profile: IUserProfile = {
   id: 'a1',

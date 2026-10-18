@@ -7,8 +7,9 @@ import { useAuthStore } from '../auth'
 import { useSidebarConfigStore } from '../sidebar-config'
 import { useThemeStore } from '../theme'
 
-const fetchMe = vi.hoisted(() => vi.fn())
+const { fetchMe, removeQueries } = vi.hoisted(() => ({ fetchMe: vi.fn(), removeQueries: vi.fn() }))
 vi.mock('@/services/api/me.api', () => ({ fetchMe }))
+vi.mock('@/lib/query-client', () => ({ queryClient: { removeQueries } }))
 
 const profile: IUserProfile = {
   id: 'u1',
@@ -28,6 +29,7 @@ describe('stores', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     fetchMe.mockReset()
+    removeQueries.mockReset()
   })
 
   it('tracks the signed-in user and its permissions', () => {
@@ -48,6 +50,24 @@ describe('stores', () => {
 
     expect(authStore.isLogin).toBe(false)
     expect(authStore.user).toBeNull()
+  })
+
+  it('drops cached server data when the signed-in admin changes', () => {
+    const authStore = useAuthStore()
+
+    authStore.setUser(profile)
+    authStore.setUser({ ...profile, nickname: 'Ada L.' })
+    expect(removeQueries).not.toHaveBeenCalled()
+
+    // An expired session (or sign-out) leaves no data behind for the next admin.
+    authStore.clear()
+    expect(removeQueries).toHaveBeenCalledTimes(1)
+    authStore.clear()
+    expect(removeQueries).toHaveBeenCalledTimes(1)
+
+    authStore.setUser(profile)
+    authStore.setUser({ ...profile, id: 'u2' })
+    expect(removeQueries).toHaveBeenCalledTimes(2)
   })
 
   it('keeps a pending two-factor challenge until it expires or a session starts', () => {
