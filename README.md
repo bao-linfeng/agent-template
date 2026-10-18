@@ -115,7 +115,7 @@ docker compose exec ollama ollama pull bge-m3
 
 ### 环境变量与前后端联调
 
-管理端：复制 `apps/admin/.env.example` 为同目录 `.env`（默认 `VITE_SERVER_API_URL=http://localhost:3100`、`VITE_SERVER_API_PREFIX=/api`），校验规则位于 `src/validators/env.validator.ts`。客户端：可选 `apps/client/.env` 中的 `VITE_API_BASE_URL`，未设置时使用 `http://localhost:3100/api`。
+管理端：复制 `apps/admin/.env.example` 为同目录 `.env`（默认 `VITE_SERVER_API_URL` 为空、`VITE_SERVER_API_PREFIX=/api`），校验规则位于 `src/validators/env.validator.ts`。客户端：可选 `apps/client/.env` 中的 `VITE_API_BASE_URL`。两端开发时默认请求同源的 `/api`，由 Vite dev server 代理到 `API_PROXY_TARGET`（默认 `http://localhost:3100`），用 localhost、127.0.0.1 或局域网 IP 打开都能保持 Cookie 同站；填写绝对地址则直连 API，此时服务端 `CORS_ORIGINS` 需包含前端源（生产镜像必须填写绝对地址）。
 
 管理端和客户端已对接后端的账号相关接口：
 

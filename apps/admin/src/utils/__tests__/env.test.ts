@@ -50,18 +50,6 @@ describe('envSchema validation', () => {
   })
 
   describe('invalid environment variables', () => {
-    it('should fail when VITE_SERVER_API_URL is missing', () => {
-      const invalidEnv = {
-        VITE_SERVER_API_PREFIX: '/api',
-      }
-
-      const result = EnvSchema.safeParse(invalidEnv)
-      expect(result.success).toBe(false)
-      if (!result.success) {
-        expect(result.error.issues[0].path).toContain('VITE_SERVER_API_URL')
-      }
-    })
-
     it('should fail when VITE_SERVER_API_PREFIX is missing', () => {
       const invalidEnv = {
         VITE_SERVER_API_URL: 'https://api.example.com',
@@ -144,14 +132,22 @@ describe('envSchema validation', () => {
       expect(result.success).toBe(false)
     })
 
-    it('should reject empty string as URL', () => {
-      const invalidEnv = {
+    it('should accept an empty URL (same origin via the dev proxy)', () => {
+      const validEnv = {
         VITE_SERVER_API_URL: '',
         VITE_SERVER_API_PREFIX: '/api',
       }
 
-      const result = EnvSchema.safeParse(invalidEnv)
-      expect(result.success).toBe(false)
+      const result = EnvSchema.safeParse(validEnv)
+      expect(result.success).toBe(true)
+    })
+
+    it('should default a missing URL to same origin', () => {
+      const result = EnvSchema.safeParse({ VITE_SERVER_API_PREFIX: '/api' })
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.VITE_SERVER_API_URL).toBe('')
+      }
     })
   })
 })

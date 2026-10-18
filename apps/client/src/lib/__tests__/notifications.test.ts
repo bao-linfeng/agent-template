@@ -13,7 +13,7 @@ function json(body: unknown, status = 200) {
 
 function request(index = 0) {
   const [url, init] = fetchMock.mock.calls[index]! as [string, RequestInit]
-  const parsed = new URL(url)
+  const parsed = new URL(url, 'http://localhost')
   return { path: parsed.pathname.replace(/^.*\/v1\/client/, ''), search: parsed.search, method: init.method ?? 'GET', body: init.body }
 }
 

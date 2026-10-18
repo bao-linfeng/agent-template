@@ -35,7 +35,7 @@ Vite 与 VitePress 都使用固定端口（`strictPort`），端口被占用时�
 
 管理端（5175）和客户端（5174）已对接后端（3100，`/api` 前缀，带凭证 CORS）的账号接口：注册、登录、忘记/重置密码、个人资料与头像、修改密码；管理端另有用户、角色和 Embedding 模型管理页面。
 
-- 管理端复制 `apps/admin/.env.example` 为 `.env` 即可使用；客户端默认请求 `http://localhost:3100/api`，可用 `VITE_API_BASE_URL` 覆盖。
+- 管理端复制 `apps/admin/.env.example` 为 `.env` 即可使用；客户端无需配置。两端开发时默认请求同源的 `/api`，由 Vite dev server 代理到 `http://localhost:3100`（可用 `API_PROXY_TARGET` 修改），因此用 localhost、127.0.0.1 或局域网 IP 打开都能正常登录；填写 `VITE_SERVER_API_URL`（管理端）/ `VITE_API_BASE_URL`（客户端）绝对地址则直连 API。
 - 请求都带 Cookie，遇到 401 会先刷新会话再重试一次；刷新失败时跳转登录页。
 - 后端依赖本地 Docker：在 `apps/server` 复制 `.env.example` 为 `.env`，执行 `pnpm -C apps/server infra:up`、`db:migrate`、`db:seed` 后再 `dev`（`dev` 会自动启动 Docker 服务，包括 `.env` 中 `COMPOSE_PROFILES` 启用的本地监控栈）。
 - 后端认证：Web 端使用 HttpOnly Cookie（客户端与管理端各一套），小程序/原生 App 可通过 `X-Auth-Transport: bearer` 使用客户端账号的 Bearer Token；数据保存在 PostgreSQL。

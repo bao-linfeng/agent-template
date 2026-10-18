@@ -49,7 +49,7 @@ AI Talk 尚未接入聊天服务；服务端已提供 RAG API，但本应用尚�
 
 ## 后端对接
 
-将 `.env.example` 复制为 `.env`。默认 `VITE_SERVER_API_URL=http://localhost:3100`，`VITE_SERVER_API_PREFIX=/api`；环境校验位于 `src/validators/env.validator.ts`。
+将 `.env.example` 复制为 `.env`。默认 `VITE_SERVER_API_URL` 为空、`VITE_SERVER_API_PREFIX=/api`：页面请求同源的 `/api`，由 Vite dev server 代理到 `API_PROXY_TARGET`（默认 `http://localhost:3100`），用 localhost、127.0.0.1 或局域网 IP 打开都能保持 Cookie 同站；填写绝对地址则直连 API（生产镜像必须填写）。环境校验位于 `src/validators/env.validator.ts`。
 
 `src/lib/api-client.ts` 创建的 `apiFetch` 基地址为 `<origin><prefix>/v1/admin`，业务模块使用 `/users`、`/me` 等相对路径。
 

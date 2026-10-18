@@ -20,7 +20,7 @@ describe('public settings', () => {
     }))
 
     expect(await settingsApi.get()).toEqual({ 'auth.registrationEnabled': false })
-    expect(new URL(fetchMock.mock.calls[0]![0] as string).pathname).toMatch(/\/v1\/client\/settings$/)
+    expect(new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost').pathname).toMatch(/\/v1\/client\/settings$/)
   })
 
   it('treats registration as open unless the server says it is closed', () => {

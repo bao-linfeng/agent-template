@@ -19,7 +19,7 @@ describe('data export helpers', () => {
     fetchMock.mockResolvedValue(new Response(file, { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } }))
 
     const blob = await accountApi.downloadExport('e1')
-    expect(new URL(fetchMock.mock.calls[0]![0] as string).pathname).toMatch(/\/v1\/client\/users\/me\/exports\/e1\/download$/)
+    expect(new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost').pathname).toMatch(/\/v1\/client\/users\/me\/exports\/e1\/download$/)
     expect(blob.type).toBe('application/json')
     expect(await blob.text()).toBe(file)
   })
