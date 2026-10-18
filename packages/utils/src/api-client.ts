@@ -40,8 +40,11 @@ export interface ApiClientOptions {
   onUnauthorized?: () => unknown
 }
 
-/** JSON by default; `responseType: 'stream'` resolves to the response body (e.g. for `connectEventStream`). */
-export type ApiFetchOptions = (FetchOptions<'json'> | FetchOptions<'stream'>) & {
+/**
+ * JSON by default; `responseType: 'stream'` resolves to the response body (e.g. for `connectEventStream`),
+ * `'blob'` to the file of a download.
+ */
+export type ApiFetchOptions = (FetchOptions<'json'> | FetchOptions<'stream'> | FetchOptions<'blob'>) & {
   /**
    * Sends `Idempotency-Key` so the server runs the operation at most once. `true` generates a key for
    * this call, shared by its retry after a session refresh. To make user resubmits safe (double

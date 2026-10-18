@@ -1,5 +1,8 @@
 import { api } from './api'
 
+/** Uploads and downloads may take longer than the default request timeout on slow connections. */
+const TRANSFER_TIMEOUT = 120_000
+
 /**
  * `GET /users/me`: the signed-in client user. Dates are ISO strings. Client users have no roles or
  * permissions (those belong to the separate admin console accounts); they can only act on their own data.
@@ -81,7 +84,7 @@ export const accountApi = {
   uploadAvatar: (file: Blob, filename = 'avatar') => {
     const body = new FormData()
     body.append('file', file, filename)
-    return api<UserProfile>('/users/me/avatar', { method: 'PUT', body })
+    return api<UserProfile>('/users/me/avatar', { method: 'PUT', body, timeout: TRANSFER_TIMEOUT })
   },
   removeAvatar: () => api<UserProfile>('/users/me/avatar', { method: 'DELETE' }),
   /** Signs out every other session. */
@@ -94,10 +97,10 @@ export const accountApi = {
   /** 409 `ACCOUNT_EXPORT_IN_PROGRESS` while another export is being built. */
   requestExport: () => api<DataExport>('/users/me/exports', { method: 'POST', idempotencyKey: true }),
   listExports: (pageSize = 5) => api<Page<DataExport>>('/users/me/exports', { query: { pageSize } }),
-  /** The export file as a JSON blob (kept as text, not parsed). */
+  /** The export file as a JSON blob (not parsed, not held as a string). */
   downloadExport: async (id: string) => {
-    const text = await api<string>(`/users/me/exports/${id}/download`, { parseResponse: body => body })
-    return new Blob([text], { type: 'application/json' })
+    const file = await api<Blob>(`/users/me/exports/${id}/download`, { responseType: 'blob', timeout: TRANSFER_TIMEOUT })
+    return new Blob([file], { type: 'application/json' })
   },
 }
 

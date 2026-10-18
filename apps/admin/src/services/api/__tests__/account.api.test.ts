@@ -105,6 +105,7 @@ describe('current admin transport', () => {
     const [path, options] = apiFetch.mock.calls[0]!
     expect(path).toBe('/me/avatar')
     expect(options.method).toBe('put')
+    expect(options.timeout).toBe(60_000)
     expect(options.body).toBeInstanceOf(FormData)
     expect((options.body as FormData).get('file')).toBeInstanceOf(Blob)
 
