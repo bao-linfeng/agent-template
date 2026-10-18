@@ -77,8 +77,12 @@ function setup(ttlSeconds = 900) {
   return { redis, service }
 }
 
-function connect(service: NotificationStreamService, user: Partial<AuthUser>) {
-  const raw = new EventEmitter()
+function connect(
+  service: NotificationStreamService,
+  user: Partial<AuthUser>,
+  { destroyed = false } = {},
+) {
+  const raw = Object.assign(new EventEmitter(), { destroyed })
   const reply = { raw } as unknown as HttpReply
   const account: AuthUser = {
     id: 'u1',
@@ -167,6 +171,18 @@ describe('NotificationStreamService', () => {
       vi.useRealTimers()
     }
     expect(live.output.writableEnded).toBe(true)
+    await service.onModuleDestroy()
+  })
+
+  it('does not keep streams of clients that left before it opened', async () => {
+    const { redis, service } = setup()
+    await service.onModuleInit()
+    const gone = await connect(service, { id: 'u9' }, { destroyed: true })
+    expect(gone.output.writableEnded).toBe(true)
+    expect(redis.subscriber!.channels.has('notifications:user:u9')).toBe(false)
+    // Nothing is left to ping or count.
+    await service.sweep()
+    expect(gone.read()).toBe('')
     await service.onModuleDestroy()
   })
 
