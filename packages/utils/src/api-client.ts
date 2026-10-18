@@ -3,7 +3,10 @@
  *
  * The server authenticates with HttpOnly cookies, so every request is sent with
  * `credentials: 'include'`. A 401 triggers one shared `POST <authPath>/refresh` and a single retry; if
- * the refresh fails too, `onUnauthorized` decides what happens to the local session. Client users and
+ * the refresh fails too, `onUnauthorized` decides what happens to the local session. Tabs of one app share
+ * the session cookies, so refreshes are serialized across tabs with the Web Locks API where available,
+ * and a refresh that lost a race with another one (`AUTH_REFRESH_SUPERSEDED`) is retried with the new
+ * cookie instead of signing the user out. Client users and
  * admin console accounts are separate realms, each under its own versioned root (`/v1/client`,
  * `/v1/admin`) with its own `/auth` routes; point `baseURL` at the realm root. Requests may carry an
  * `Idempotency-Key` (option `idempotencyKey`) for server routes marked `@Idempotent()`.
@@ -17,6 +20,12 @@ export type { FetchOptions }
 
 /** Request header read by server routes marked `@Idempotent()`. */
 export const IDEMPOTENCY_KEY_HEADER = 'Idempotency-Key'
+
+/** Answer of `POST <authPath>/refresh` when a concurrent refresh rotated the token first; the session is fine. */
+export const REFRESH_SUPERSEDED = 'AUTH_REFRESH_SUPERSEDED'
+
+/** Waits before trying a superseded refresh again, so the winning response can update the cookie jar. */
+const SUPERSEDED_RETRY_DELAYS_MS = [250, 500, 1000]
 
 /** Credential endpoints answer 401 for wrong input, not for an expired session. */
 const CREDENTIAL_ENDPOINTS = ['login', 'register', 'refresh', 'logout', 'forgot-password', 'reset-password']
@@ -78,15 +87,45 @@ function toFetchOptions(apiOptions?: ApiFetchOptions): FetchOptions<'json'> | un
   return { ...rest, headers }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+/** Runs `task` while holding a lock shared by every tab of this origin, or right away without Web Locks. */
+function withTabLock<T>(name: string, task: () => Promise<T>): Promise<T> {
+  const locks = globalThis.navigator?.locks
+  return locks ? locks.request(name, task) : task()
+}
+
 export function createApiClient({ baseURL, authPath = '/auth', timeout = 15_000, onUnauthorized }: ApiClientOptions): ApiClient {
   const rawFetch = ofetch.create({ baseURL, timeout, credentials: 'include' })
   const credentialRoutes = new Set(CREDENTIAL_ENDPOINTS.map(endpoint => `${authPath}/${endpoint}`))
+  const lockName = `@repo/utils:session-refresh:${baseURL}${authPath}`
 
   let refreshing: Promise<boolean> | null = null
 
+  /**
+   * One tab at a time: a tab that waited sends the cookie the previous tab just received and rotates
+   * it normally. A refresh that still lost a race is tried again after a short wait.
+   */
+  async function refreshOnce(): Promise<boolean> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await rawFetch(`${authPath}/refresh`, { method: 'POST', retry: 0 })
+        return true
+      }
+      catch (error) {
+        const delay = SUPERSEDED_RETRY_DELAYS_MS[attempt]
+        if (getErrorCode(error) !== REFRESH_SUPERSEDED || delay === undefined)
+          return false
+        await sleep(delay)
+      }
+    }
+  }
+
   function refreshSession(): Promise<boolean> {
-    refreshing ??= rawFetch(`${authPath}/refresh`, { method: 'POST', retry: 0 })
-      .then(() => true, () => false)
+    refreshing ??= withTabLock(lockName, refreshOnce)
+      .catch(() => false)
       .finally(() => {
         refreshing = null
       })

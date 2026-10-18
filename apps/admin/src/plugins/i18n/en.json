@@ -326,6 +326,7 @@
     "AUTH_ACCOUNT_UNAVAILABLE": "This account is no longer available.",
     "AUTH_INVALID_CREDENTIALS": "Email or password is incorrect.",
     "AUTH_REFRESH_TOKEN_INVALID": "Your session has expired, please sign in again.",
+    "AUTH_REFRESH_SUPERSEDED": "Your session was just refreshed in another tab. Please try again.",
     "AUTH_REFRESH_TOKEN_MISSING": "Your session has expired, please sign in again.",
     "AUTH_REQUIRED": "Please sign in first.",
     "AUTH_RESET_TOKEN_INVALID": "The reset link is invalid or has expired.",

@@ -104,6 +104,16 @@ export const ERRORS = {
     status: HttpStatus.UNAUTHORIZED,
     message: 'Refresh token is no longer valid',
   },
+  /**
+   * The refresh token was rotated moments ago by a concurrent refresh (another tab, a parallel request);
+   * the session is fine. Not a 401 and no cookies are cleared: retry with the newer token (browsers have
+   * it in their cookie jar once the winning response arrived).
+   */
+  AUTH_REFRESH_SUPERSEDED: {
+    status: HttpStatus.CONFLICT,
+    message:
+      'The session was refreshed by a concurrent request; retry with the new token',
+  },
   AUTH_SESSION_EXPIRED: {
     status: HttpStatus.UNAUTHORIZED,
     message: 'Session expired, please sign in again',

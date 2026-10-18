@@ -98,13 +98,15 @@ describe('bearer transport for non-browser clients (e2e)', () => {
     expect(next.tokenType).toBe('Bearer')
     expect(next.refreshToken).not.toBe(tokens.refreshToken)
 
-    // The rotated-out token no longer works; a missing one is a 401 the app can react to.
-    await t
+    // The rotated-out token no longer works: right after the rotation it is a 409 (use the newer
+    // token), a missing one is a 401 the app can react to.
+    const superseded = await t
       .http()
       .post(`${CLIENT_API}/auth/refresh`)
       .set(BEARER)
       .send({ refreshToken: tokens.refreshToken })
-      .expect(401)
+      .expect(409)
+    expect(superseded.body.code).toBe('AUTH_REFRESH_SUPERSEDED')
     await t.http().post(`${CLIENT_API}/auth/refresh`).set(BEARER).expect(401)
 
     await t

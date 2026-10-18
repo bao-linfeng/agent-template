@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createApiClient, createIdempotencyKey, FetchError, getErrorCode, getErrorMessage, isUnauthorized } from '../api-client'
+import { createApiClient, createIdempotencyKey, FetchError, getErrorCode, getErrorMessage, isUnauthorized, REFRESH_SUPERSEDED } from '../api-client'
 
 const fetchMock = vi.fn()
 vi.stubGlobal('fetch', fetchMock)
@@ -124,6 +124,69 @@ describe('createApiClient', () => {
 
     await client.fetch('/auth/login-history')
     expect(callsTo('/auth/refresh')).toBe(1)
+  })
+
+  it('retries a refresh that another tab superseded instead of signing out', async () => {
+    route((path, call) => {
+      if (path === '/auth/refresh') {
+        return call === 0
+          ? respond(409, { statusCode: 409, code: REFRESH_SUPERSEDED, message: 'Superseded' })
+          : respond(204)
+      }
+      return call === 0 ? respond(401, { message: 'Unauthorized' }) : respond(200, { ok: true })
+    })
+
+    await expect(client.fetch('/users/me')).resolves.toEqual({ ok: true })
+    expect(callsTo('/auth/refresh')).toBe(2)
+    expect(onUnauthorized).not.toHaveBeenCalled()
+  })
+
+  it('gives up on a refresh that stays superseded', async () => {
+    vi.useFakeTimers()
+    try {
+      route(path => path === '/auth/refresh'
+        ? respond(409, { statusCode: 409, code: REFRESH_SUPERSEDED, message: 'Superseded' })
+        : respond(401, { message: 'Unauthorized' }))
+
+      const result = client.fetch('/users/me').catch(error => error)
+      await vi.runAllTimersAsync()
+      expect(await result).toMatchObject({ status: 401 })
+      expect(callsTo('/auth/refresh')).toBe(4)
+      expect(onUnauthorized).toHaveBeenCalledTimes(1)
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('refreshes under a lock shared by the tabs of the realm', async () => {
+    const request = vi.fn((_name: string, task: () => Promise<unknown>) => task())
+    vi.stubGlobal('navigator', { locks: { request } })
+    try {
+      route((path, call) => (path === '/auth/refresh' || call > 0 ? respond(204) : respond(401)))
+
+      await client.fetch('/users/me')
+      expect(request).toHaveBeenCalledTimes(1)
+      expect(request.mock.calls[0]![0]).toBe(`@repo/utils:session-refresh:${BASE_URL}/auth`)
+    }
+    finally {
+      vi.unstubAllGlobals()
+      vi.stubGlobal('fetch', fetchMock)
+    }
+  })
+
+  it('refreshes without Web Locks too', async () => {
+    vi.stubGlobal('navigator', {})
+    try {
+      route((path, call) => (path === '/auth/refresh' || call > 0 ? respond(204) : respond(401)))
+
+      await client.fetch('/users/me')
+      expect(callsTo('/auth/refresh')).toBe(1)
+    }
+    finally {
+      vi.unstubAllGlobals()
+      vi.stubGlobal('fetch', fetchMock)
+    }
   })
 
   it('does not retry other errors', async () => {

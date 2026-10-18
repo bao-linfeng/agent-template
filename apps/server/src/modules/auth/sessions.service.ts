@@ -27,7 +27,10 @@ export interface IssuedTokens {
   refreshExpiresIn: number
 }
 
-/** Concurrent refreshes (several tabs) may present the just-rotated token for this long without being treated as theft. */
+/**
+ * Concurrent refreshes (several tabs) may present the just-rotated token for this long without being
+ * treated as theft; they get 409 `AUTH_REFRESH_SUPERSEDED` and retry with the new token.
+ */
 const ROTATION_GRACE_MS = 30_000
 
 /**
@@ -89,7 +92,11 @@ export class SessionsService {
     return this.issue(realm, user, session!.id, secret, expiresAt)
   }
 
-  /** Exchanges a refresh token for a new pair; the old refresh token stops working. */
+  /**
+   * Exchanges a refresh token for a new pair; the old refresh token stops working. A token that lost a
+   * race with a concurrent refresh, or was rotated out within `ROTATION_GRACE_MS`, is 409
+   * `AUTH_REFRESH_SUPERSEDED` (the session lives on); a rotated-out token replayed later revokes it.
+   */
   async rotate(
     realm: Realm,
     refreshToken: string,
@@ -119,10 +126,11 @@ export class SessionsService {
         safeEqualHex(presentedHash, session.previousRefreshTokenHash) &&
         session.rotatedAt &&
         Date.now() - session.rotatedAt.getTime() < ROTATION_GRACE_MS
-      if (!withinGrace) {
-        // A rotated-out token was replayed: assume it leaked and kill the session.
-        await this.revoke(realm, session.id)
+      if (withinGrace) {
+        throw new AppException('AUTH_REFRESH_SUPERSEDED')
       }
+      // A rotated-out token was replayed: assume it leaked and kill the session.
+      await this.revoke(realm, session.id)
       throw new AppException('AUTH_REFRESH_TOKEN_INVALID')
     }
 
@@ -155,7 +163,8 @@ export class SessionsService {
       )
       .returning({ id: sessions.id })
     if (rotated.length === 0) {
-      throw new AppException('AUTH_REFRESH_TOKEN_INVALID')
+      // A concurrent refresh with the same token won.
+      throw new AppException('AUTH_REFRESH_SUPERSEDED')
     }
     return this.issue(realm, user, session.id, nextSecret, expiresAt)
   }
