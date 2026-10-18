@@ -3,6 +3,7 @@ import { asc, count, eq } from 'drizzle-orm'
 import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
+import { hasValues } from '../../database/update-values.js'
 import {
   adminUserRoles,
   roles,
@@ -87,9 +88,17 @@ export class RolesService {
       throw new AppException('ROLE_SUPER_ADMIN_IMMUTABLE')
     }
     assertCovers(ability, [...role.permissions, ...(dto.permissions ?? [])])
+    const changes = {
+      name: dto.name,
+      description: dto.description,
+      permissions: dto.permissions,
+    }
+    if (!hasValues(changes)) {
+      return role
+    }
     const [updated] = await this.db
       .update(roles)
-      .set(dto)
+      .set(changes)
       .where(eq(roles.id, id))
       .returning()
     await this.rbac.invalidateAll()

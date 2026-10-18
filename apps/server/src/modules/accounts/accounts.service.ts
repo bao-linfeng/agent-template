@@ -23,6 +23,7 @@ import type { Env } from '../../config/env.js'
 import type { Database, DbExecutor } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { isUniqueViolation } from '../../database/errors.js'
+import { hasValues } from '../../database/update-values.js'
 import type { UserRow, UserStatus } from '../../database/schema/index.js'
 import { mailTemplates } from '../../infra/mail/mail.templates.js'
 import { MailService } from '../../infra/mail/mail.service.js'
@@ -406,7 +407,10 @@ export class AccountsService {
     }
   }
 
-  /** Nickname/status changes by an administrator; disabling signs the account out everywhere. */
+  /**
+   * Nickname/status changes by an administrator; disabling signs the account out everywhere. An empty
+   * change is a no-op.
+   */
   async adminUpdate(
     realm: Realm,
     id: string,
@@ -414,10 +418,11 @@ export class AccountsService {
   ): Promise<void> {
     const { accounts } = REALM_TABLES[realm]
     const account = await this.getOrThrow(realm, id)
-    await this.db
-      .update(accounts)
-      .set({ nickname: dto.nickname?.trim(), status: dto.status })
-      .where(eq(accounts.id, id))
+    const changes = { nickname: dto.nickname?.trim(), status: dto.status }
+    if (!hasValues(changes)) {
+      return
+    }
+    await this.db.update(accounts).set(changes).where(eq(accounts.id, id))
     if (dto.status === 'disabled' && account.status !== 'disabled') {
       await this.sessions.revokeAllForUser(realm, id)
     }

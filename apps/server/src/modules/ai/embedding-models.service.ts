@@ -5,6 +5,7 @@ import { SecretBox } from '../../common/crypto/crypto.js'
 import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb, PG_POOL } from '../../database/database.module.js'
+import { hasValues } from '../../database/update-values.js'
 import {
   isForeignKeyViolation,
   isUniqueViolation,
@@ -132,17 +133,21 @@ export class EmbeddingModelsService {
       await this.ensureVectorIndex(dto.dimensions)
     }
     const { apiKey, ...rest } = dto
+    const changes = {
+      ...rest,
+      ...(apiKey === undefined
+        ? {}
+        : {
+            apiKeyEncrypted: apiKey ? this.secrets.encrypt(apiKey) : null,
+          }),
+    }
+    if (!hasValues(changes)) {
+      return this.getView(id)
+    }
     try {
       const [row] = await this.db
         .update(embeddingModels)
-        .set({
-          ...rest,
-          ...(apiKey === undefined
-            ? {}
-            : {
-                apiKeyEncrypted: apiKey ? this.secrets.encrypt(apiKey) : null,
-              }),
-        })
+        .set(changes)
         .where(eq(embeddingModels.id, id))
         .returning()
       return this.toView(row!)

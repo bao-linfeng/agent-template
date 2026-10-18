@@ -150,6 +150,14 @@ describe('roles & permissions (e2e)', () => {
       roles.find((role: { code: string }) => role.code === 'auditor'),
     ).toMatchObject({ userCount: 1 })
 
+    expect(
+      (
+        await admin
+          .patch(`${ADMIN_API}/roles/${created.body.id}`)
+          .send({})
+          .expect(200)
+      ).body,
+    ).toMatchObject({ code: 'auditor', permissions: ['user:read'] })
     await admin
       .patch(`${ADMIN_API}/roles/${created.body.id}`)
       .send({ permissions: [] })
@@ -182,7 +190,25 @@ describe('roles & permissions (e2e)', () => {
       .send(client.credentials)
       .expect(200)
 
+    // Empty changes (e.g. a dialog saved without edits) are no-ops, not 500s.
+    expect(
+      (
+        await admin
+          .patch(`${ADMIN_API}/users/${client.user.id}`)
+          .send({})
+          .expect(200)
+      ).body,
+    ).toMatchObject({ id: client.user.id, status: 'active' })
+
     const other = await createAdmin(t, admin)
+    expect(
+      (
+        await admin
+          .patch(`${ADMIN_API}/admins/${other.admin.id}`)
+          .send({})
+          .expect(200)
+      ).body,
+    ).toMatchObject({ id: other.admin.id, status: 'active' })
     await admin
       .patch(`${ADMIN_API}/admins/${other.admin.id}`)
       .send({ status: 'disabled' })
