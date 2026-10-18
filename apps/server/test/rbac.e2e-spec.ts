@@ -150,6 +150,14 @@ describe('roles & permissions (e2e)', () => {
       roles.find((role: { code: string }) => role.code === 'auditor'),
     ).toMatchObject({ userCount: 1 })
 
+    expect(
+      (
+        await admin
+          .patch(`${ADMIN_API}/roles/${created.body.id}`)
+          .send({})
+          .expect(200)
+      ).body,
+    ).toMatchObject({ code: 'auditor', permissions: ['user:read'] })
     await admin
       .patch(`${ADMIN_API}/roles/${created.body.id}`)
       .send({ permissions: [] })
@@ -182,7 +190,25 @@ describe('roles & permissions (e2e)', () => {
       .send(client.credentials)
       .expect(200)
 
+    // Empty changes (e.g. a dialog saved without edits) are no-ops, not 500s.
+    expect(
+      (
+        await admin
+          .patch(`${ADMIN_API}/users/${client.user.id}`)
+          .send({})
+          .expect(200)
+      ).body,
+    ).toMatchObject({ id: client.user.id, status: 'active' })
+
     const other = await createAdmin(t, admin)
+    expect(
+      (
+        await admin
+          .patch(`${ADMIN_API}/admins/${other.admin.id}`)
+          .send({})
+          .expect(200)
+      ).body,
+    ).toMatchObject({ id: other.admin.id, status: 'active' })
     await admin
       .patch(`${ADMIN_API}/admins/${other.admin.id}`)
       .send({ status: 'disabled' })
@@ -218,6 +244,122 @@ describe('roles & permissions (e2e)', () => {
       .put(`${ADMIN_API}/admins/${me.id}/roles`)
       .send({ roleIds: ['00000000-0000-4000-8000-000000000000'] })
       .expect(400)
+  })
+
+  it('never lets admins grant or manage more than they hold', async () => {
+    const superAdmin = await roleId('super_admin')
+    const superAdminId = (
+      (await admin.get(`${ADMIN_API}/me`).expect(200)).body as { id: string }
+    ).id
+    const delegatePermissions = [
+      'admin:read',
+      'admin:create',
+      'admin:update',
+      'role:read',
+      'role:create',
+      'role:update',
+      'role:delete',
+    ]
+    const delegateRole = (
+      await admin
+        .post(`${ADMIN_API}/roles`)
+        .send({
+          code: 'delegate',
+          name: 'Delegate',
+          permissions: delegatePermissions,
+        })
+        .expect(201)
+    ).body as { id: string }
+    const reader = (
+      await admin
+        .post(`${ADMIN_API}/roles`)
+        .send({
+          code: 'user_reader',
+          name: 'Reader',
+          permissions: ['user:read'],
+        })
+        .expect(201)
+    ).body as { id: string }
+    const { agent: delegate, admin: me } = await createAdmin(t, admin, {
+      roleIds: [delegateRole.id],
+    })
+
+    // Assigning roles beyond the own permissions.
+    for (const roleIds of [[superAdmin], [delegateRole.id, reader.id]]) {
+      const denied = await delegate
+        .put(`${ADMIN_API}/admins/${me.id}/roles`)
+        .send({ roleIds })
+        .expect(403)
+      expect(denied.body.code).toBe('PERMISSIONS_EXCEED_OWN')
+    }
+    await delegate
+      .post(`${ADMIN_API}/admins`)
+      .send({
+        email: 'escalated@e2e.test',
+        password: 'password123',
+        nickname: 'Escalated',
+        roleIds: [superAdmin],
+      })
+      .expect(403)
+
+    // Roles with permissions beyond the own ones.
+    for (const permissions of [['all:manage'], ['user:read']]) {
+      await delegate
+        .post(`${ADMIN_API}/roles`)
+        .send({ code: 'sneaky', name: 'Sneaky', permissions })
+        .expect(403)
+    }
+    await delegate
+      .patch(`${ADMIN_API}/roles/${delegateRole.id}`)
+      .send({ permissions: [...delegatePermissions, 'setting:manage'] })
+      .expect(403)
+    await delegate
+      .patch(`${ADMIN_API}/roles/${superAdmin}`)
+      .send({ name: 'Renamed' })
+      .expect(403)
+    await delegate.delete(`${ADMIN_API}/roles/${reader.id}`).expect(403)
+
+    // Accounts with more access than the actor.
+    await delegate
+      .patch(`${ADMIN_API}/admins/${superAdminId}`)
+      .send({ status: 'disabled' })
+      .expect(403)
+    await delegate
+      .put(`${ADMIN_API}/admins/${superAdminId}/roles`)
+      .send({ roleIds: [] })
+      .expect(403)
+    await delegate.delete(`${ADMIN_API}/admins/${superAdminId}/mfa`).expect(403)
+    expect((await delegate.get(`${ADMIN_API}/me`)).body.permissions).toEqual(
+      [...delegatePermissions].sort(),
+    )
+
+    // Within the own permissions everything still works.
+    const narrow = (
+      await delegate
+        .post(`${ADMIN_API}/roles`)
+        .send({
+          code: 'admin_reader',
+          name: 'Admin reader',
+          permissions: ['admin:read'],
+        })
+        .expect(201)
+    ).body as { id: string }
+    const { admin: junior } = await createAdmin(t, delegate, {
+      roleIds: [narrow.id],
+    })
+    await delegate
+      .patch(`${ADMIN_API}/admins/${junior.id}`)
+      .send({ status: 'disabled' })
+      .expect(200)
+    await delegate
+      .put(`${ADMIN_API}/admins/${junior.id}/roles`)
+      .send({ roleIds: [delegateRole.id] })
+      .expect(200)
+    await delegate
+      .patch(`${ADMIN_API}/roles/${narrow.id}`)
+      .send({ permissions: ['admin:read', 'role:read'] })
+      .expect(200)
+    await delegate.delete(`${ADMIN_API}/roles/${narrow.id}`).expect(204)
   })
 
   it('serves the permission catalog for role editors', async () => {

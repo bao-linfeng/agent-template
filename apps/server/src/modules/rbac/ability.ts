@@ -54,6 +54,24 @@ export function canAny(
   return Boolean(rule && !rule.inverted)
 }
 
+/**
+ * True when the ability holds every permission code for all records, so the admin may grant it (in a
+ * role or by assigning a role) or manage an account that holds it. `all:manage` is only covered by
+ * `all:manage`. Unknown codes grant nothing (see `defineAbilityFor`) and are ignored.
+ */
+export function coversPermissions(
+  ability: AppAbility,
+  permissions: readonly string[],
+): boolean {
+  return permissions.every((permission) => {
+    if (!isPermission(permission)) {
+      return true
+    }
+    const { action, subject: subjectType } = parsePermission(permission)
+    return canAny(ability, action, subjectType)
+  })
+}
+
 /** Tags a database row with its CASL subject type for instance-level checks. */
 export function asSubject<
   S extends Exclude<SubjectName, 'all'>,

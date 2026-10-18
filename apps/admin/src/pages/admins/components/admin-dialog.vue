@@ -14,6 +14,7 @@ import { z } from 'zod'
 import type { IAdminAccount, UserStatus } from '@/services/types/user.type'
 
 import FormTextField from '@/components/form-text-field.vue'
+import { coversPermissions } from '@/lib/permissions'
 import { emailField, newPasswordField, nicknameField } from '@/pages/auth/validators/auth.validator'
 import { userStatuses } from '@/pages/users/data/data'
 import { t } from '@/plugins/i18n'
@@ -31,6 +32,10 @@ const isSelf = computed(() => props.admin?.id === authStore.user?.id)
 // Listing roles needs `role:read`; without it the roles stay read-only.
 const canEditRoles = computed(() => authStore.can('role:read'))
 const { data: roles } = useRolesQuery(canEditRoles)
+/** Roles with permissions the signed-in admin lacks cannot be assigned or removed (`PERMISSIONS_EXCEED_OWN`). */
+function canGrant(role: { permissions: string[] }) {
+  return coversPermissions(authStore.user?.permissions ?? [], role.permissions)
+}
 const create = useCreateAdminMutation()
 const update = useUpdateAdminMutation()
 const pending = computed(() => create.isPending.value || update.isPending.value)
@@ -176,9 +181,15 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
             <FormItem>
               <Label>{{ $t('fields.roles') }}</Label>
               <div v-if="canEditRoles" class="grid gap-2">
-                <label v-for="role in roles" :key="role.id" class="flex items-start gap-2 text-sm">
+                <label
+                  v-for="role in roles"
+                  :key="role.id"
+                  class="flex items-start gap-2 text-sm"
+                  :class="{ 'opacity-60': !canGrant(role) }"
+                >
                   <Checkbox
                     :model-value="field.state.value.includes(role.id)"
+                    :disabled="!canGrant(role)"
                     @update:model-value="field.handleChange(toggleRole(field.state.value, role.id, $event))"
                   />
                   <span class="grid">
@@ -186,6 +197,9 @@ function toggleRole(ids: string[], id: string, checked: boolean | 'indeterminate
                     <span v-if="role.description" class="text-xs text-muted-foreground">{{ role.description }}</span>
                   </span>
                 </label>
+                <FieldDescription v-if="roles?.some(role => !canGrant(role))">
+                  {{ $t('admins.rolesBeyondOwn') }}
+                </FieldDescription>
               </div>
               <p v-else class="text-sm text-muted-foreground">
                 {{ admin?.roles.map(role => role.name).join(', ') || $t('common.noRoles') }}

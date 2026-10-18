@@ -39,6 +39,10 @@ const form = useForm({
   onSubmit: async ({ value }) => {
     const original = initialValues(props.user)
     const nickname = value.nickname.trim()
+    if (nickname === original.nickname && value.status === original.status) {
+      open.value = false
+      return
+    }
     try {
       await update.mutateAsync({
         id: props.user.id,

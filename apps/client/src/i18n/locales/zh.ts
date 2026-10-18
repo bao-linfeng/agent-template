@@ -30,6 +30,7 @@ const zh: typeof en = {
     AUTH_CODE_RESEND_TOO_SOON: '验证码刚刚发送过，请 {retryAfter} 秒后再试。',
     AUTH_INVALID_CREDENTIALS: '邮箱或密码错误。',
     AUTH_REFRESH_TOKEN_INVALID: '会话已过期，请重新登录。',
+    AUTH_REFRESH_SUPERSEDED: '会话刚在其他标签页中刷新，请重试。',
     AUTH_REFRESH_TOKEN_MISSING: '会话已过期，请重新登录。',
     AUTH_REGISTRATION_DISABLED: '暂未开放注册。',
     AUTH_REQUIRED: '请先登录。',

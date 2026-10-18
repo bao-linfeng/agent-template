@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { filterByPermission, hasPermission } from '@/lib/permissions'
+import { coversPermissions, filterByPermission, hasPermission } from '@/lib/permissions'
 
 describe('hasPermission', () => {
   it('matches exact codes', () => {
@@ -15,6 +15,20 @@ describe('hasPermission', () => {
     expect(hasPermission(['embedding-model:manage'], 'role:read')).toBe(false)
     expect(hasPermission(['all:read'], 'knowledge-base:read')).toBe(true)
     expect(hasPermission(['all:read'], 'knowledge-base:create')).toBe(false)
+  })
+})
+
+describe('coversPermissions', () => {
+  it('requires every permission to be granted', () => {
+    expect(coversPermissions(['admin:update', 'user:read'], [])).toBe(true)
+    expect(coversPermissions(['admin:update', 'user:read'], ['user:read', 'admin:update'])).toBe(true)
+    expect(coversPermissions(['admin:update', 'user:read'], ['user:read', 'user:update'])).toBe(false)
+    expect(coversPermissions(['knowledge-base:manage'], ['knowledge-base:read'])).toBe(true)
+  })
+
+  it('only lets super admins grant all:manage', () => {
+    expect(coversPermissions(['admin:update', 'role:update'], ['all:manage'])).toBe(false)
+    expect(coversPermissions(['all:manage'], ['all:manage', 'setting:manage'])).toBe(true)
   })
 })
 

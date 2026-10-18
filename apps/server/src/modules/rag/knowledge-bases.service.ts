@@ -9,6 +9,7 @@ import {
 import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
+import { hasValues } from '../../database/update-values.js'
 import {
   embeddingModels,
   knowledgeBases,
@@ -133,9 +134,18 @@ export class KnowledgeBasesService {
       dto.chunkSize ?? kb.chunkSize,
       dto.chunkOverlap ?? kb.chunkOverlap,
     )
+    const changes = {
+      name: dto.name,
+      description: dto.description,
+      chunkSize: dto.chunkSize,
+      chunkOverlap: dto.chunkOverlap,
+    }
+    if (!hasValues(changes)) {
+      return kb
+    }
     await this.db
       .update(knowledgeBases)
-      .set(dto)
+      .set(changes)
       .where(eq(knowledgeBases.id, kb.id))
     const [view] = await this.selectViews().where(eq(knowledgeBases.id, kb.id))
     return view!

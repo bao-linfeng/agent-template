@@ -215,12 +215,15 @@ describe('auth & account (e2e)', () => {
     const access = cookieValue(refreshed.headers['set-cookie'], 'access_token')!
     expect(secondRefresh).not.toBe(firstRefresh)
 
-    // Concurrent refresh with the just-rotated token: rejected, but the session survives.
-    await t
+    // Concurrent refresh with the just-rotated token (another tab): 409, the session survives and the
+    // cookies the winning refresh set are not cleared.
+    const superseded = await t
       .http()
       .post(`${CLIENT_API}/auth/refresh`)
       .set('Cookie', `refresh_token=${firstRefresh}`)
-      .expect(401)
+      .expect(409)
+    expect(superseded.body.code).toBe('AUTH_REFRESH_SUPERSEDED')
+    expect(superseded.headers['set-cookie']).toBeUndefined()
     await t
       .http()
       .get(`${CLIENT_API}/users/me`)
@@ -248,6 +251,43 @@ describe('auth & account (e2e)', () => {
       .get(`${CLIENT_API}/users/me`)
       .set('Cookie', `access_token=${access}`)
       .expect(401)
+  })
+
+  it('answers concurrent refreshes of one token with one rotation and 409s that keep the cookies', async () => {
+    const { credentials } = await registerUser(t)
+    const login = await t
+      .http()
+      .post(`${CLIENT_API}/auth/login`)
+      .send(credentials)
+      .expect(200)
+    const refresh = cookieValue(login.headers['set-cookie'], 'refresh_token')!
+
+    const responses = await Promise.all(
+      Array.from({ length: 3 }, () =>
+        t
+          .http()
+          .post(`${CLIENT_API}/auth/refresh`)
+          .set('Cookie', `refresh_token=${refresh}`),
+      ),
+    )
+    const statuses = responses
+      .map((response) => response.status)
+      .sort((a, b) => a - b)
+    expect(statuses).toEqual([204, 409, 409])
+    const winner = responses.find((response) => response.status === 204)!
+    for (const loser of responses.filter((r) => r.status === 409)) {
+      expect(loser.body.code).toBe('AUTH_REFRESH_SUPERSEDED')
+      expect(loser.headers['set-cookie']).toBeUndefined()
+    }
+    // The session survived and keeps rotating with the winner's token.
+    await t
+      .http()
+      .post(`${CLIENT_API}/auth/refresh`)
+      .set(
+        'Cookie',
+        `refresh_token=${cookieValue(winner.headers['set-cookie'], 'refresh_token')}`,
+      )
+      .expect(204)
   })
 
   it('extends client sessions on refresh up to the absolute cap, but not admin sessions', async () => {

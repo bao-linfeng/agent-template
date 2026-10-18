@@ -95,7 +95,11 @@ export abstract class CredentialsController<Profile> {
     return this.signIn(bearer, reply, tokens, await this.profile(account))
   }
 
-  /** Rotates the session: 204 with new cookies, or 200 with new `BearerTokens` for bearer clients. */
+  /**
+   * Rotates the session: 204 with new cookies, or 200 with new `BearerTokens` for bearer clients. 409
+   * `AUTH_REFRESH_SUPERSEDED` when a concurrent refresh rotated the token first: the session is fine,
+   * retry with the new token. Other failures are 401s that also clear the cookies.
+   */
   @Post('refresh')
   @HttpCode(204)
   // Runs every few minutes per session; only rejected refreshes (expired, replayed) are worth keeping.
@@ -126,7 +130,13 @@ export abstract class CredentialsController<Profile> {
       )
       this.cookies.set(reply, this.realm, tokens)
     } catch (error) {
-      this.cookies.clear(reply, this.realm)
+      // Clearing here would wipe the cookies the winning refresh just set in the shared cookie jar.
+      if (!(
+        error instanceof AppException &&
+        error.code === 'AUTH_REFRESH_SUPERSEDED'
+      )) {
+        this.cookies.clear(reply, this.realm)
+      }
       throw error
     }
   }

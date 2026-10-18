@@ -46,6 +46,18 @@ export function resetAdminMfa(id: string) {
   return apiFetch<void>(`/admins/${id}/mfa`, { method: 'delete' })
 }
 
+/**
+ * Applies the changes of the admin dialog: `PATCH` only for profile fields that are set (fields left
+ * `undefined` are unchanged), `PUT /roles` only when `roleIds` is given; nothing changed just reloads.
+ */
+export async function saveAdminChanges({ id, roleIds, ...body }: IAdminChanges): Promise<IAdminAccount> {
+  const profile = compactQuery(body)
+  let admin = Object.keys(profile).length ? await updateAdmin(id, profile) : undefined
+  if (roleIds)
+    admin = await setAdminRoles(id, roleIds)
+  return admin ?? await fetchAdmin(id)
+}
+
 // Query/mutation hooks
 export function useAdminsQuery(query: MaybeRefOrGetter<IListUsersQuery>) {
   const params = computed(() => compactQuery(toValue(query)))
@@ -67,12 +79,7 @@ export function useUpdateAdminMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationKey: ['updateAdmin'],
-    mutationFn: async ({ id, roleIds, ...body }: IAdminChanges) => {
-      let admin = Object.keys(body).length ? await updateAdmin(id, body) : undefined
-      if (roleIds)
-        admin = await setAdminRoles(id, roleIds)
-      return admin ?? await fetchAdmin(id)
-    },
+    mutationFn: saveAdminChanges,
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admins'] })
       queryClient.invalidateQueries({ queryKey: ['roles'] })

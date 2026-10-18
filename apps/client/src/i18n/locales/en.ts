@@ -29,6 +29,7 @@ export default {
     AUTH_CODE_RESEND_TOO_SOON: 'A code was sent recently, please try again in {retryAfter} seconds.',
     AUTH_INVALID_CREDENTIALS: 'Email or password is incorrect.',
     AUTH_REFRESH_TOKEN_INVALID: 'Your session has expired, please sign in again.',
+    AUTH_REFRESH_SUPERSEDED: 'Your session was just refreshed in another tab. Please try again.',
     AUTH_REFRESH_TOKEN_MISSING: 'Your session has expired, please sign in again.',
     AUTH_REGISTRATION_DISABLED: 'Registration is currently closed.',
     AUTH_REQUIRED: 'Please sign in first.',

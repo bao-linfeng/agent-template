@@ -1,4 +1,5 @@
 import type { UserProfile } from '@/lib/account'
+import { FetchError } from '@repo/utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { queryClient } from '@/lib/query-client'
@@ -47,12 +48,26 @@ describe('session store', () => {
     expect(session.initialized).toBe(true)
   })
 
-  it('treats a failed restore as signed out', async () => {
-    accountApi.me.mockRejectedValue(new Error('401'))
+  it('treats a rejected session as signed out', async () => {
+    accountApi.me.mockRejectedValue(Object.assign(new FetchError('401'), { response: new Response(null, { status: 401 }), status: 401 }))
     const session = useSessionStore()
 
     await session.restore()
     expect(session.isLoggedIn).toBe(false)
+    expect(session.initialized).toBe(true)
+  })
+
+  it('keeps the session unknown when the server cannot answer, and asks again later', async () => {
+    accountApi.me.mockRejectedValueOnce(new FetchError('Failed to fetch'))
+    const session = useSessionStore()
+
+    await session.restore()
+    expect(session.isLoggedIn).toBe(false)
+    expect(session.initialized).toBe(false)
+
+    accountApi.me.mockResolvedValueOnce(profile)
+    await session.restore()
+    expect(session.isLoggedIn).toBe(true)
     expect(session.initialized).toBe(true)
   })
 

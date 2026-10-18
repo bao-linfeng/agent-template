@@ -1,4 +1,4 @@
-export { createApiClient, createIdempotencyKey, FetchError, getErrorCode, getErrorMessage, IDEMPOTENCY_KEY_HEADER, isUnauthorized, NETWORK_ERROR, TIMEOUT_ERROR } from './api-client'
+export { createApiClient, createIdempotencyKey, FetchError, getErrorCode, getErrorMessage, IDEMPOTENCY_KEY_HEADER, isUnauthorized, NETWORK_ERROR, REFRESH_SUPERSEDED, TIMEOUT_ERROR } from './api-client'
 export type { ApiClient, ApiClientOptions, ApiErrorBody, ApiFetch, ApiFetchOptions, ErrorTranslator, FetchOptions } from './api-client'
 export { cn } from './cn'
 export { connectEventStream, createEventStreamParser } from './event-stream'

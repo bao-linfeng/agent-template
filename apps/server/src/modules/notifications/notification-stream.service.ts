@@ -147,6 +147,10 @@ export class NotificationStreamService
 
   /** Opens a stream for the signed-in account; the controller returns it as the response body. */
   async open(user: AuthUser, reply: HttpReply): Promise<PassThrough> {
+    if (reply.raw.destroyed) {
+      // The client left while the guards ran: `close` has fired already, so the stream would never end.
+      return new PassThrough().end()
+    }
     const channel = accountChannel(user.realm, user.id)
     const stream: OpenStream = {
       realm: user.realm,

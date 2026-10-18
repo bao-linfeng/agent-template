@@ -20,6 +20,7 @@ describe('data export helpers', () => {
 
     const blob = await accountApi.downloadExport('e1')
     expect(new URL(fetchMock.mock.calls[0]![0] as string, 'http://localhost').pathname).toMatch(/\/v1\/client\/users\/me\/exports\/e1\/download$/)
+    expect(fetchMock.mock.calls[0]![1]).toMatchObject({ timeout: 120_000 })
     expect(blob.type).toBe('application/json')
     expect(await blob.text()).toBe(file)
   })

@@ -30,10 +30,13 @@ export function updateMe(body: IUpdateProfileBody) {
 }
 
 /** PNG, JPEG, GIF or WebP; the server checks the file content and the size limit. */
+/** Uploads may take longer than the default request timeout on slow connections. */
+export const UPLOAD_TIMEOUT = 60_000
+
 export function uploadAvatar(file: Blob, filename = 'avatar') {
   const body = new FormData()
   body.append('file', file, filename)
-  return apiFetch<IUserProfile>('/me/avatar', { method: 'put', body })
+  return apiFetch<IUserProfile>('/me/avatar', { method: 'put', body, timeout: UPLOAD_TIMEOUT })
 }
 
 export function removeAvatar() {

@@ -112,6 +112,15 @@ describe('embedding models & RAG (e2e)', () => {
       .send({ apiKey: null })
       .expect(200)
     expect(cleared.body.hasApiKey).toBe(false)
+    // An empty change is a no-op, not a 500.
+    const unchanged = await admin
+      .patch(`${ADMIN_API}/ai/embedding-models/${created.body.id}`)
+      .send({})
+      .expect(200)
+    expect(unchanged.body).toMatchObject({
+      id: created.body.id,
+      hasApiKey: false,
+    })
 
     await admin
       .post(`${ADMIN_API}/ai/embedding-models/${created.body.id}/default`)
@@ -309,6 +318,15 @@ describe('embedding models & RAG (e2e)', () => {
       .patch(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}`)
       .send({ chunkSize: 400, chunkOverlap: 300 })
       .expect(400)
+    const unchanged = await owner.agent
+      .patch(`${CLIENT_API}/rag/knowledge-bases/${kb.body.id}`)
+      .send({})
+      .expect(200)
+    expect(unchanged.body).toMatchObject({
+      id: kb.body.id,
+      name: kb.body.name,
+      chunkSize: kb.body.chunkSize,
+    })
     await admin
       .delete(`${ADMIN_API}/rag/knowledge-bases/${kb.body.id}`)
       .expect(204)

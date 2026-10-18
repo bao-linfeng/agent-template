@@ -39,7 +39,7 @@ applyThemeClass('green', document.body) // 在 body 上切换到 theme-green
 
 ### `createApiClient({ baseURL, authPath?, timeout?, onUnauthorized? })`
 
-基于 ofetch 的 Cookie 会话客户端，对接 `apps/server`：默认带 `credentials: 'include'`，超时为 15 秒；遇到 401 时，同一客户端实例的并发请求共享一次 `POST <authPath>/refresh` 并各自重试一次；刷新失败或重试仍是 401 时调用并等待 `onUnauthorized`。
+基于 ofetch 的 Cookie 会话客户端，对接 `apps/server`：默认带 `credentials: 'include'`，超时为 15 秒；遇到 401 时，同一客户端实例的并发请求共享一次 `POST <authPath>/refresh` 并各自重试一次；刷新失败或重试仍是 401 时调用并等待 `onUnauthorized`。同一应用的多个标签页共用会话 Cookie，因此浏览器支持 Web Locks（`navigator.locks`）时，刷新会按 realm 跨标签页串行执行；刷新若因输给并发刷新而得到 409 `AUTH_REFRESH_SUPERSEDED`（导出常量 `REFRESH_SUPERSEDED`），会稍等后用新 Cookie 重试（最多 3 次），不会当作登出。
 
 `baseURL` 指向账号体系（realm）的版本化根路径：客户端用户为 `<API>/v1/client`，管理端为 `<API>/v1/admin`。`authPath` 默认 `/auth`。该路径下 `login`、`register`、`refresh`、`logout`、`forgot-password`、`reset-password` 的 401 原样抛出，不触发刷新；匹配时忽略查询字符串。
 

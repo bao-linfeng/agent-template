@@ -1,8 +1,12 @@
+import { isUnauthorized } from '@repo/utils'
 import { defineStore } from 'pinia'
+import { toast } from 'vue-sonner'
 
 import type { IMfaChallenge, IUserProfile } from '@/services/types/user.type'
 
+import { getErrorMessage } from '@/lib/api-client'
 import { hasPermission } from '@/lib/permissions'
+import { queryClient } from '@/lib/query-client'
 import { fetchMe } from '@/services/api/me.api'
 
 /** Sign-in that passed the password step and waits for a two-factor code (`/auth/otp`). */
@@ -17,6 +21,8 @@ export interface IPendingMfa {
  * The admin session itself lives in HttpOnly cookies; this store only mirrors the signed-in admin.
  * It is not persisted: `restore()` asks the server (`GET /admin/me`) once per page load. A pending
  * two-factor challenge is kept in memory only, so reloading the code page starts the sign-in over.
+ * Whenever the signed-in admin changes (sign-out, expired session, another account) the Vue Query
+ * cache is dropped: it belongs to the admin who left.
  */
 export const useAuthStore = defineStore('user', () => {
   const user = shallowRef<IUserProfile | null>(null)
@@ -26,12 +32,16 @@ export const useAuthStore = defineStore('user', () => {
   const pendingMfa = shallowRef<IPendingMfa | null>(null)
 
   function setUser(profile: IUserProfile) {
+    if (user.value && user.value.id !== profile.id)
+      queryClient.removeQueries()
     user.value = profile
     pendingMfa.value = null
     initialized.value = true
   }
 
   function clear() {
+    if (user.value)
+      queryClient.removeQueries()
     user.value = null
     pendingMfa.value = null
     initialized.value = true
@@ -61,10 +71,21 @@ export const useAuthStore = defineStore('user', () => {
 
   let restoring: Promise<void> | null = null
 
-  /** Loads the profile for an existing cookie session; concurrent callers share one request. */
+  /**
+   * Loads the profile for an existing cookie session; concurrent callers share one request. Only a 401
+   * means signed out: when the server cannot be reached or fails, the session stays unknown
+   * (`initialized` false), so the next navigation asks again instead of forgetting a valid session.
+   */
   function restore(): Promise<void> {
     restoring ??= fetchMe()
-      .then(setUser, clear)
+      .then(setUser, (error: unknown) => {
+        if (isUnauthorized(error)) {
+          clear()
+          return
+        }
+        // One toast, even when the redirect to sign-in tries again.
+        toast.error(getErrorMessage(error), { id: 'session-restore' })
+      })
       .finally(() => {
         restoring = null
       })

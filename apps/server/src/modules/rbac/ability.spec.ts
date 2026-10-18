@@ -1,4 +1,9 @@
-import { asSubject, canAny, defineAbilityFor } from './ability.js'
+import {
+  asSubject,
+  canAny,
+  coversPermissions,
+  defineAbilityFor,
+} from './ability.js'
 import {
   isPermission,
   parsePermission,
@@ -72,6 +77,30 @@ describe('defineAbilityFor', () => {
     expect(canAny(ability, 'delete', 'KnowledgeBase')).toBe(true)
     expect(canAny(ability, 'read', 'KnowledgeBase')).toBe(true)
     expect(canAny(ability, 'read', 'User')).toBe(false)
+  })
+
+  it('covers only permissions held for every record', () => {
+    const delegate = defineAbilityFor({
+      id: me,
+      permissions: ['admin:update', 'knowledge-base:manage', 'user:read'],
+    })
+    expect(coversPermissions(delegate, [])).toBe(true)
+    expect(
+      coversPermissions(delegate, [
+        'user:read',
+        'knowledge-base:read',
+        'knowledge-base:manage',
+      ]),
+    ).toBe(true)
+    expect(coversPermissions(delegate, ['user:update'])).toBe(false)
+    expect(coversPermissions(delegate, ['all:manage'])).toBe(false)
+    // Unknown codes grant nothing, so they never block.
+    expect(coversPermissions(delegate, ['legacy:thing'])).toBe(true)
+
+    const superAdmin = defineAbilityFor({ id: me, permissions: ['all:manage'] })
+    expect(
+      coversPermissions(superAdmin, ['all:manage', 'announcement:manage']),
+    ).toBe(true)
   })
 
   it('ignores unknown permission codes stored in the database', () => {

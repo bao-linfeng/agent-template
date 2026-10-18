@@ -5,18 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1, maximum-scale=5" />
     <title>Agent Template</title>
     <meta name="description" content="A starter project for Vue 3 with Shadcn UI and Tailwind CSS" />
-    <script>
-      ;(function () {
-        const theme = localStorage.getItem('darkMode')
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        if (!theme && systemTheme) {
-          localStorage.setItem('darkMode', 'true')
-        }
-        if (theme === 'true' || (!theme && systemTheme)) {
-          document.documentElement.classList.add('dark')
-        }
-      })()
-    </script>
+    <!-- Blocking on purpose (no flash of the light theme); a file because the CSP forbids inline scripts. -->
+    <script src="/theme-init.js" vite-ignore></script>
     <link
       rel="icon"
       type="image/svg+xml"

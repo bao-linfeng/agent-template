@@ -8,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core'
 import { AppException } from '../../common/errors/app.exception.js'
 import type { AuthUser, HttpRequest } from '../../common/http/request.js'
-import { canAny, type AppAbility } from './ability.js'
+import { canAny, coversPermissions, type AppAbility } from './ability.js'
 import { parsePermission, type Permission } from './permissions.js'
 import { RbacService } from './rbac.service.js'
 
@@ -51,6 +51,19 @@ export function assertCan(
 ): void {
   if (!ability.can(...args)) {
     throw new AppException('PERMISSION_DENIED')
+  }
+}
+
+/**
+ * 403 `PERMISSIONS_EXCEED_OWN` unless the admin holds every permission in `permissions`: nobody may hand
+ * out more than they have, or change roles and accounts that have more.
+ */
+export function assertCovers(
+  ability: AppAbility,
+  permissions: readonly string[],
+): void {
+  if (!coversPermissions(ability, permissions)) {
+    throw new AppException('PERMISSIONS_EXCEED_OWN')
   }
 }
 

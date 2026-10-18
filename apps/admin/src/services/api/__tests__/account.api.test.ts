@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { cancelAdminUserDeletion, compactQuery, fetchAdminUsers, scheduleAdminUserDeletion, updateAdminUser } from '../admin-users.api'
-import { createAdmin, fetchAdmin, fetchAdmins, resetAdminMfa, setAdminRoles, updateAdmin } from '../admins.api'
+import { createAdmin, fetchAdmin, fetchAdmins, resetAdminMfa, saveAdminChanges, setAdminRoles, updateAdmin } from '../admins.api'
 import { forgotPassword, isMfaChallenge, login, loginMfa, logout, resetPassword, resetPasswordPageUrl } from '../auth.api'
 import {
   createEmbeddingModel,
@@ -105,6 +105,7 @@ describe('current admin transport', () => {
     const [path, options] = apiFetch.mock.calls[0]!
     expect(path).toBe('/me/avatar')
     expect(options.method).toBe('put')
+    expect(options.timeout).toBe(60_000)
     expect(options.body).toBeInstanceOf(FormData)
     expect((options.body as FormData).get('file')).toBeInstanceOf(Blob)
 
@@ -185,6 +186,21 @@ describe('admin transport', () => {
     expect(apiFetch).toHaveBeenLastCalledWith('/admins/a1/roles', { method: 'put', body: { roleIds: ['r1', 'r2'] } })
     await resetAdminMfa('a1')
     expect(apiFetch).toHaveBeenLastCalledWith('/admins/a1/mfa', { method: 'delete' })
+  })
+
+  it('saves only what the admin dialog changed', async () => {
+    apiFetch.mockResolvedValue({ id: 'a1' })
+    // Only the roles changed: no empty PATCH (the server rejected it before).
+    await saveAdminChanges({ id: 'a1', nickname: undefined, status: undefined, roleIds: ['r1'] })
+    expect(apiFetch.mock.calls).toEqual([['/admins/a1/roles', { method: 'put', body: { roleIds: ['r1'] } }]])
+
+    apiFetch.mockClear()
+    await saveAdminChanges({ id: 'a1', nickname: 'Ops', status: undefined })
+    expect(apiFetch.mock.calls).toEqual([['/admins/a1', { method: 'patch', body: { nickname: 'Ops' } }]])
+
+    apiFetch.mockClear()
+    await expect(saveAdminChanges({ id: 'a1', nickname: undefined, status: undefined })).resolves.toEqual({ id: 'a1' })
+    expect(apiFetch.mock.calls).toEqual([['/admins/a1', { method: 'get' }]])
   })
 
   it('manages roles', async () => {

@@ -1,4 +1,5 @@
 import type { Credentials, Registration, UserProfile } from '@/lib/account'
+import { isUnauthorized } from '@repo/utils'
 import { defineStore } from 'pinia'
 import { computed, shallowRef } from 'vue'
 import { t } from '@/i18n'
@@ -28,10 +29,17 @@ export const useSessionStore = defineStore('session', () => {
 
   let restoring: Promise<void> | null = null
 
-  /** Loads the profile for an existing cookie session once; concurrent callers share the request. */
+  /**
+   * Loads the profile for an existing cookie session once; concurrent callers share the request. Only
+   * a 401 means signed out: when the server cannot be reached or fails, the session stays unknown
+   * (`initialized` false) and the next navigation asks again instead of forgetting a valid session.
+   */
   function restore(): Promise<void> {
     restoring ??= accountApi.me()
-      .then(setUser, () => setUser(null))
+      .then(setUser, (error: unknown) => {
+        if (isUnauthorized(error))
+          setUser(null)
+      })
       .finally(() => {
         restoring = null
       })
