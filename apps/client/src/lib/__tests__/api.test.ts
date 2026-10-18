@@ -17,7 +17,7 @@ function respond(status: number, body?: unknown) {
 }
 
 function callsTo(path: string) {
-  return fetchMock.mock.calls.filter(([url]) => new URL(url as string).pathname.endsWith(path)).length
+  return fetchMock.mock.calls.filter(([url]) => new URL(url as string, 'http://localhost').pathname.endsWith(path)).length
 }
 
 describe('api', () => {

@@ -32,7 +32,7 @@
 
 通过 `src/lib/api.ts` 与后端通信，底层是 `@repo/utils` 的 `createApiClient`（ofetch，`credentials: 'include'`，Cookie 认证，401 时自动刷新并重试一次）。
 
-- **接口基地址**：`VITE_API_BASE_URL`（默认 `http://localhost:3100/api`），HTTP 客户端追加 `/v1/client`；业务函数使用 `/auth/login`、`/users/me` 等相对路径
+- **接口基地址**：`VITE_API_BASE_URL`（未设置时请求同源的 `/api`，由 Vite dev server 代理到 `API_PROXY_TARGET`，默认 `http://localhost:3100`；生产镜像必须填写绝对地址），HTTP 客户端追加 `/v1/client`；业务函数使用 `/auth/login`、`/users/me` 等相对路径
 - **会话**：Pinia store `useSessionStore()`（`src/stores/session.ts`，不持久化），在路由守卫中通过 `GET /api/v1/client/users/me` 恢复登录态；退出或会话过期时清空 Vue Query 缓存
 - **服务端状态**：TanStack Vue Query，`QueryClient` 在 `src/lib/query-client.ts`；页面提交统一用 `useMutation`（`isPending`/`error`），错误在表单内展示
 - **找回密码**：发送 `resetUrl: http://localhost:5174/reset-password`，后端校验来源

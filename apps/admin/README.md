@@ -49,7 +49,7 @@ AI Talk is a demo UI; there is no connected chat service. The server exposes RAG
 
 ## API and authentication
 
-Copy `.env.example` to `.env`. The default API origin is `VITE_SERVER_API_URL=http://localhost:3100` and the prefix is `VITE_SERVER_API_PREFIX=/api`. Validation lives in `src/validators/env.validator.ts`.
+Copy `.env.example` to `.env`. By default `VITE_SERVER_API_URL` is empty and the prefix is `VITE_SERVER_API_PREFIX=/api`: the app calls `/api` on its own origin and the Vite dev server proxies it to `API_PROXY_TARGET` (default `http://localhost:3100`), so cookies stay same-site on localhost, 127.0.0.1 or a LAN IP. Set an absolute `VITE_SERVER_API_URL` to call the API directly (production images require one). Validation lives in `src/validators/env.validator.ts`.
 
 `src/lib/api-client.ts` creates `apiFetch` with a base URL of `<origin><prefix>/v1/admin`. API modules use relative paths such as `/users` and `/me`.
 
