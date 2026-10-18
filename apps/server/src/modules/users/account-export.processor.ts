@@ -27,7 +27,8 @@ const HOUR_MS = 60 * 60 * 1000
  * Builds a requested export into a temporary file, uploads it to `exports/<userId>/<exportId>.json`
  * and notifies the user (in-app and by email, as the user's preferences allow). Transient failures
  * are retried by BullMQ; after the last attempt the export is `failed` and the user can request a new
- * one.
+ * one. A failed notification is only logged: the export is ready either way, and retrying would build
+ * it again and notify twice.
  */
 @Processor(QUEUES.accountExport)
 export class AccountExportProcessor extends WorkerHost {
@@ -67,6 +68,7 @@ export class AccountExportProcessor extends WorkerHost {
       tmpdir(),
       `account-export-${exportId}-${randomUUID()}.json`,
     )
+    let expiresAt: Date
     try {
       await this.db
         .update(accountExports)
@@ -80,7 +82,7 @@ export class AccountExportProcessor extends WorkerHost {
         'application/json; charset=utf-8',
       )
       const completedAt = new Date()
-      const expiresAt = new Date(completedAt.getTime() + this.ttlMs)
+      expiresAt = new Date(completedAt.getTime() + this.ttlMs)
       await this.db
         .update(accountExports)
         .set({
@@ -91,19 +93,6 @@ export class AccountExportProcessor extends WorkerHost {
           expiresAt,
         })
         .where(eq(accountExports.id, exportId))
-      await this.notifications.notify({
-        realm: 'user',
-        recipientId: row.userId,
-        type: 'account.exportReady',
-        params: { exportId, expiresAt: expiresAt.toISOString() },
-        mail: {
-          to: row.email,
-          ...mailTemplates.accountExportReady({
-            nickname: row.nickname,
-            expiresAt,
-          }),
-        },
-      })
       this.logger.log(`Export ${exportId} ready (${sizeBytes} bytes)`)
     } catch (error) {
       const finalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1)
@@ -127,6 +116,26 @@ export class AccountExportProcessor extends WorkerHost {
       throw error
     } finally {
       await rm(path, { force: true })
+    }
+
+    try {
+      await this.notifications.notify({
+        realm: 'user',
+        recipientId: row.userId,
+        type: 'account.exportReady',
+        params: { exportId, expiresAt: expiresAt.toISOString() },
+        mail: {
+          to: row.email,
+          ...mailTemplates.accountExportReady({
+            nickname: row.nickname,
+            expiresAt,
+          }),
+        },
+      })
+    } catch (error) {
+      this.logger.warn(
+        `Could not notify user ${row.userId} about export ${exportId}: ${(error as Error).message}`,
+      )
     }
   }
 }
