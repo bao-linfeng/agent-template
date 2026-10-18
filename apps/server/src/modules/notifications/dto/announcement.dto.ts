@@ -16,7 +16,12 @@ import {
   type AnnouncementLevel,
 } from '../../../database/schema/index.js'
 
-export const ANNOUNCEMENT_STATUSES = ['draft', 'published', 'expired'] as const
+export const ANNOUNCEMENT_STATUSES = [
+  'draft',
+  'scheduled',
+  'published',
+  'expired',
+] as const
 export type AnnouncementStatus = (typeof ANNOUNCEMENT_STATUSES)[number]
 
 export class CreateAnnouncementDto {
@@ -51,6 +56,12 @@ export class CreateAnnouncementDto {
   @IsOptional()
   @IsBoolean()
   publish?: boolean
+
+  /** Publish later (ISO 8601, in the future and before `expiresAt`); not combined with `publish`. */
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  publishAt?: Date
 }
 
 export class UpdateAnnouncementDto {
@@ -81,8 +92,16 @@ export class UpdateAnnouncementDto {
   expiresAt?: Date | null
 }
 
+export class PublishAnnouncementDto {
+  /** Publish at this time (ISO 8601, in the future and before `expiresAt`) instead of now; reschedules a scheduled one. */
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  publishAt?: Date
+}
+
 export class ListAnnouncementsQueryDto extends PaginationQueryDto {
-  /** `draft`: not published; `published`: visible now; `expired`: past `expiresAt`. */
+  /** `draft`: not published; `scheduled`: published later; `published`: visible now; `expired`: past `expiresAt`. */
   @IsOptional()
   @IsIn(ANNOUNCEMENT_STATUSES)
   status?: AnnouncementStatus

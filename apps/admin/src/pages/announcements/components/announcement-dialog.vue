@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Button } from '@repo/ui/components/button'
-import { Checkbox } from '@repo/ui/components/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@repo/ui/components/dialog'
 import { FieldDescription, FieldError } from '@repo/ui/components/field'
 import { FormItem } from '@repo/ui/components/form'
@@ -12,16 +11,16 @@ import { Textarea } from '@repo/ui/components/textarea'
 import { useForm } from '@tanstack/vue-form'
 import { toast } from 'vue-sonner'
 
-import type { AnnouncementFormValues } from '@/lib/announcements'
+import type { AnnouncementFormValues, AnnouncementPublishMode } from '@/lib/announcements'
 import type { AnnouncementAudience, IAnnouncement } from '@/services/api/announcements.api'
 import type { AnnouncementLevel } from '@/services/api/notifications.api'
 
 import FormTextField from '@/components/form-text-field.vue'
-import { announcementChanges, toCreateBody, toFormValues } from '@/lib/announcements'
+import { announcementChanges, nextHourInput, toCreateRequest, toFormValues } from '@/lib/announcements'
 import { t } from '@/plugins/i18n'
 import { useCreateAnnouncementMutation, useUpdateAnnouncementMutation } from '@/services/api/announcements.api'
 
-import { announcementAudiences, announcementLevels } from '../data/data'
+import { announcementAudiences, announcementLevels, announcementPublishModes } from '../data/data'
 import { announcementValidator } from '../validators/announcement.validator'
 
 /** Creates an announcement when `announcement` is omitted, otherwise edits it (keeping its publication state). */
@@ -31,12 +30,17 @@ const open = defineModel<boolean>('open', { default: false })
 const create = useCreateAnnouncementMutation()
 const update = useUpdateAnnouncementMutation()
 const pending = computed(() => create.isPending.value || update.isPending.value)
-const publishNow = shallowRef(false)
+
+const CREATED_MESSAGES: Record<AnnouncementPublishMode, string> = {
+  draft: 'announcements.created',
+  now: 'announcements.published',
+  schedule: 'announcements.scheduled',
+}
 
 async function save(value: AnnouncementFormValues) {
   if (!props.announcement) {
-    await create.mutateAsync({ ...toCreateBody(value), publish: publishNow.value })
-    toast.success(publishNow.value ? t('announcements.published') : t('announcements.created'))
+    await create.mutateAsync(toCreateRequest(value))
+    toast.success(t(CREATED_MESSAGES[value.publishMode]))
     return
   }
   const changes = announcementChanges(props.announcement, value)
@@ -59,11 +63,17 @@ const form = useForm({
   },
 })
 
+const publishMode = form.useStore(state => state.values.publishMode)
+
+function onPublishModeChange(mode: AnnouncementPublishMode) {
+  form.setFieldValue('publishMode', mode)
+  if (mode === 'schedule' && !form.getFieldValue('publishAt'))
+    form.setFieldValue('publishAt', nextHourInput())
+}
+
 watch(open, (isOpen) => {
-  if (isOpen) {
+  if (isOpen)
     form.reset(toFormValues(props.announcement))
-    publishNow.value = false
-  }
 })
 
 function invalid(meta: { isTouched: boolean, errors: unknown[] }) {
@@ -165,10 +175,41 @@ function invalid(meta: { isTouched: boolean, errors: unknown[] }) {
           </template>
         </form.Field>
 
-        <label v-if="!announcement" class="flex items-center gap-2 text-sm">
-          <Checkbox v-model="publishNow" />
-          {{ $t('announcements.publishNow') }}
-        </label>
+        <template v-if="!announcement">
+          <FormItem>
+            <Label>{{ $t('announcements.fields.publishMode') }}</Label>
+            <Select :model-value="publishMode" @update:model-value="onPublishModeChange($event as AnnouncementPublishMode)">
+              <SelectTrigger class="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="mode in announcementPublishModes" :key="mode.value" :value="mode.value">
+                  {{ $t(mode.label) }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </FormItem>
+
+          <form.Field v-if="publishMode === 'schedule'" name="publishAt">
+            <template #default="{ field }">
+              <FormItem>
+                <Label for="announcement-publish-at" :data-error="invalid(field.state.meta)" class="data-[error=true]:text-destructive">
+                  {{ $t('announcements.fields.publishAt') }}
+                </Label>
+                <Input
+                  id="announcement-publish-at"
+                  type="datetime-local"
+                  :model-value="field.state.value"
+                  :aria-invalid="invalid(field.state.meta) || undefined"
+                  @update:model-value="field.handleChange(String($event))"
+                  @blur="field.handleBlur"
+                />
+                <FieldDescription>{{ $t('announcements.fields.publishAtHint') }}</FieldDescription>
+                <FieldError v-if="invalid(field.state.meta)" :errors="field.state.meta.errors" />
+              </FormItem>
+            </template>
+          </form.Field>
+        </template>
       </form>
 
       <DialogFooter>
@@ -181,7 +222,7 @@ function invalid(meta: { isTouched: boolean, errors: unknown[] }) {
             {{ $t('common.saveChanges') }}
           </template>
           <template v-else>
-            {{ publishNow ? $t('announcements.createAndPublish') : $t('announcements.saveDraft') }}
+            {{ $t(`announcements.submit.${publishMode}`) }}
           </template>
         </Button>
       </DialogFooter>

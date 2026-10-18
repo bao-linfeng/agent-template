@@ -247,7 +247,8 @@
     "avatarType": "Please choose a PNG, JPEG, GIF or WebP image.",
     "avatarSize": "The image must be smaller than {size} MB.",
     "textMax": "Must not be longer than {max} characters.",
-    "futureTime": "Pick a time in the future."
+    "futureTime": "Pick a time in the future.",
+    "expiryAfterPublish": "The expiry must be after the publication time."
   },
   "avatar": {
     "upload": "Upload avatar",
@@ -391,6 +392,7 @@
     "ADMIN_CANNOT_RESET_OWN_MFA": "You cannot reset your own two-factor authentication; turn it off in Settings instead.",
     "ANNOUNCEMENT_EXPIRY_INVALID": "The expiry time must be in the future.",
     "ANNOUNCEMENT_NOT_FOUND": "Announcement not found.",
+    "ANNOUNCEMENT_SCHEDULE_INVALID": "The publish time must be in the future and before the expiry time.",
     "NOTIFICATION_CATEGORY_MANDATORY": "This kind of notification cannot be turned off.",
     "NOTIFICATION_CATEGORY_UNKNOWN": "Unknown notification category.",
     "NOTIFICATION_NOT_FOUND": "Notification not found.",
@@ -825,7 +827,7 @@
     "readOnly": "You can view announcements. Writing them needs the announcement:manage permission.",
     "new": "New announcement",
     "editTitle": "Edit announcement",
-    "createDescription": "Save a draft or publish it right away.",
+    "createDescription": "Save a draft, publish it right away or schedule it.",
     "searchPlaceholder": "Search titles...",
     "allStatuses": "All statuses",
     "allAudiences": "All audiences",
@@ -839,11 +841,15 @@
       "status": "Status",
       "expiresAt": "Expires",
       "expiresAtHint": "Optional. Hidden from the audience from then on.",
+      "publishMode": "Publication",
+      "publishAt": "Publish at",
+      "publishAtHint": "Hidden from the audience until then.",
       "publishedAt": "Published",
       "readCount": "Read by"
     },
     "statuses": {
       "draft": "Draft",
+      "scheduled": "Scheduled",
       "published": "Published",
       "expired": "Expired"
     },
@@ -853,17 +859,31 @@
       "admin": "Administrators"
     },
     "noExpiry": "Never",
-    "publishNow": "Publish right away",
-    "saveDraft": "Save draft",
-    "createAndPublish": "Publish",
+    "publishModes": {
+      "draft": "Save as draft",
+      "now": "Publish right away",
+      "schedule": "Schedule"
+    },
+    "submit": {
+      "draft": "Save draft",
+      "now": "Publish",
+      "schedule": "Schedule"
+    },
     "publish": "Publish",
+    "publishNowAction": "Publish now",
+    "schedule": "Schedule...",
+    "reschedule": "Change publication time",
     "withdraw": "Withdraw",
     "created": "Announcement saved.",
     "updated": "Announcement updated.",
     "published": "Announcement published.",
+    "scheduled": "Announcement scheduled.",
     "withdrawn": "Announcement withdrawn to drafts.",
     "deleted": "Announcement deleted.",
     "deleteTitle": "Delete \"{title}\"?",
-    "deleteDescription": "It disappears for everyone, including who already read it. This cannot be undone."
+    "deleteDescription": "It disappears for everyone, including who already read it. This cannot be undone.",
+    "scheduleTitle": "Schedule announcement",
+    "scheduleDescription": "\"{title}\" stays hidden from its audience until the chosen time.",
+    "publishAfterExpiry": "The publication time must be before the expiry."
   }
 }

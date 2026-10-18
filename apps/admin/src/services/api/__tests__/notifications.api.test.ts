@@ -71,11 +71,12 @@ describe('notification inbox transport', () => {
 })
 
 describe('announcement administration transport', () => {
-  it('lists, creates, edits, publishes, withdraws and deletes', async () => {
+  it('lists, creates, edits, publishes, schedules, withdraws and deletes', async () => {
     await fetchAnnouncements({ status: 'draft', keyword: '', audience: 'user' })
     await createAnnouncement({ title: 'Hi', body: 'There', level: 'info', audience: 'all', publish: true })
     await updateAnnouncement('a1', { expiresAt: null })
-    await publishAnnouncement('a1')
+    await publishAnnouncement({ id: 'a1' })
+    await publishAnnouncement({ id: 'a1', publishAt: '2030-01-01T00:00:00.000Z' })
     await withdrawAnnouncement('a1')
     await deleteAnnouncement('a1')
     expect(apiFetch.mock.calls).toEqual([
@@ -83,6 +84,7 @@ describe('announcement administration transport', () => {
       ['/announcements', { method: 'post', body: { title: 'Hi', body: 'There', level: 'info', audience: 'all', publish: true } }],
       ['/announcements/a1', { method: 'patch', body: { expiresAt: null } }],
       ['/announcements/a1/publish', { method: 'post' }],
+      ['/announcements/a1/publish', { method: 'post', body: { publishAt: '2030-01-01T00:00:00.000Z' } }],
       ['/announcements/a1/withdraw', { method: 'post' }],
       ['/announcements/a1', { method: 'delete' }],
     ])

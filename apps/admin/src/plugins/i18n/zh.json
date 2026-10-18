@@ -247,7 +247,8 @@
     "avatarType": "请选择 PNG、JPEG、GIF 或 WebP 图片。",
     "avatarSize": "图片需小于 {size} MB。",
     "textMax": "不能超过 {max} 个字符。",
-    "futureTime": "请选择晚于当前的时间。"
+    "futureTime": "请选择晚于当前的时间。",
+    "expiryAfterPublish": "过期时间必须晚于发布时间。"
   },
   "avatar": {
     "upload": "上传头像",
@@ -391,6 +392,7 @@
     "ADMIN_CANNOT_RESET_OWN_MFA": "不能重置自己的两步验证，请在设置中关闭。",
     "ANNOUNCEMENT_EXPIRY_INVALID": "过期时间必须晚于当前时间。",
     "ANNOUNCEMENT_NOT_FOUND": "公告不存在。",
+    "ANNOUNCEMENT_SCHEDULE_INVALID": "发布时间必须晚于当前时间且早于过期时间。",
     "NOTIFICATION_CATEGORY_MANDATORY": "这类通知不能关闭。",
     "NOTIFICATION_CATEGORY_UNKNOWN": "未知的通知分类。",
     "NOTIFICATION_NOT_FOUND": "通知不存在。",
@@ -825,7 +827,7 @@
     "readOnly": "你可以查看公告。发布和编辑需要 announcement:manage 权限。",
     "new": "新建公告",
     "editTitle": "编辑公告",
-    "createDescription": "可以保存为草稿，也可以立即发布。",
+    "createDescription": "可以保存为草稿、立即发布或定时发布。",
     "searchPlaceholder": "搜索标题...",
     "allStatuses": "全部状态",
     "allAudiences": "全部受众",
@@ -839,11 +841,15 @@
       "status": "状态",
       "expiresAt": "过期时间",
       "expiresAtHint": "可选。到期后不再向受众展示。",
+      "publishMode": "发布方式",
+      "publishAt": "定时发布时间",
+      "publishAtHint": "到达该时间前不会向受众展示。",
       "publishedAt": "发布时间",
       "readCount": "已读人数"
     },
     "statuses": {
       "draft": "草稿",
+      "scheduled": "待发布",
       "published": "已发布",
       "expired": "已过期"
     },
@@ -853,17 +859,31 @@
       "admin": "管理员"
     },
     "noExpiry": "永不过期",
-    "publishNow": "立即发布",
-    "saveDraft": "保存草稿",
-    "createAndPublish": "发布",
+    "publishModes": {
+      "draft": "保存为草稿",
+      "now": "立即发布",
+      "schedule": "定时发布"
+    },
+    "submit": {
+      "draft": "保存草稿",
+      "now": "发布",
+      "schedule": "定时发布"
+    },
     "publish": "发布",
+    "publishNowAction": "立即发布",
+    "schedule": "定时发布…",
+    "reschedule": "修改发布时间",
     "withdraw": "撤回",
     "created": "公告已保存。",
     "updated": "公告已更新。",
     "published": "公告已发布。",
+    "scheduled": "已设置定时发布。",
     "withdrawn": "公告已撤回为草稿。",
     "deleted": "公告已删除。",
     "deleteTitle": "删除「{title}」？",
-    "deleteDescription": "删除后所有人都看不到这条公告，包括已读的用户。此操作无法撤销。"
+    "deleteDescription": "删除后所有人都看不到这条公告，包括已读的用户。此操作无法撤销。",
+    "scheduleTitle": "定时发布公告",
+    "scheduleDescription": "「{title}」在所选时间之前不会向受众展示。",
+    "publishAfterExpiry": "发布时间必须早于过期时间。"
   }
 }

@@ -20,12 +20,14 @@ import {
 import {
   CreateAnnouncementDto,
   ListAnnouncementsQueryDto,
+  PublishAnnouncementDto,
   UpdateAnnouncementDto,
 } from '../dto/announcement.dto.js'
 
 /**
  * Announcements to client users, admins or both. Visible to the audience (`.../notifications/announcements`)
- * while published and not expired; publishing and edits reach open notification streams immediately.
+ * from the publication time until they expire; publishing, edits, scheduled publication and expiry reach
+ * open notification streams immediately.
  */
 @ApiTags('admin / announcements')
 @AdminController('announcements')
@@ -45,7 +47,11 @@ export class AnnouncementsController {
     return this.announcements.get(id)
   }
 
-  /** A draft, or published right away with `publish: true`. 400 `ANNOUNCEMENT_EXPIRY_INVALID` for a past `expiresAt`. */
+  /**
+   * A draft, published right away with `publish: true` or scheduled with `publishAt`. 400
+   * `ANNOUNCEMENT_EXPIRY_INVALID` for a past `expiresAt`, `ANNOUNCEMENT_SCHEDULE_INVALID` for a `publishAt`
+   * in the past, not before `expiresAt` or combined with `publish`.
+   */
   @Post()
   @RequirePermissions('announcement:manage')
   create(
@@ -65,18 +71,23 @@ export class AnnouncementsController {
     return this.announcements.update(id, dto, actor.id)
   }
 
-  /** No-op when already published; 400 `ANNOUNCEMENT_EXPIRY_INVALID` once `expiresAt` has passed. */
+  /**
+   * Now (no-op when already published), or at `publishAt` (also reschedules, and hides a published one
+   * until then). 400 `ANNOUNCEMENT_EXPIRY_INVALID` once `expiresAt` has passed, `ANNOUNCEMENT_SCHEDULE_INVALID`
+   * for a `publishAt` in the past or not before `expiresAt`.
+   */
   @Post(':id/publish')
   @HttpCode(200)
   @RequirePermissions('announcement:manage')
   publish(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PublishAnnouncementDto,
     @CurrentUser() actor: AuthUser,
   ): Promise<AnnouncementView> {
-    return this.announcements.publish(id, actor.id)
+    return this.announcements.publish(id, actor.id, dto.publishAt)
   }
 
-  /** Back to a draft (hidden from the audience). */
+  /** Back to a draft (hidden from the audience), also for a scheduled one. */
   @Post(':id/withdraw')
   @HttpCode(200)
   @RequirePermissions('announcement:manage')

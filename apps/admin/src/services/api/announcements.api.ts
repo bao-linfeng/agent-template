@@ -13,7 +13,8 @@ import { NOTIFICATIONS_KEY } from './notifications.api'
 
 /** `user` = client app users, `admin` = admin console accounts. */
 export type AnnouncementAudience = 'all' | 'user' | 'admin'
-export type AnnouncementStatus = 'draft' | 'published' | 'expired'
+/** `scheduled`: `publishedAt` is still in the future, hidden from the audience until then. */
+export type AnnouncementStatus = 'draft' | 'scheduled' | 'published' | 'expired'
 
 /** An announcement as administered (`/v1/admin/announcements`). Dates are ISO strings. */
 export interface IAnnouncement {
@@ -55,6 +56,8 @@ export interface IAnnouncementBody {
 export interface ICreateAnnouncementBody extends IAnnouncementBody {
   /** Publish right away instead of saving a draft. */
   publish?: boolean
+  /** Publish at this time instead (ISO 8601, in the future and before `expiresAt`); not with `publish`. */
+  publishAt?: string
 }
 
 const ANNOUNCEMENTS_KEY = ['announcements'] as const
@@ -64,7 +67,7 @@ export function fetchAnnouncements(query: IListAnnouncementsQuery = {}) {
   return apiFetch<IPaginated<IAnnouncement>>('/announcements', { method: 'get', query: compactQuery(query) })
 }
 
-/** 400 `ANNOUNCEMENT_EXPIRY_INVALID` for an expiry in the past. */
+/** 400 `ANNOUNCEMENT_EXPIRY_INVALID` for an expiry in the past, `ANNOUNCEMENT_SCHEDULE_INVALID` for a bad `publishAt`. */
 export function createAnnouncement(body: ICreateAnnouncementBody) {
   return apiFetch<IAnnouncement>('/announcements', { method: 'post', body })
 }
@@ -73,12 +76,15 @@ export function updateAnnouncement(id: string, body: Partial<IAnnouncementBody>)
   return apiFetch<IAnnouncement>(`/announcements/${id}`, { method: 'patch', body })
 }
 
-/** No-op when already published; 400 `ANNOUNCEMENT_EXPIRY_INVALID` once it has expired. */
-export function publishAnnouncement(id: string) {
-  return apiFetch<IAnnouncement>(`/announcements/${id}/publish`, { method: 'post' })
+/**
+ * Now (no-op when already published) or, with `publishAt`, (re)scheduled. 400 `ANNOUNCEMENT_EXPIRY_INVALID`
+ * once it has expired, `ANNOUNCEMENT_SCHEDULE_INVALID` for a time in the past or not before the expiry.
+ */
+export function publishAnnouncement({ id, publishAt }: { id: string, publishAt?: string }) {
+  return apiFetch<IAnnouncement>(`/announcements/${id}/publish`, publishAt ? { method: 'post', body: { publishAt } } : { method: 'post' })
 }
 
-/** Back to a draft, hidden from the audience. */
+/** Back to a draft, hidden from the audience (also a scheduled one). */
 export function withdrawAnnouncement(id: string) {
   return apiFetch<IAnnouncement>(`/announcements/${id}/withdraw`, { method: 'post' })
 }

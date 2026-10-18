@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common'
+import { InjectQueue } from '@nestjs/bullmq'
+import { Injectable, Logger } from '@nestjs/common'
+import type { Queue } from 'bullmq'
 import {
   and,
   count,
@@ -33,6 +35,7 @@ import {
   type AnnouncementLevel,
   type AnnouncementRow,
 } from '../../database/schema/index.js'
+import { QUEUES } from '../../infra/queue/queue.module.js'
 import type { Realm } from '../auth/realms.js'
 import type {
   AnnouncementStatus,
@@ -72,6 +75,15 @@ export interface InboxAnnouncementView {
   readAt: Date | null
 }
 
+/** Job on queue `notifications`: tell the audience's streams that the announcement appeared or expired at `at`. */
+export interface AnnouncementSignalJob {
+  id: string
+  /** `publishedAt` or `expiresAt` in epoch milliseconds; a job whose time no longer matches is stale. */
+  at: number
+}
+
+export const ANNOUNCEMENT_SIGNAL_JOB = 'announcement-signal'
+
 const REALM_AUDIENCES: Record<Realm, AnnouncementAudience[]> = {
   user: ['all', 'user'],
   admin: ['all', 'admin'],
@@ -86,10 +98,13 @@ function statusOf(row: AnnouncementRow, now = new Date()): AnnouncementStatus {
   if (!row.publishedAt) {
     return 'draft'
   }
+  if (row.publishedAt > now) {
+    return 'scheduled'
+  }
   return row.expiresAt && row.expiresAt <= now ? 'expired' : 'published'
 }
 
-/** Published, not expired. */
+/** Published (publication time reached), not expired. */
 function isVisible(row: AnnouncementRow, now = new Date()): boolean {
   return statusOf(row, now) === 'published'
 }
@@ -111,13 +126,19 @@ const readCount = sql<number>`(
 /**
  * Announcements to every account of a realm (or both), written in the admin console. Stored once and
  * matched by audience when read; per-account read marks live in `*_announcement_reads`. Publishing,
- * editing a published one, withdrawing and deleting signal the audience's open streams.
+ * editing a published one, withdrawing and deleting signal the audience's open streams. A scheduled
+ * one is a `publishedAt` in the future: queries hide it until then, and delayed jobs signal the streams
+ * when it appears and when it expires (only signals: a lost job delays live updates, not visibility).
  */
 @Injectable()
 export class AnnouncementsService {
+  private readonly logger = new Logger(AnnouncementsService.name)
+
   constructor(
     @InjectDb() private readonly db: Database,
     private readonly streams: NotificationStreamService,
+    @InjectQueue(QUEUES.notifications)
+    private readonly queue: Queue<AnnouncementSignalJob>,
   ) {}
 
   // ---- Administration ----------------------------------------------------------------------
@@ -130,9 +151,11 @@ export class AnnouncementsService {
     const conditions: (SQL | undefined)[] = []
     if (query.status === 'draft') {
       conditions.push(isNull(announcements.publishedAt))
+    } else if (query.status === 'scheduled') {
+      conditions.push(gt(announcements.publishedAt, now))
     } else if (query.status === 'published') {
       conditions.push(
-        isNotNull(announcements.publishedAt),
+        lte(announcements.publishedAt, now),
         or(isNull(announcements.expiresAt), gt(announcements.expiresAt, now)),
       )
     } else if (query.status === 'expired') {
@@ -183,6 +206,12 @@ export class AnnouncementsService {
     adminUserId: string,
   ): Promise<AnnouncementView> {
     assertFutureExpiry(dto.expiresAt)
+    if (dto.publishAt) {
+      if (dto.publish) {
+        throw new AppException('ANNOUNCEMENT_SCHEDULE_INVALID')
+      }
+      assertSchedule(dto.publishAt, dto.expiresAt)
+    }
     const [created] = await this.db
       .insert(announcements)
       .values({
@@ -191,16 +220,20 @@ export class AnnouncementsService {
         level: dto.level,
         audience: dto.audience,
         expiresAt: dto.expiresAt,
-        publishedAt: dto.publish ? new Date() : null,
+        publishedAt: dto.publishAt ?? (dto.publish ? new Date() : null),
         createdBy: adminUserId,
         updatedBy: adminUserId,
       })
       .returning()
     await this.signal(created!, created!)
+    await this.scheduleSignals(created!)
     return toView(created!, 0)
   }
 
-  /** Edits keep the publication state; a published one is signalled to its (old and new) audience again. */
+  /**
+   * Edits keep the publication state; a published one is signalled to its (old and new) audience again.
+   * A scheduled one keeps its time, so a new `expiresAt` must come after it (`ANNOUNCEMENT_SCHEDULE_INVALID`).
+   */
   async update(
     id: string,
     dto: UpdateAnnouncementDto,
@@ -210,6 +243,13 @@ export class AnnouncementsService {
       assertFutureExpiry(dto.expiresAt)
     }
     const before = await this.getRow(id)
+    if (
+      dto.expiresAt &&
+      before.publishedAt &&
+      before.publishedAt > new Date()
+    ) {
+      assertSchedule(before.publishedAt, dto.expiresAt)
+    }
     const [updated] = await this.db
       .update(announcements)
       .set({
@@ -226,29 +266,55 @@ export class AnnouncementsService {
       throw new AppException('ANNOUNCEMENT_NOT_FOUND')
     }
     await this.signal(before, updated)
+    await this.scheduleSignals(updated)
     return this.get(id)
   }
 
-  /** Makes a draft visible now; publishing a published one changes nothing. 400 when it has expired. */
-  async publish(id: string, adminUserId: string): Promise<AnnouncementView> {
+  /**
+   * Without `publishAt`, makes a draft or scheduled one visible now; publishing a published one changes
+   * nothing. With `publishAt`, (re)schedules it, which hides a published one until then. 400
+   * `ANNOUNCEMENT_EXPIRY_INVALID` when it has expired, `ANNOUNCEMENT_SCHEDULE_INVALID` for a time in the
+   * past or not before `expiresAt`.
+   */
+  async publish(
+    id: string,
+    adminUserId: string,
+    publishAt?: Date,
+  ): Promise<AnnouncementView> {
     const before = await this.getRow(id)
-    if (before.expiresAt && before.expiresAt <= new Date()) {
+    const now = new Date()
+    if (before.expiresAt && before.expiresAt <= now) {
       throw new AppException('ANNOUNCEMENT_EXPIRY_INVALID')
     }
-    if (!before.publishedAt) {
+    if (publishAt) {
+      assertSchedule(publishAt, before.expiresAt)
+    }
+    if (publishAt || !before.publishedAt || before.publishedAt > now) {
       const [published] = await this.db
         .update(announcements)
-        .set({ publishedAt: new Date(), updatedBy: adminUserId })
-        .where(and(eq(announcements.id, id), isNull(announcements.publishedAt)))
+        .set({ publishedAt: publishAt ?? now, updatedBy: adminUserId })
+        .where(
+          publishAt
+            ? eq(announcements.id, id)
+            : // Not over a concurrent publication: the first publication time stays.
+              and(
+                eq(announcements.id, id),
+                or(
+                  isNull(announcements.publishedAt),
+                  gt(announcements.publishedAt, now),
+                ),
+              ),
+        )
         .returning()
       if (published) {
         await this.signal(before, published)
+        await this.scheduleSignals(published)
       }
     }
     return this.get(id)
   }
 
-  /** Turns it back into a draft (hidden); read marks are kept for a later republish. */
+  /** Turns it (published or scheduled) back into a draft (hidden); read marks are kept for a later republish. */
   async withdraw(id: string, adminUserId: string): Promise<AnnouncementView> {
     const before = await this.getRow(id)
     if (before.publishedAt) {
@@ -273,6 +339,28 @@ export class AnnouncementsService {
       throw new AppException('ANNOUNCEMENT_NOT_FOUND')
     }
     await this.signal(deleted, undefined)
+  }
+
+  /**
+   * Runs the delayed job queued by `scheduleSignals`: signals the audience if the announcement still
+   * appears or expires at `at`. Withdrawn, rescheduled and deleted ones are skipped.
+   */
+  async signalScheduled({ id, at }: AnnouncementSignalJob): Promise<void> {
+    const [row] = await this.db
+      .select()
+      .from(announcements)
+      .where(eq(announcements.id, id))
+      .limit(1)
+    if (
+      !row ||
+      (row.publishedAt?.getTime() !== at && row.expiresAt?.getTime() !== at)
+    ) {
+      return
+    }
+    await this.streams.broadcast(AUDIENCE_REALMS[row.audience], {
+      event: 'announcement',
+      data: { id },
+    })
   }
 
   // ---- Inbox of an account -----------------------------------------------------------------
@@ -411,7 +499,33 @@ export class AnnouncementsService {
     return row
   }
 
-  /** Signals the realms that saw it before or see it now; drafts and expired ones concern nobody. */
+  /**
+   * Queues a signal for each future publication or expiry time of `row`. The job id turns repeated saves
+   * with the same times into one job; jobs of times that changed find nothing to do. Never throws, like
+   * `NotificationStreamService.publish`: the change is saved, only its live update would be late.
+   */
+  private async scheduleSignals(row: AnnouncementRow): Promise<void> {
+    const now = Date.now()
+    for (const time of [row.publishedAt, row.expiresAt]) {
+      const at = time?.getTime()
+      if (at === undefined || at <= now) {
+        continue
+      }
+      try {
+        await this.queue.add(
+          ANNOUNCEMENT_SIGNAL_JOB,
+          { id: row.id, at },
+          { jobId: `announcement-${row.id}-${at}`, delay: at - now },
+        )
+      } catch (error) {
+        this.logger.warn(
+          `Could not schedule an announcement signal: ${(error as Error).message}`,
+        )
+      }
+    }
+  }
+
+  /** Signals the realms that saw it before or see it now; drafts, scheduled and expired ones concern nobody. */
   private async signal(
     before: AnnouncementRow,
     after: AnnouncementRow | undefined,
@@ -434,6 +548,15 @@ export class AnnouncementsService {
 function assertFutureExpiry(expiresAt: Date | undefined): void {
   if (expiresAt && expiresAt <= new Date()) {
     throw new AppException('ANNOUNCEMENT_EXPIRY_INVALID')
+  }
+}
+
+function assertSchedule(
+  publishAt: Date,
+  expiresAt: Date | null | undefined,
+): void {
+  if (publishAt <= new Date() || (expiresAt && expiresAt <= publishAt)) {
+    throw new AppException('ANNOUNCEMENT_SCHEDULE_INVALID')
   }
 }
 

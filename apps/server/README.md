@@ -12,7 +12,7 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 | AI `ai`                              | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                                                                                                                                                                                    |
 | RAG `rag`                            | 客户端用户自己的知识库（`/api/v1/client/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/v1/admin/rag/knowledge-bases` 查看/删除所有知识库                                                         |
 | 系统设置 `settings`                  | 运行时设置与功能开关（注册开关、注销宽限期、清理任务参数等），后台 `/api/v1/admin/settings` 修改后各实例立即生效、无需重启；公开项通过 `/api/v1/client/settings` 读取                                                                                                     |
-| 通知 `notifications`                 | 站内通知（安全变更、导出完成、知识库文档处理结果等，可按分类和渠道选择是否接收，安全类不可关闭）、管理员发布的全站公告（面向客户端、后台或全部）、SSE 实时推送 `/api/v1/{client,admin}/notifications/stream`，多实例经 Redis 广播                                         |
+| 通知 `notifications`                 | 站内通知（安全变更、导出完成、知识库文档处理结果等，可按分类和渠道选择是否接收，安全类不可关闭）、管理员发布的全站公告（面向客户端、后台或全部，可定时发布）、SSE 实时推送 `/api/v1/{client,admin}/notifications/stream`，多实例经 Redis 广播                             |
 | 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Prometheus 指标（独立内部端口）、OpenTelemetry 链路追踪、Swagger、请求 ID 与结构化日志                                                                                                                                  |
 
 ## 快速开始

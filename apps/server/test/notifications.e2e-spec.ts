@@ -648,6 +648,131 @@ describe('notifications and announcements (e2e)', () => {
     })
   })
 
+  describe('scheduled announcements', () => {
+    it('rejects publication times in the past or after the expiry', async () => {
+      const soon = new Date(Date.now() + 60 * 60_000)
+      const cases = [
+        { publishAt: new Date(Date.now() - 60_000) },
+        { publishAt: soon, publish: true },
+        { publishAt: soon, expiresAt: new Date(soon.getTime() - 60_000) },
+      ]
+      for (const extra of cases) {
+        const response = await admin
+          .post(`${ADMIN_API}/announcements`)
+          .send({ title: 'Later', body: 'Soon', ...extra })
+          .expect(400)
+        expect(response.body.code).toBe('ANNOUNCEMENT_SCHEDULE_INVALID')
+      }
+
+      const scheduled = await admin
+        .post(`${ADMIN_API}/announcements`)
+        .send({ title: 'Later', body: 'Soon', publishAt: soon })
+        .expect(201)
+      expect(scheduled.body).toMatchObject({
+        status: 'scheduled',
+        publishedAt: soon.toISOString(),
+      })
+      const earlyExpiry = await admin
+        .patch(`${ADMIN_API}/announcements/${scheduled.body.id}`)
+        .send({ expiresAt: new Date(soon.getTime() - 60_000) })
+        .expect(400)
+      expect(earlyExpiry.body.code).toBe('ANNOUNCEMENT_SCHEDULE_INVALID')
+      const listed = await admin
+        .get(`${ADMIN_API}/announcements?status=scheduled`)
+        .expect(200)
+      expect(listed.body.items.map((item: { id: string }) => item.id)).toEqual([
+        scheduled.body.id,
+      ])
+      const published = await admin
+        .get(`${ADMIN_API}/announcements?status=published`)
+        .expect(200)
+      expect(
+        published.body.items.map((item: { id: string }) => item.id),
+      ).not.toContain(scheduled.body.id)
+
+      // Publishing without a time makes it visible now; withdrawing a scheduled one gives a draft.
+      const now = await admin
+        .post(`${ADMIN_API}/announcements/${scheduled.body.id}/publish`)
+        .expect(200)
+      expect(now.body.status).toBe('published')
+      expect(new Date(now.body.publishedAt).getTime()).toBeLessThanOrEqual(
+        Date.now(),
+      )
+      const rescheduled = await admin
+        .post(`${ADMIN_API}/announcements/${scheduled.body.id}/publish`)
+        .send({ publishAt: soon })
+        .expect(200)
+      expect(rescheduled.body.status).toBe('scheduled')
+      const withdrawn = await admin
+        .post(`${ADMIN_API}/announcements/${scheduled.body.id}/withdraw`)
+        .expect(200)
+      expect(withdrawn.body).toMatchObject({
+        status: 'draft',
+        publishedAt: null,
+      })
+      await admin
+        .delete(`${ADMIN_API}/announcements/${scheduled.body.id}`)
+        .expect(204)
+    })
+
+    it('appears at its publication time and signals open streams', async () => {
+      const { credentials } = await registerUser(t)
+      const login = await t
+        .http()
+        .post(`${CLIENT_API}/auth/login`)
+        .set(BEARER)
+        .send(credentials)
+        .expect(200)
+      const auth = {
+        Authorization: `Bearer ${login.body.tokens.accessToken as string}`,
+      }
+      const inboxIds = async () =>
+        (
+          await t
+            .http()
+            .get(`${CLIENT_API}/notifications/announcements`)
+            .set(auth)
+            .expect(200)
+        ).body.items.map((item: { id: string }) => item.id) as string[]
+      const stream = await openStream(
+        `${baseUrl}${CLIENT_API}/notifications/stream`,
+        auth,
+      )
+      await stream.next('ready')
+
+      const publishAt = new Date(Date.now() + 2_000)
+      const expiresAt = new Date(Date.now() + 4_000)
+      const scheduled = await admin
+        .post(`${ADMIN_API}/announcements`)
+        .send({
+          title: 'Soon',
+          body: 'Scheduled',
+          audience: 'user',
+          publishAt,
+          expiresAt,
+        })
+        .expect(201)
+      expect(await inboxIds()).not.toContain(scheduled.body.id)
+      expect(stream.events.some((item) => item.event === 'announcement')).toBe(
+        false,
+      )
+
+      // Signalled by the delayed job once visible, and again once expired.
+      const appeared = await stream.next('announcement')
+      expect(appeared.data).toEqual({ id: scheduled.body.id })
+      expect(Date.now()).toBeGreaterThanOrEqual(publishAt.getTime())
+      expect(await inboxIds()).toContain(scheduled.body.id)
+      await stream.next('announcement', stream.events.indexOf(appeared) + 1)
+      expect(Date.now()).toBeGreaterThanOrEqual(expiresAt.getTime())
+      expect(await inboxIds()).not.toContain(scheduled.body.id)
+
+      stream.close()
+      await admin
+        .delete(`${ADMIN_API}/announcements/${scheduled.body.id}`)
+        .expect(204)
+    })
+  })
+
   it('prunes notifications older than the retention period', async () => {
     const { agent, credentials } = await registerUser(t)
     await changePassword(agent, credentials.password, 'password456')

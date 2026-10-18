@@ -311,6 +311,11 @@ export const ERRORS = {
     status: HttpStatus.BAD_REQUEST,
     message: 'The expiry time must be in the future',
   },
+  ANNOUNCEMENT_SCHEDULE_INVALID: {
+    status: HttpStatus.BAD_REQUEST,
+    message:
+      'The publish time must be in the future and before the expiry time',
+  },
 
   // Audit log
   AUDIT_LOG_NOT_FOUND: {

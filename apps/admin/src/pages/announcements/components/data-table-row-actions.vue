@@ -25,6 +25,7 @@ import {
 } from '@/services/api/announcements.api'
 
 import AnnouncementDialog from './announcement-dialog.vue'
+import ScheduleDialog from './schedule-dialog.vue'
 
 const props = defineProps<{
   row: DataTableRow<IAnnouncement>
@@ -38,6 +39,14 @@ watch(isOpen, (open) => {
   if (open)
     dialogMounted.value = true
 })
+const scheduleOpen = shallowRef(false)
+const scheduleMounted = shallowRef(false)
+watch(scheduleOpen, (open) => {
+  if (open)
+    scheduleMounted.value = true
+})
+const canPublish = computed(() => announcement.value.status === 'draft' || announcement.value.status === 'scheduled')
+const canWithdraw = computed(() => announcement.value.status !== 'draft')
 const confirmingDelete = shallowRef(false)
 const publish = usePublishAnnouncementMutation()
 const withdraw = useWithdrawAnnouncementMutation()
@@ -54,7 +63,7 @@ async function run(action: () => Promise<unknown>, message: string) {
 }
 
 function onPublish() {
-  void run(() => publish.mutateAsync(announcement.value.id), t('announcements.published'))
+  void run(() => publish.mutateAsync({ id: announcement.value.id }), t('announcements.published'))
 }
 
 function onWithdraw() {
@@ -79,10 +88,15 @@ function onDelete() {
       <DropdownMenuItem @click="isOpen = true">
         {{ $t('common.edit') }}
       </DropdownMenuItem>
-      <DropdownMenuItem v-if="announcement.status === 'draft'" :disabled="publish.isPending.value" @click="onPublish">
-        {{ $t('announcements.publish') }}
-      </DropdownMenuItem>
-      <DropdownMenuItem v-else :disabled="withdraw.isPending.value" @click="onWithdraw">
+      <template v-if="canPublish">
+        <DropdownMenuItem :disabled="publish.isPending.value" @click="onPublish">
+          {{ announcement.status === 'scheduled' ? $t('announcements.publishNowAction') : $t('announcements.publish') }}
+        </DropdownMenuItem>
+        <DropdownMenuItem @click="scheduleOpen = true">
+          {{ announcement.status === 'scheduled' ? $t('announcements.reschedule') : $t('announcements.schedule') }}
+        </DropdownMenuItem>
+      </template>
+      <DropdownMenuItem v-if="canWithdraw" :disabled="withdraw.isPending.value" @click="onWithdraw">
         {{ $t('announcements.withdraw') }}
       </DropdownMenuItem>
       <DropdownMenuSeparator />
@@ -93,6 +107,7 @@ function onDelete() {
   </DropdownMenu>
 
   <AnnouncementDialog v-if="dialogMounted" v-model:open="isOpen" :announcement="announcement" />
+  <ScheduleDialog v-if="scheduleMounted" v-model:open="scheduleOpen" :announcement="announcement" />
 
   <AlertDialog v-model:open="confirmingDelete">
     <AlertDialogContent>

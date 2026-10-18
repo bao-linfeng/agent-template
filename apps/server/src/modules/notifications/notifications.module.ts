@@ -1,6 +1,9 @@
+import { BullModule } from '@nestjs/bullmq'
 import { Global, Module } from '@nestjs/common'
+import { QUEUES } from '../../infra/queue/queue.module.js'
 import { AnnouncementsController } from './admin/announcements.controller.js'
 import { AdminNotificationsController } from './admin/notifications.controller.js'
+import { AnnouncementSignalsProcessor } from './announcement-signals.processor.js'
 import { AnnouncementsService } from './announcements.service.js'
 import { ClientNotificationsController } from './client/notifications.controller.js'
 import { NotificationStreamService } from './notification-stream.service.js'
@@ -13,6 +16,7 @@ import { NotificationsService } from './notifications.service.js'
  */
 @Global()
 @Module({
+  imports: [BullModule.registerQueue({ name: QUEUES.notifications })],
   controllers: [
     ClientNotificationsController,
     AdminNotificationsController,
@@ -22,6 +26,7 @@ import { NotificationsService } from './notifications.service.js'
     NotificationStreamService,
     NotificationsService,
     AnnouncementsService,
+    AnnouncementSignalsProcessor,
   ],
   exports: [NotificationsService],
 })
