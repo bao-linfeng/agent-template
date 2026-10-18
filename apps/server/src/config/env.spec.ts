@@ -74,18 +74,53 @@ describe('validateEnv', () => {
     )
   })
 
+  const production = {
+    NODE_ENV: 'production',
+    JWT_SECRET: 'x'.repeat(48),
+    ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
+    PUBLIC_URL: 'https://api.example.com',
+    APP_WEB_URL: 'https://app.example.com',
+    CORS_ORIGINS: 'https://admin.example.com,https://app.example.com',
+    DATABASE_URL: 'postgres://app:secret@postgres:5432/app',
+    REDIS_URL: 'redis://:secret@redis:6379',
+    STORAGE_ACCESS_KEY: 'storage-access',
+    STORAGE_SECRET_KEY: 'storage-secret',
+  }
+
   it('requires secrets in production and enables secure defaults', () => {
     expect(() => validateEnv({ NODE_ENV: 'production' })).toThrow(
       /JWT_SECRET must be set in production/,
     )
 
-    const env = validateEnv({
-      NODE_ENV: 'production',
-      JWT_SECRET: 'x'.repeat(48),
-      ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
-    })
+    const env = validateEnv(production)
     expect(env.COOKIE_SECURE).toBe(true)
     expect(env.SWAGGER_ENABLED).toBe(false)
+    expect(env.CORS_ORIGINS).toEqual([
+      'https://admin.example.com',
+      'https://app.example.com',
+    ])
+  })
+
+  it.each([
+    'PUBLIC_URL',
+    'APP_WEB_URL',
+    'CORS_ORIGINS',
+    'DATABASE_URL',
+    'REDIS_URL',
+  ])('requires %s in production instead of a localhost default', (key) => {
+    expect(() => validateEnv({ ...production, [key]: undefined })).toThrow(
+      new RegExp(`${key} must be set in production`),
+    )
+  })
+
+  it('rejects missing or local storage credentials in production', () => {
+    for (const value of [undefined, '', 'rustfsadmin']) {
+      expect(() =>
+        validateEnv({ ...production, STORAGE_SECRET_KEY: value }),
+      ).toThrow(/STORAGE_SECRET_KEY must be set to real credentials/)
+    }
+    // Local development keeps working with the RustFS container defaults.
+    expect(validateEnv({}).STORAGE_ACCESS_KEY).toBe('rustfsadmin')
   })
 
   it('accepts previous encryption keys for rotation', () => {

@@ -3,6 +3,20 @@ import { z } from 'zod'
 const DEV_JWT_SECRET = 'local-development-only-jwt-secret-change-me'
 // 32 zero bytes, base64. Only usable outside production.
 const DEV_ENCRYPTION_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+// Credentials of the local RustFS container (docker-compose.yml). Rejected in production.
+const DEV_STORAGE_KEY = 'rustfsadmin'
+
+/**
+ * Local defaults of addresses that must be set explicitly in production: a forgotten one would send
+ * reset links, avatar URLs or connections to localhost.
+ */
+const DEV_ADDRESSES = {
+  PUBLIC_URL: 'http://localhost:3100',
+  APP_WEB_URL: 'http://localhost:5175',
+  CORS_ORIGINS: ['http://localhost:5175', 'http://localhost:5174'],
+  DATABASE_URL: 'postgres://app:app@localhost:5432/app',
+  REDIS_URL: 'redis://localhost:6379',
+}
 
 const booleanString = z
   .enum(['true', 'false', '1', '0'])
@@ -29,21 +43,20 @@ export const envSchema = z
     HOST: z.string().default('0.0.0.0'),
     PORT: z.coerce.number().int().positive().default(3100),
     API_PREFIX: z.string().default('api'),
-    /** Public base URL of this API, used to build absolute links such as avatar URLs. */
-    PUBLIC_URL: z.url().default('http://localhost:3100'),
-    /** Public URL of the web app that renders links sent by email (e.g. reset-password page). */
-    APP_WEB_URL: z.url().default('http://localhost:5175'),
-    CORS_ORIGINS: csv.default([
-      'http://localhost:5175',
-      'http://localhost:5174',
-    ]),
+    /** Public base URL of this API, used to build absolute links such as avatar URLs. Required in production. */
+    PUBLIC_URL: z.url().optional(),
+    /** Public URL of the web app that renders links sent by email (e.g. reset-password page). Required in production. */
+    APP_WEB_URL: z.url().optional(),
+    /** Required in production. */
+    CORS_ORIGINS: csv.optional(),
     TRUST_PROXY: booleanString.default(false),
     LOG_LEVEL: z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
     SWAGGER_ENABLED: booleanString.optional(),
 
-    DATABASE_URL: z.string().default('postgres://app:app@localhost:5432/app'),
+    /** Required in production. */
+    DATABASE_URL: z.string().optional(),
     DATABASE_POOL_MAX: z.coerce.number().int().positive().default(10),
     /** PostgreSQL cancels statements running longer than this; 0 = no limit. Migrations always run without it. */
     DATABASE_STATEMENT_TIMEOUT_MS: z.coerce
@@ -63,7 +76,8 @@ export const envSchema = z
       .int()
       .min(0)
       .default(5_000),
-    REDIS_URL: z.string().default('redis://localhost:6379'),
+    /** Required in production. */
+    REDIS_URL: z.string().optional(),
 
     JWT_SECRET: z.string().min(32).optional(),
     ACCESS_TOKEN_TTL_SECONDS: z.coerce
@@ -116,8 +130,9 @@ export const envSchema = z
 
     STORAGE_ENDPOINT: z.url().default('http://localhost:9000'),
     STORAGE_REGION: z.string().default('us-east-1'),
-    STORAGE_ACCESS_KEY: z.string().default('rustfsadmin'),
-    STORAGE_SECRET_KEY: z.string().default('rustfsadmin'),
+    /** The local RustFS credentials by default; production needs real ones. */
+    STORAGE_ACCESS_KEY: z.string().default(DEV_STORAGE_KEY),
+    STORAGE_SECRET_KEY: z.string().default(DEV_STORAGE_KEY),
     STORAGE_BUCKET: z.string().default('app'),
     STORAGE_FORCE_PATH_STYLE: booleanString.default(true),
     /** Create the bucket on startup when missing (disable if the credentials cannot create buckets). */
@@ -212,12 +227,26 @@ export const envSchema = z
     if (env.NODE_ENV !== 'production') {
       return
     }
-    for (const key of ['JWT_SECRET', 'ENCRYPTION_KEY'] as const) {
-      if (!env[key]) {
+    for (const key of [
+      'JWT_SECRET',
+      'ENCRYPTION_KEY',
+      ...(Object.keys(DEV_ADDRESSES) as (keyof typeof DEV_ADDRESSES)[]),
+    ] as const) {
+      const value = env[key]
+      if (!value || (Array.isArray(value) && value.length === 0)) {
         ctx.addIssue({
           code: 'custom',
           path: [key],
           message: `${key} must be set in production`,
+        })
+      }
+    }
+    for (const key of ['STORAGE_ACCESS_KEY', 'STORAGE_SECRET_KEY'] as const) {
+      if (!env[key] || env[key] === DEV_STORAGE_KEY) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          message: `${key} must be set to real credentials in production`,
         })
       }
     }
@@ -226,6 +255,11 @@ export const envSchema = z
     const isProduction = env.NODE_ENV === 'production'
     return {
       ...env,
+      PUBLIC_URL: env.PUBLIC_URL ?? DEV_ADDRESSES.PUBLIC_URL,
+      APP_WEB_URL: env.APP_WEB_URL ?? DEV_ADDRESSES.APP_WEB_URL,
+      CORS_ORIGINS: env.CORS_ORIGINS ?? DEV_ADDRESSES.CORS_ORIGINS,
+      DATABASE_URL: env.DATABASE_URL ?? DEV_ADDRESSES.DATABASE_URL,
+      REDIS_URL: env.REDIS_URL ?? DEV_ADDRESSES.REDIS_URL,
       JWT_SECRET: env.JWT_SECRET ?? DEV_JWT_SECRET,
       ENCRYPTION_KEY: env.ENCRYPTION_KEY ?? DEV_ENCRYPTION_KEY,
       COOKIE_SECURE: env.COOKIE_SECURE ?? isProduction,
