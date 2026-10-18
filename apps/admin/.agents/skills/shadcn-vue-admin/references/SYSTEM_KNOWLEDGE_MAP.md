@@ -52,7 +52,7 @@ meta:
 
 - ofetch client: `src/lib/api-client.ts`, an instance of `createApiClient` from `@repo/utils` (`apiFetch`: cookies via `credentials: 'include'`, shared `POST /auth/refresh` + one retry on 401, sign-out on failure; `getErrorMessage` translates server error codes via `apiErrors.*`, falling back to the server message)
 - Vue Query plugin: `src/plugins/tanstack-vue-query/setup.ts` (global error toasts for queries and mutations, 401 excluded)
-- API modules: `src/services/api/*.api.ts` — transport functions + query/mutation hooks. Real server APIs: `auth`, `me`, `admin-users` (client users), `admins` (admin accounts), `roles`, `embedding-models`, `audit-logs`, `settings` (runtime settings; form helpers in `src/lib/system-settings.ts`, page `src/pages/system-settings`); `example-*` are mocks.
+- API modules: `src/services/api/*.api.ts` — transport functions + query/mutation hooks. Real server APIs: `auth`, `me`, `admin-users` (client users), `admins` (admin accounts), `roles`, `embedding-models`, `audit-logs`, `settings` (runtime settings; form helpers in `src/lib/system-settings.ts`, page `src/pages/system-settings`), `notifications` (own inbox, unread count, preferences; texts and stream event handling in `src/lib/notifications.ts`, live updates from `src/composables/use-notification-stream.ts` mounted by `src/layouts/default.vue`), `announcements` (administration, page `src/pages/announcements`, form helpers in `src/lib/announcements.ts`); `example-*` are mocks.
 - Shared types: `src/services/types/response.type.ts` (`IPaginated`), `src/services/types/user.type.ts`
 
 ## Auth & Permissions

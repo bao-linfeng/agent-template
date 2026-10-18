@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { AlignRight, ChevronsRight, CircleUser, Combine, Home, Layout, LogIn, PackageCheck } from '@lucide/vue'
+import { AlignRight, Bell, ChevronsRight, CircleUser, Combine, Home, Layout, LogIn, PackageCheck } from '@lucide/vue'
 import {
   Accordion,
   AccordionContent,
@@ -33,6 +33,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { DarkMode } from '@/components/darkMode'
 import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
+import NotificationBell from '@/components/notifications/NotificationBell.vue'
 import { ThemingSettings } from '@/components/theming'
 import { useCollecty } from '@/composables/useCollecty'
 import { useSessionStore } from '@/stores/session'
@@ -157,6 +158,7 @@ const sheetId = 'mobile-navigation'
           <LanguageSwitcher />
           <DarkMode data-dark-mode />
           <ThemingSettings />
+          <NotificationBell v-if="user" />
 
           <RouterLink
             v-if="user"
@@ -224,6 +226,14 @@ const sheetId = 'mobile-navigation'
                   >
                     <CircleUser class="h-4 w-4" />
                     <span>{{ user ? t('nav.myAccount') : t('nav.signIn') }}</span>
+                  </router-link>
+                  <router-link
+                    v-if="user"
+                    to="/notifications"
+                    class="flex items-center gap-2 px-2 py-1.5 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Bell class="h-4 w-4" />
+                    <span>{{ t('nav.notifications') }}</span>
                   </router-link>
 
                   <Separator class="my-4" />

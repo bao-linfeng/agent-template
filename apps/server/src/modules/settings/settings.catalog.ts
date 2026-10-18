@@ -73,6 +73,13 @@ export const SETTINGS = {
     public: false,
     description: '每天 04:00 清理没有数据行引用的头像、知识库源文件和导出文件',
   }),
+  'notifications.retentionDays': setting({
+    schema: z.number().int().min(0).max(3650),
+    defaultValue: () => 90,
+    public: false,
+    description:
+      '站内通知（无论是否已读）保留天数，每天 03:20 清理更早的通知；0 表示永久保留。公告不受影响',
+  }),
   'rateLimit.defaultLimit': setting({
     schema: (env) => upTo(env('THROTTLE_LIMIT'), 1),
     defaultValue: (env) => env('THROTTLE_LIMIT'),

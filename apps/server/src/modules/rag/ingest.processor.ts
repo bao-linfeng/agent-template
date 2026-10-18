@@ -10,6 +10,7 @@ import { RedisLockService } from '../../infra/redis/redis-lock.service.js'
 import { StorageService } from '../../infra/storage/storage.service.js'
 import { EmbeddingClient } from '../ai/embedding-client.js'
 import { EmbeddingModelsService } from '../ai/embedding-models.service.js'
+import { NotificationsService } from '../notifications/notifications.service.js'
 import { parseDocument, UnsupportedDocumentError } from './document-parsers.js'
 import type { IngestJob } from './documents.service.js'
 import { splitText } from './text-splitter.js'
@@ -21,7 +22,7 @@ const LOCK_WAIT_MS = 5 * 60_000
 /**
  * parse → chunk → embed → replace chunks. Transient failures (provider down) are retried by BullMQ.
  * Jobs of the same document run one at a time (Redis lock), so overlapping ingests cannot interleave
- * their chunk replacements.
+ * their chunk replacements. The owner is notified when the document is ready or finally failed.
  */
 @Processor(QUEUES.ragIngest, { concurrency: 2 })
 export class IngestProcessor extends WorkerHost {
@@ -33,6 +34,7 @@ export class IngestProcessor extends WorkerHost {
     private readonly models: EmbeddingModelsService,
     private readonly embeddings: EmbeddingClient,
     private readonly locks: RedisLockService,
+    private readonly notifications: NotificationsService,
   ) {
     super()
   }
@@ -118,6 +120,19 @@ export class IngestProcessor extends WorkerHost {
       this.logger.log(
         `Indexed document ${documentId} (${pieces.length} chunks)`,
       )
+      await this.notifyOwner(kb.ownerId, () =>
+        this.notifications.notify({
+          realm: 'user',
+          recipientId: kb.ownerId,
+          type: 'knowledgeBase.documentReady',
+          params: {
+            knowledgeBaseId: kb.id,
+            documentId,
+            title: document.title,
+            chunkCount: pieces.length,
+          },
+        }),
+      )
     } catch (error) {
       const finalAttempt =
         error instanceof UnrecoverableError ||
@@ -129,7 +144,35 @@ export class IngestProcessor extends WorkerHost {
           error: (error as Error).message.slice(0, 1000),
         })
         .where(eq(documents.id, documentId))
+      if (finalAttempt) {
+        await this.notifyOwner(kb.ownerId, () =>
+          this.notifications.notify({
+            realm: 'user',
+            recipientId: kb.ownerId,
+            type: 'knowledgeBase.documentFailed',
+            params: {
+              knowledgeBaseId: kb.id,
+              documentId,
+              title: document.title,
+            },
+          }),
+        )
+      }
       throw error
+    }
+  }
+
+  /** A failed notification must neither re-run the ingest (retry) nor hide the ingest error. */
+  private async notifyOwner(
+    ownerId: string,
+    send: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await send()
+    } catch (error) {
+      this.logger.warn(
+        `Could not notify user ${ownerId}: ${(error as Error).message}`,
+      )
     }
   }
 }

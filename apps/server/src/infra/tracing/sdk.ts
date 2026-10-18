@@ -28,8 +28,11 @@ export type TracingEnv = Pick<
   'TRACING_ENABLED' | 'OTEL_SERVICE_NAME' | 'OTEL_TRACES_SAMPLER_ARG'
 >
 
-/** Probes and Prometheus scrapes (the metrics listener runs in the same process). */
-const UNTRACED_PATH = /\/(health(\/live)?|metrics)$/
+/**
+ * Probes and Prometheus scrapes (the metrics listener runs in the same process), and notification event
+ * streams, whose request span would stay open for the whole connection.
+ */
+const UNTRACED_PATH = /\/(health(\/live)?|metrics|notifications\/stream)$/
 
 /** BullMQ worker housekeeping that runs every few seconds even when the queues are idle. */
 const BACKGROUND_SPAN =

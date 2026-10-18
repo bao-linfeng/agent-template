@@ -151,6 +151,12 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'routes.account.title', requiresAuth: true },
   },
   {
+    path: '/notifications',
+    name: 'Notifications',
+    component: () => import('@/pages/notifications/Notifications.vue'),
+    meta: { title: 'routes.notifications.title', requiresAuth: true },
+  },
+  {
     path: '/buildy/:pathMatch(.*)*',
     name: 'Buildy',
     component: () => import('@/pages/Layout.vue'),

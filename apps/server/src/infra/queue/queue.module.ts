@@ -11,6 +11,7 @@ export const QUEUES = {
   audit: 'audit',
   maintenance: 'maintenance',
   accountExport: 'account-export',
+  notifications: 'notifications',
 } as const
 
 @Module({

@@ -18,6 +18,7 @@ export const SUBJECTS = {
   'knowledge-base': 'KnowledgeBase',
   'audit-log': 'AuditLog',
   setting: 'Setting',
+  announcement: 'Announcement',
 } as const
 export type SubjectName = (typeof SUBJECTS)[keyof typeof SUBJECTS]
 
@@ -40,6 +41,8 @@ export const PERMISSIONS = {
   'audit-log:read': '查看审计日志',
   'setting:read': '查看系统设置',
   'setting:manage': '修改系统设置与功能开关',
+  'announcement:read': '查看公告',
+  'announcement:manage': '发布、编辑与删除公告',
 } as const satisfies Record<string, string>
 export type Permission = keyof typeof PERMISSIONS
 

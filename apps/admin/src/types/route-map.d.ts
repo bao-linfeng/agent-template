@@ -66,6 +66,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/announcements/': RouteRecordInfo<
+      '/announcements/',
+      '/announcements',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/apps/': RouteRecordInfo<
       '/apps/',
       '/apps',
@@ -191,6 +198,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/notifications/': RouteRecordInfo<
+      '/notifications/',
+      '/notifications',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/prop-components/': RouteRecordInfo<
       '/prop-components/',
       '/prop-components',
@@ -309,6 +323,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/ai-talk/index.vue': {
       routes:
         | '/ai-talk/'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/announcements/index.vue': {
+      routes:
+        | '/announcements/'
       views:
         | never
       pathParamNames:
@@ -453,6 +475,14 @@ declare module 'vue-router/auto-routes' {
     'src/pages/marketing/hello.vue': {
       routes:
         | '/marketing/hello'
+      views:
+        | never
+      pathParamNames:
+        | never
+    }
+    'src/pages/notifications/index.vue': {
+      routes:
+        | '/notifications/'
       views:
         | never
       pathParamNames:

@@ -2,8 +2,11 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import type { HttpRequest } from '../../common/http/request.js'
 import { MetricsService } from './metrics.service.js'
 
-/** Probes are scraped every few seconds and would drown the real traffic. */
-const HEALTH_ROUTE = /\/health(\/live)?$/
+/**
+ * Probes are scraped every few seconds and would drown the real traffic; event streams stay open for
+ * minutes and would dominate the latency quantiles (`HighLatency` aggregates every route).
+ */
+const UNMEASURED_ROUTE = /\/(health(\/live)?|notifications\/stream)$/
 
 /**
  * Route label of a request: the Fastify route pattern (`/api/v1/admin/users/:id`), never the raw
@@ -24,7 +27,7 @@ export function registerMetricsHook(app: NestFastifyApplication): void {
     .getInstance()
     .addHook('onResponse', async (request, reply) => {
       const route = routeLabel(request)
-      if (HEALTH_ROUTE.test(route)) {
+      if (UNMEASURED_ROUTE.test(route)) {
         return
       }
       metrics.httpRequestDuration.observe(

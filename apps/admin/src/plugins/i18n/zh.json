@@ -193,7 +193,9 @@
     "security": "账号安全",
     "appearance": "外观",
     "notifications": "通知",
-    "display": "显示"
+    "display": "显示",
+    "announcements": "公告",
+    "notificationCenter": "通知中心"
   },
   "teamSwitcher": {
     "teams": "团队",
@@ -243,7 +245,10 @@
     "required": "必填。",
     "maxDimensions": "pgvector 索引最多支持 2000 维。",
     "avatarType": "请选择 PNG、JPEG、GIF 或 WebP 图片。",
-    "avatarSize": "图片需小于 {size} MB。"
+    "avatarSize": "图片需小于 {size} MB。",
+    "textMax": "不能超过 {max} 个字符。",
+    "futureTime": "请选择晚于当前的时间。",
+    "expiryAfterPublish": "过期时间必须晚于发布时间。"
   },
   "avatar": {
     "upload": "上传头像",
@@ -384,7 +389,14 @@
     "MFA_ALREADY_ENABLED": "两步验证已经开启。",
     "MFA_NOT_ENABLED": "两步验证未开启。",
     "MFA_SETUP_EXPIRED": "设置已过期，请重新开始。",
-    "ADMIN_CANNOT_RESET_OWN_MFA": "不能重置自己的两步验证，请在设置中关闭。"
+    "ADMIN_CANNOT_RESET_OWN_MFA": "不能重置自己的两步验证，请在设置中关闭。",
+    "ANNOUNCEMENT_EXPIRY_INVALID": "过期时间必须晚于当前时间。",
+    "ANNOUNCEMENT_NOT_FOUND": "公告不存在。",
+    "ANNOUNCEMENT_SCHEDULE_INVALID": "发布时间必须晚于当前时间且早于过期时间。",
+    "NOTIFICATION_CATEGORY_MANDATORY": "这类通知不能关闭。",
+    "NOTIFICATION_CATEGORY_UNKNOWN": "未知的通知分类。",
+    "NOTIFICATION_NOT_FOUND": "通知不存在。",
+    "NOTIFICATION_PREFERENCE_INVALID": "通知偏好设置无效。"
   },
   "accounts": {
     "user": "用户",
@@ -516,7 +528,8 @@
       "account": "账号",
       "maintenance": "数据维护",
       "rateLimit": "限流",
-      "session": "会话"
+      "session": "会话",
+      "notifications": "通知"
     },
     "items": {
       "auth": {
@@ -579,6 +592,12 @@
         "storageOrphanSweepEnabled": {
           "title": "清理孤儿文件",
           "description": "每天 04:00 删除没有数据记录引用的头像、知识库源文件和导出文件。"
+        }
+      },
+      "notifications": {
+        "retentionDays": {
+          "title": "站内通知保留天数",
+          "description": "每天 03:20 删除早于该天数的个人通知（无论是否已读）；0 表示永久保留。公告不受影响。"
         }
       }
     },
@@ -719,5 +738,152 @@
       "vercel": "Vercel 风格",
       "vercelDescription": "点击进入下一级菜单"
     }
+  },
+  "notifications": {
+    "title": "通知中心",
+    "description": "与你账号相关的消息，以及管理员发布的公告。",
+    "bell": "通知",
+    "unread": "没有未读 | {count} 条未读 | {count} 条未读",
+    "open": "查看",
+    "markRead": "标为已读",
+    "markAllRead": "全部标为已读",
+    "allRead": "已全部标为已读。",
+    "deleted": "通知已删除。",
+    "viewAll": "查看全部",
+    "unreadOnly": "只看未读",
+    "allCategories": "全部分类",
+    "empty": "暂无通知。",
+    "emptyUnread": "没有未读通知。",
+    "emptyAnnouncements": "当前没有公告。",
+    "new": "新",
+    "tabs": {
+      "notifications": "通知",
+      "announcements": "公告"
+    },
+    "categories": {
+      "security": "账号安全",
+      "account": "账号",
+      "knowledgeBase": "知识库"
+    },
+    "channels": {
+      "inApp": "站内",
+      "email": "邮件"
+    },
+    "changes": {
+      "enabled": "开启",
+      "disabled": "关闭",
+      "reset": "被管理员重置"
+    },
+    "levels": {
+      "info": "通知",
+      "warning": "提醒",
+      "critical": "重要"
+    },
+    "expiresAt": "有效期至 {date}",
+    "types": {
+      "security": {
+        "passwordChanged": {
+          "title": "你的密码已修改",
+          "body": "其他设备已退出登录。如果不是你本人操作，请立即重置密码。"
+        },
+        "twoFactorChanged": {
+          "title": "两步验证已变更",
+          "body": "你账号的两步验证已{change}。如果不是你本人操作，请联系管理员。"
+        }
+      },
+      "account": {
+        "deletionCancelled": {
+          "title": "已取消注销账号",
+          "body": "你的账号已恢复，不会被删除。"
+        },
+        "exportReady": {
+          "title": "数据导出已完成",
+          "body": "请在 {expiresAt} 前下载。"
+        }
+      },
+      "knowledgeBase": {
+        "documentReady": {
+          "title": "文档已就绪",
+          "body": "「{title}」已切分为 {chunkCount} 个片段，现在可以检索。"
+        },
+        "documentFailed": {
+          "title": "文档处理失败",
+          "body": "「{title}」未能完成索引，请检查文件后重新上传。"
+        }
+      }
+    },
+    "preferences": {
+      "title": "通知",
+      "description": "选择通过哪些方式接收账号相关的通知。",
+      "mandatory": "始终开启",
+      "mandatoryHint": "安全类通知不能关闭。",
+      "saved": "通知偏好已保存。",
+      "loadFailed": "无法加载通知偏好。"
+    }
+  },
+  "announcements": {
+    "title": "公告",
+    "description": "面向客户端用户、管理员或全部用户的消息。发布后会立即出现在对方的通知中心。",
+    "readOnly": "你可以查看公告。发布和编辑需要 announcement:manage 权限。",
+    "new": "新建公告",
+    "editTitle": "编辑公告",
+    "createDescription": "可以保存为草稿、立即发布或定时发布。",
+    "searchPlaceholder": "搜索标题...",
+    "allStatuses": "全部状态",
+    "allAudiences": "全部受众",
+    "total": "共 {count} 条公告 | 共 {count} 条公告",
+    "fields": {
+      "title": "标题",
+      "body": "内容",
+      "bodyHint": "纯文本，保留换行。",
+      "level": "级别",
+      "audience": "受众",
+      "status": "状态",
+      "expiresAt": "过期时间",
+      "expiresAtHint": "可选。到期后不再向受众展示。",
+      "publishMode": "发布方式",
+      "publishAt": "定时发布时间",
+      "publishAtHint": "到达该时间前不会向受众展示。",
+      "publishedAt": "发布时间",
+      "readCount": "已读人数"
+    },
+    "statuses": {
+      "draft": "草稿",
+      "scheduled": "待发布",
+      "published": "已发布",
+      "expired": "已过期"
+    },
+    "audiences": {
+      "all": "全部用户",
+      "user": "客户端用户",
+      "admin": "管理员"
+    },
+    "noExpiry": "永不过期",
+    "publishModes": {
+      "draft": "保存为草稿",
+      "now": "立即发布",
+      "schedule": "定时发布"
+    },
+    "submit": {
+      "draft": "保存草稿",
+      "now": "发布",
+      "schedule": "定时发布"
+    },
+    "publish": "发布",
+    "publishNowAction": "立即发布",
+    "schedule": "定时发布…",
+    "reschedule": "修改发布时间",
+    "withdraw": "撤回",
+    "created": "公告已保存。",
+    "updated": "公告已更新。",
+    "published": "公告已发布。",
+    "scheduled": "已设置定时发布。",
+    "withdrawn": "公告已撤回为草稿。",
+    "deleted": "公告已删除。",
+    "deleteTitle": "删除「{title}」？",
+    "deleteDescription": "删除后所有人都看不到这条公告，包括已读的用户。此操作无法撤销。",
+    "scheduleTitle": "定时发布公告",
+    "scheduleDescription": "「{title}」在所选时间之前不会向受众展示。",
+    "publishAfterExpiry": "发布时间必须早于过期时间。"
   }
 }

@@ -9,12 +9,16 @@ import AppSidebar from '@/components/app-sidebar/index.vue'
 import CommandMenuPanel from '@/components/command-menu-panel/index.vue'
 import ThemePopover from '@/components/custom-theme/theme-popover.vue'
 import LanguageChange from '@/components/language-change.vue'
+import NotificationBell from '@/components/notifications/notification-bell.vue'
 import ToggleTheme from '@/components/toggle-theme.vue'
 import { useThemeStore } from '@/stores/theme'
 
 const defaultOpen = useCookies([SIDEBAR_COOKIE_NAME])
 const themeStore = useThemeStore()
 const { contentLayout } = storeToRefs(themeStore)
+
+// Dashboard pages need a signed-in admin: keep their notification stream open while one is.
+useNotificationStream()
 </script>
 
 <template>
@@ -29,6 +33,7 @@ const { contentLayout } = storeToRefs(themeStore)
         <CommandMenuPanel />
         <div class="flex-1" />
         <div class="ml-auto flex items-center space-x-2">
+          <NotificationBell />
           <LanguageChange />
           <ToggleTheme />
           <ThemePopover />
