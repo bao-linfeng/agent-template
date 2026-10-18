@@ -8,8 +8,10 @@ import {
   roles,
   type RoleRow,
 } from '../../database/schema/index.js'
+import type { AppAbility } from './ability.js'
 import type { CreateRoleDto, UpdateRoleDto } from './dto/role.dto.js'
 import { SYSTEM_ROLES } from './permissions.js'
+import { assertCovers } from './policies.js'
 import { RbacService } from './rbac.service.js'
 
 export type RoleView = Omit<RoleRow, 'createdAt' | 'updatedAt'> & {
@@ -54,7 +56,9 @@ export class RolesService {
     return role
   }
 
-  async create(dto: CreateRoleDto): Promise<RoleRow> {
+  /** `ability` must hold every permission of the role (403 `PERMISSIONS_EXCEED_OWN`). */
+  async create(dto: CreateRoleDto, ability: AppAbility): Promise<RoleRow> {
+    assertCovers(ability, dto.permissions)
     const [role] = await this.db
       .insert(roles)
       .values({
@@ -72,11 +76,17 @@ export class RolesService {
     return role
   }
 
-  async update(id: string, dto: UpdateRoleDto): Promise<RoleRow> {
+  /** `ability` must hold every permission the role has and gets (403 `PERMISSIONS_EXCEED_OWN`). */
+  async update(
+    id: string,
+    dto: UpdateRoleDto,
+    ability: AppAbility,
+  ): Promise<RoleRow> {
     const role = await this.get(id)
     if (role.code === SYSTEM_ROLES.superAdmin.code && dto.permissions) {
       throw new AppException('ROLE_SUPER_ADMIN_IMMUTABLE')
     }
+    assertCovers(ability, [...role.permissions, ...(dto.permissions ?? [])])
     const [updated] = await this.db
       .update(roles)
       .set(dto)
@@ -86,11 +96,13 @@ export class RolesService {
     return updated!
   }
 
-  async remove(id: string): Promise<void> {
+  /** `ability` must hold every permission of the role (403 `PERMISSIONS_EXCEED_OWN`). */
+  async remove(id: string, ability: AppAbility): Promise<void> {
     const role = await this.get(id)
     if (role.isSystem) {
       throw new AppException('ROLE_SYSTEM_UNDELETABLE')
     }
+    assertCovers(ability, role.permissions)
     await this.db.delete(roles).where(eq(roles.id, id))
     await this.rbac.invalidateAll()
   }

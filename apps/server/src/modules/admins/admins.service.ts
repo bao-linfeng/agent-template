@@ -14,7 +14,9 @@ import type {
   ListAccountsQueryDto,
 } from '../accounts/dto/account.dto.js'
 import { MfaService } from '../mfa/mfa.service.js'
+import type { AppAbility } from '../rbac/ability.js'
 import { SYSTEM_ROLES } from '../rbac/permissions.js'
+import { assertCovers } from '../rbac/policies.js'
 import { RbacService } from '../rbac/rbac.service.js'
 import type { CreateAdminDto } from './dto/admin.dto.js'
 
@@ -32,7 +34,11 @@ export interface AdminView extends PublicAccount {
   mfaEnabled: boolean
 }
 
-/** Admin console accounts: there is no self-registration, administrators create each other. */
+/**
+ * Admin console accounts: there is no self-registration, administrators create each other. Nobody
+ * may grant roles with permissions they do not hold or manage an admin who has more access than they
+ * do (`PERMISSIONS_EXCEED_OWN`), so only super admins create or change super admins.
+ */
 @Injectable()
 export class AdminsService {
   constructor(
@@ -77,9 +83,9 @@ export class AdminsService {
     return { ...account, roles: rolesByAdmin.get(id) ?? [], mfaEnabled }
   }
 
-  async create(dto: CreateAdminDto): Promise<AdminView> {
+  async create(dto: CreateAdminDto, ability: AppAbility): Promise<AdminView> {
     const roleIds = dto.roleIds ?? []
-    await this.assertRolesExist(roleIds)
+    assertCovers(ability, await this.rbac.permissionsOfRoles(roleIds))
     const admin = await this.db.transaction(async (tx) => {
       const created = await this.accounts.create('admin', dto, tx)
       await this.rbac.assignRoles(created.id, roleIds, tx)
@@ -90,12 +96,15 @@ export class AdminsService {
 
   async update(
     actorId: string,
+    ability: AppAbility,
     id: string,
     dto: AdminUpdateAccountDto,
   ): Promise<AdminView> {
     if (dto.status === 'disabled' && actorId === id) {
       throw new AppException('ADMIN_CANNOT_DISABLE_SELF')
     }
+    await this.accounts.getOrThrow('admin', id)
+    await this.rbac.assertCanManageAdmin(ability, id)
     await this.accounts.adminUpdate('admin', id, dto)
     return this.get(id)
   }
@@ -103,11 +112,12 @@ export class AdminsService {
   /** Replaces the admin's roles. */
   async setRoles(
     actorId: string,
+    ability: AppAbility,
     id: string,
     roleIds: string[],
   ): Promise<AdminView> {
     await this.accounts.getOrThrow('admin', id)
-    await this.assertRolesExist(roleIds)
+    const granted = await this.rbac.permissionsOfRoles(roleIds)
     if (actorId === id) {
       // Prevent locking yourself out of the admin console by accident.
       const before = await this.rbac.getAdminAccess(id)
@@ -122,22 +132,23 @@ export class AdminsService {
         throw new AppException('ADMIN_CANNOT_REMOVE_OWN_SUPER_ADMIN')
       }
     }
+    await this.rbac.assertCanManageAdmin(ability, id)
+    assertCovers(ability, granted)
     await this.db.transaction((tx) => this.rbac.assignRoles(id, roleIds, tx))
     await this.rbac.invalidateAdmin(id)
     return this.get(id)
   }
 
-  private async assertRolesExist(roleIds: string[]): Promise<void> {
-    if (roleIds.length === 0) {
-      return
+  /** Removes the second factor of an admin who lost the device (see `MfaService.resetForAdmin`). */
+  async resetMfa(
+    actorId: string,
+    ability: AppAbility,
+    id: string,
+  ): Promise<void> {
+    if (actorId !== id) {
+      await this.rbac.assertCanManageAdmin(ability, id)
     }
-    const found = await this.db
-      .select({ id: roles.id })
-      .from(roles)
-      .where(inArray(roles.id, roleIds))
-    if (found.length !== roleIds.length) {
-      throw new AppException('ROLES_UNKNOWN')
-    }
+    await this.mfa.resetForAdmin(actorId, id)
   }
 
   private async rolesFor(

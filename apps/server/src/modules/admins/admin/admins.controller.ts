@@ -17,8 +17,8 @@ import {
   ListAccountsQueryDto,
 } from '../../accounts/dto/account.dto.js'
 import { AdminController, CurrentUser } from '../../auth/decorators.js'
-import { MfaService } from '../../mfa/mfa.service.js'
-import { RequirePermissions } from '../../rbac/policies.js'
+import type { AppAbility } from '../../rbac/ability.js'
+import { CurrentAbility, RequirePermissions } from '../../rbac/policies.js'
 import { AdminsService } from '../admins.service.js'
 import { CreateAdminDto, SetAdminRolesDto } from '../dto/admin.dto.js'
 
@@ -26,10 +26,7 @@ import { CreateAdminDto, SetAdminRolesDto } from '../dto/admin.dto.js'
 @ApiTags('admin / admins')
 @AdminController('admins')
 export class AdminsController {
-  constructor(
-    private readonly admins: AdminsService,
-    private readonly mfa: MfaService,
-  ) {}
+  constructor(private readonly admins: AdminsService) {}
 
   /** `keyword` matches email or nickname. */
   @Get()
@@ -44,45 +41,55 @@ export class AdminsController {
     return this.admins.get(id)
   }
 
-  /** Creates an admin account with an initial password; share it with the person out of band. */
+  /**
+   * Creates an admin account with an initial password; share it with the person out of band. 403
+   * `PERMISSIONS_EXCEED_OWN` when a role grants permissions you do not hold.
+   */
   @Post()
   @RequirePermissions('admin:create')
-  create(@Body() dto: CreateAdminDto) {
-    return this.admins.create(dto)
+  create(@Body() dto: CreateAdminDto, @CurrentAbility() ability: AppAbility) {
+    return this.admins.create(dto, ability)
   }
 
+  /** 403 `PERMISSIONS_EXCEED_OWN` for admins with permissions you do not hold. */
   @Patch(':id')
   @RequirePermissions('admin:update')
   update(
     @CurrentUser() actor: AuthUser,
+    @CurrentAbility() ability: AppAbility,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AdminUpdateAccountDto,
   ) {
-    return this.admins.update(actor.id, id, dto)
+    return this.admins.update(actor.id, ability, id, dto)
   }
 
-  /** Replaces the admin's roles. */
+  /**
+   * Replaces the admin's roles. 403 `PERMISSIONS_EXCEED_OWN` when the admin or one of the roles has
+   * permissions you do not hold.
+   */
   @Put(':id/roles')
   @RequirePermissions('admin:update')
   setRoles(
     @CurrentUser() actor: AuthUser,
+    @CurrentAbility() ability: AppAbility,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SetAdminRolesDto,
   ) {
-    return this.admins.setRoles(actor.id, id, dto.roleIds)
+    return this.admins.setRoles(actor.id, ability, id, dto.roleIds)
   }
   /**
    * Removes the admin's two-factor authentication (lost authenticator and recovery codes) and signs
    * them out everywhere. Not allowed on yourself (400 `ADMIN_CANNOT_RESET_OWN_MFA`); 409
-   * `MFA_NOT_ENABLED` when it is off.
+   * `MFA_NOT_ENABLED` when it is off, 403 `PERMISSIONS_EXCEED_OWN` for admins with permissions you do not hold.
    */
   @Delete(':id/mfa')
   @HttpCode(204)
   @RequirePermissions('admin:update')
   resetMfa(
     @CurrentUser() actor: AuthUser,
+    @CurrentAbility() ability: AppAbility,
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<void> {
-    return this.mfa.resetForAdmin(actor.id, id)
+    return this.admins.resetMfa(actor.id, ability, id)
   }
 }

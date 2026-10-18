@@ -1,12 +1,17 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { Redis } from 'ioredis'
+import { AppException } from '../../common/errors/app.exception.js'
 import type { AuthUser, HttpRequest } from '../../common/http/request.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { adminUserRoles, roles } from '../../database/schema/index.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
-import { defineAbilityFor, type AppAbility } from './ability.js'
+import {
+  coversPermissions,
+  defineAbilityFor,
+  type AppAbility,
+} from './ability.js'
 import { SYSTEM_ROLES } from './permissions.js'
 
 export interface AdminAccess {
@@ -77,6 +82,35 @@ export class RbacService implements OnApplicationBootstrap {
   ): Promise<AppAbility> {
     request.ability ??= await this.abilityFor(request.user.id)
     return request.ability
+  }
+
+  /**
+   * 403 `PERMISSIONS_EXCEED_OWN` unless `ability` covers every permission of the admin account, so only
+   * super admins can change super admins and nobody can lock out an admin with more access.
+   */
+  async assertCanManageAdmin(
+    ability: AppAbility,
+    adminUserId: string,
+  ): Promise<void> {
+    const { permissions } = await this.getAdminAccess(adminUserId)
+    if (!coversPermissions(ability, permissions)) {
+      throw new AppException('PERMISSIONS_EXCEED_OWN')
+    }
+  }
+
+  /** Union of the permissions of the roles; 400 `ROLES_UNKNOWN` when one of them does not exist. */
+  async permissionsOfRoles(roleIds: readonly string[]): Promise<string[]> {
+    if (roleIds.length === 0) {
+      return []
+    }
+    const found = await this.db
+      .select({ permissions: roles.permissions })
+      .from(roles)
+      .where(inArray(roles.id, [...roleIds]))
+    if (found.length !== new Set(roleIds).size) {
+      throw new AppException('ROLES_UNKNOWN')
+    }
+    return [...new Set(found.flatMap((role) => role.permissions))]
   }
 
   /** Call after changing an admin's roles. */

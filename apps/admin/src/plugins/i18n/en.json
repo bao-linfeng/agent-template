@@ -390,6 +390,7 @@
     "MFA_NOT_ENABLED": "Two-factor authentication is not on.",
     "MFA_SETUP_EXPIRED": "The setup has expired, please start again.",
     "ADMIN_CANNOT_RESET_OWN_MFA": "You cannot reset your own two-factor authentication; turn it off in Settings instead.",
+    "PERMISSIONS_EXCEED_OWN": "You can only grant or manage permissions that you have yourself.",
     "ANNOUNCEMENT_EXPIRY_INVALID": "The expiry time must be in the future.",
     "ANNOUNCEMENT_NOT_FOUND": "Announcement not found.",
     "ANNOUNCEMENT_SCHEDULE_INVALID": "The publish time must be in the future and before the expiry time.",
@@ -439,7 +440,8 @@
     "resetMfa": "Reset two-factor",
     "resetMfaTitle": "Reset two-factor authentication of {email}?",
     "resetMfaDescription": "Use this when they lost their authenticator and recovery codes. They are signed out everywhere and sign in with the password alone until they turn it on again.",
-    "mfaReset": "Two-factor authentication reset. The admin has been signed out everywhere."
+    "mfaReset": "Two-factor authentication reset. The admin has been signed out everywhere.",
+    "rolesBeyondOwn": "Roles with permissions you do not have yourself cannot be assigned or removed."
   },
   "roles": {
     "title": "Roles",
@@ -454,6 +456,7 @@
     "codeHint": "Stable identifier used in code and seeds.",
     "namePlaceholder": "Content editor",
     "superAdminHint": "super_admin always has every permission.",
+    "permissionsBeyondOwn": "Permissions you do not have yourself cannot be granted or removed.",
     "created": "Role created.",
     "updated": "Role updated.",
     "deleted": "Role {name} deleted.",

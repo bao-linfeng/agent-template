@@ -15,6 +15,15 @@ export function hasPermission(granted: readonly string[], required: string): boo
   )
 }
 
+/**
+ * Whether `granted` includes every permission in `required`, i.e. whether the admin may hand them out
+ * (in a role or by assigning a role): the server rejects grants beyond the own permissions with
+ * `PERMISSIONS_EXCEED_OWN`.
+ */
+export function coversPermissions(granted: readonly string[], required: readonly string[]): boolean {
+  return required.every(permission => hasPermission(granted, permission))
+}
+
 interface PermissionNode {
   permission?: string
   items?: readonly PermissionNode[]

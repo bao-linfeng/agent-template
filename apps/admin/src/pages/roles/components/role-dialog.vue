@@ -16,6 +16,7 @@ import FormTextField from '@/components/form-text-field.vue'
 import { ALL_PERMISSIONS } from '@/lib/permissions'
 import { t } from '@/plugins/i18n'
 import { usePermissionsQuery, useSaveRoleMutation } from '@/services/api/roles.api'
+import { useAuthStore } from '@/stores/auth'
 
 /** `role` undefined creates a new role. */
 const props = defineProps<{ role?: IRole }>()
@@ -23,6 +24,9 @@ const open = defineModel<boolean>('open', { default: false })
 
 const { data: permissions } = usePermissionsQuery()
 const save = useSaveRoleMutation()
+// Permissions the signed-in admin lacks cannot be granted or taken away (`PERMISSIONS_EXCEED_OWN`).
+const authStore = useAuthStore()
+const lacksSome = computed(() => permissions.value?.some(permission => !authStore.can(permission.code)) ?? false)
 
 const isSuperAdmin = computed(() => props.role?.isSystem === true && props.role.permissions.includes(ALL_PERMISSIONS))
 
@@ -131,9 +135,15 @@ function togglePermission(codes: string[], code: string, checked: boolean | 'ind
               <div v-else class="grid gap-4 rounded-md border p-3">
                 <div v-for="[subject, items] in permissionGroups" :key="subject" class="grid gap-2">
                   <span class="text-xs font-semibold uppercase text-muted-foreground">{{ subject }}</span>
-                  <label v-for="permission in items" :key="permission.code" class="flex items-start gap-2 text-sm">
+                  <label
+                    v-for="permission in items"
+                    :key="permission.code"
+                    class="flex items-start gap-2 text-sm"
+                    :class="{ 'opacity-60': !authStore.can(permission.code) }"
+                  >
                     <Checkbox
                       :model-value="field.state.value.includes(permission.code)"
+                      :disabled="!authStore.can(permission.code)"
                       @update:model-value="field.handleChange(togglePermission(field.state.value, permission.code, $event))"
                     />
                     <span class="grid">
@@ -143,6 +153,9 @@ function togglePermission(codes: string[], code: string, checked: boolean | 'ind
                   </label>
                 </div>
               </div>
+              <FieldDescription v-if="!isSuperAdmin && lacksSome">
+                {{ $t('roles.permissionsBeyondOwn') }}
+              </FieldDescription>
               <FieldError :errors="state.meta.errors" />
             </FormItem>
           </template>

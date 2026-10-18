@@ -244,6 +244,10 @@ export const ERRORS = {
     message:
       'You cannot reset your own two-factor authentication; turn it off in your settings instead',
   },
+  PERMISSIONS_EXCEED_OWN: {
+    status: HttpStatus.FORBIDDEN,
+    message: 'You can only grant or manage permissions that you hold yourself',
+  },
 
   // Two-factor authentication (admin console)
   MFA_ALREADY_ENABLED: {
