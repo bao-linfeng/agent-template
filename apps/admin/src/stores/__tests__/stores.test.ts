@@ -1,3 +1,4 @@
+import { FetchError } from '@repo/utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,6 +11,14 @@ import { useThemeStore } from '../theme'
 const { fetchMe, removeQueries } = vi.hoisted(() => ({ fetchMe: vi.fn(), removeQueries: vi.fn() }))
 vi.mock('@/services/api/me.api', () => ({ fetchMe }))
 vi.mock('@/lib/query-client', () => ({ queryClient: { removeQueries } }))
+const notify = vi.hoisted(() => vi.fn())
+vi.mock('vue-sonner', () => ({ toast: { error: notify } }))
+vi.mock('@/lib/api-client', () => ({ getErrorMessage: () => 'Cannot reach the server.' }))
+
+function httpError(status?: number) {
+  const error = new FetchError('failed')
+  return status === undefined ? error : Object.assign(error, { response: new Response(null, { status }), status })
+}
 
 const profile: IUserProfile = {
   id: 'u1',
@@ -103,13 +112,33 @@ describe('stores', () => {
     expect(authStore.user).toEqual(profile)
   })
 
-  it('treats a failed restore as signed out', async () => {
-    fetchMe.mockRejectedValue(new Error('401'))
+  it('treats a rejected session as signed out', async () => {
+    fetchMe.mockRejectedValue(httpError(401))
     const authStore = useAuthStore()
 
     await authStore.restore()
 
     expect(authStore.isLogin).toBe(false)
+    expect(authStore.initialized).toBe(true)
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  it('keeps the session unknown when the server cannot answer, and asks again later', async () => {
+    const authStore = useAuthStore()
+    for (const error of [httpError(), httpError(503)]) {
+      notify.mockReset()
+      fetchMe.mockRejectedValueOnce(error)
+
+      await authStore.restore()
+
+      expect(authStore.isLogin).toBe(false)
+      expect(authStore.initialized).toBe(false)
+      expect(notify).toHaveBeenCalledWith('Cannot reach the server.', { id: 'session-restore' })
+    }
+
+    fetchMe.mockResolvedValueOnce(profile)
+    await authStore.restore()
+    expect(authStore.user).toEqual(profile)
     expect(authStore.initialized).toBe(true)
   })
 
