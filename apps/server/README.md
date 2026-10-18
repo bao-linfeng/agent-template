@@ -12,6 +12,7 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 | AI `ai`                              | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                                                                                                                                                                                    |
 | RAG `rag`                            | 客户端用户自己的知识库（`/api/v1/client/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/v1/admin/rag/knowledge-bases` 查看/删除所有知识库                                                         |
 | 系统设置 `settings`                  | 运行时设置与功能开关（注册开关、注销宽限期、清理任务参数等），后台 `/api/v1/admin/settings` 修改后各实例立即生效、无需重启；公开项通过 `/api/v1/client/settings` 读取                                                                                                     |
+| 通知 `notifications`                 | 站内通知（安全变更、导出完成、知识库文档处理结果等，可按分类和渠道选择是否接收，安全类不可关闭）、管理员发布的全站公告（面向客户端、后台或全部）、SSE 实时推送 `/api/v1/{client,admin}/notifications/stream`，多实例经 Redis 广播                                         |
 | 基础设施                             | zod 环境变量校验、Redis 限流、邮件队列、健康检查、Prometheus 指标（独立内部端口）、OpenTelemetry 链路追踪、Swagger、请求 ID 与结构化日志                                                                                                                                  |
 
 ## 快速开始
@@ -71,6 +72,7 @@ docker compose exec ollama ollama pull bge-m3
 - 第一个后台超级管理员由 `pnpm db:seed`（`SEED_ADMIN_*`）创建，之后的管理员在后台“Admins”页面新建。
 - 找回密码时可传 `resetUrl`（例如管理端的 `http://localhost:5175/auth/reset-password`），来源必须是 `APP_WEB_URL` 或 `CORS_ORIGINS` 之一，否则返回 400；不传时链接为 `APP_WEB_URL/reset-password?token=...`。管理端前端使用 `/auth/reset-password`，客户端前端使用 `/reset-password`；页面拿到 token 后调用对应的 `POST /api/v1/client/auth/reset-password` 或 `POST /api/v1/admin/auth/reset-password`。
 - 修改密码时当前密码错误返回 400（不是 401），以免前端误判为登录过期。
+- 站内通知：`GET /api/v1/{client,admin}/notifications`（分页、`unread`、`category`）、`/unread-count`、已读与删除、`/preferences`、`/announcements`；`GET .../notifications/stream` 是 SSE 长连接，事件只表示“有变化”，收到 `ready` 和其他事件后重新拉取列表和未读数。浏览器原生 `EventSource` 无法在 401 时刷新令牌，也不能带 `Authorization`，请用 `fetch` 读取流；访问令牌到期或会话被撤销后服务端会断开连接，客户端重连即可。文案按 `notifications.types.<type>` 本地化，接口同时返回英文 `title`/`body` 兜底。
 - CORS 允许 `GET/HEAD/POST/PUT/PATCH/DELETE`；`@fastify/cors` 默认只放行前三种，新增方法时同步修改 `setup-app.ts`。
 
 ## 邮箱验证码注册
@@ -100,7 +102,7 @@ docker compose exec ollama ollama pull bge-m3
 
 生产环境设置 `NODE_ENV=production`、至少 32 字符的 `JWT_SECRET`、32 字节 Base64 编码的 `ENCRYPTION_KEY`，以及实际的数据库、Redis、对象存储、SMTP、`PUBLIC_URL`、`APP_WEB_URL`、`CORS_ORIGINS`。反向代理后按部署设置 `TRUST_PROXY`。生产默认关闭 Swagger、启用 Secure Cookie；链路追踪仅在配置 `OTEL_EXPORTER_OTLP_ENDPOINT` 时启用（见下文“链路追踪”）。
 
-部分业务参数可在运行时修改：管理端接口 `/api/v1/admin/settings`（权限 `setting:read` / `setting:manage`）修改后写入 `system_settings` 表，所有实例经 Redis 通知立即生效，无需重启；对应的环境变量（`ACCOUNT_DELETION_GRACE_DAYS`、`AUTH_RECORD_RETENTION_DAYS`、`STORAGE_ORPHAN_SWEEP_ENABLED`）只作为默认值。另有注册开关 `auth.registrationEnabled`，客户端可通过公开接口 `/api/v1/client/settings` 读取。限流次数（`THROTTLE_LIMIT`、`AUTH_THROTTLE_LIMIT`）、会话时长（`REFRESH_TOKEN_TTL_SECONDS`、`CLIENT_SESSION_MAX_TTL_SECONDS`）、重置链接和邮件验证码参数也可在运行时调整，但对应环境变量是硬上限：后台只能收紧，不能放宽（例如遇到撞库时临时调低登录限流、把管理端会话缩短到 8 小时）。访问令牌有效期 `ACCESS_TOKEN_TTL_SECONDS` 和限流窗口仍只用环境变量。审计开关、密钥、Cookie、CORS 等仍只能用环境变量配置。设置项清单见 `src/modules/settings/settings.catalog.ts`。
+部分业务参数可在运行时修改：管理端接口 `/api/v1/admin/settings`（权限 `setting:read` / `setting:manage`）修改后写入 `system_settings` 表，所有实例经 Redis 通知立即生效，无需重启；对应的环境变量（`ACCOUNT_DELETION_GRACE_DAYS`、`AUTH_RECORD_RETENTION_DAYS`、`STORAGE_ORPHAN_SWEEP_ENABLED`）只作为默认值；站内通知保留天数 `notifications.retentionDays`（默认 90）没有对应的环境变量。另有注册开关 `auth.registrationEnabled`，客户端可通过公开接口 `/api/v1/client/settings` 读取。限流次数（`THROTTLE_LIMIT`、`AUTH_THROTTLE_LIMIT`）、会话时长（`REFRESH_TOKEN_TTL_SECONDS`、`CLIENT_SESSION_MAX_TTL_SECONDS`）、重置链接和邮件验证码参数也可在运行时调整，但对应环境变量是硬上限：后台只能收紧，不能放宽（例如遇到撞库时临时调低登录限流、把管理端会话缩短到 8 小时）。访问令牌有效期 `ACCESS_TOKEN_TTL_SECONDS` 和限流窗口仍只用环境变量。审计开关、密钥、Cookie、CORS 等仍只能用环境变量配置。设置项清单见 `src/modules/settings/settings.catalog.ts`。
 
 更换 `ENCRYPTION_KEY` 时，把旧密钥放进 `ENCRYPTION_KEYS_PREVIOUS`（逗号分隔，只用于解密），运行 `db:reencrypt` 把模型 API Key 和管理员 TOTP 密钥改用新密钥加密，`db:reencrypt --dry-run` 确认没有遗留后再删除旧密钥。完整步骤见 [deploy/README.md](../../deploy/README.md) 的「加密密钥轮换」。
 
@@ -118,12 +120,13 @@ pnpm -C apps/server start:prod
 
 | 指标                                                                                            | 说明                                                                              |
 | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `http_server_request_duration_seconds{method,route,status_code,realm}`                          | 按路由模板统计的请求耗时（不含 `/health`；未匹配路由为 `unmatched`）              |
+| `http_server_request_duration_seconds{method,route,status_code,realm}`                          | 按路由模板统计的请求耗时（不含 `/health` 和通知流；未匹配路由为 `unmatched`）     |
 | `bullmq_queue_jobs{queue,state}`                                                                | 各队列各状态任务数，抓取时从 Redis 读取（缓存 10 秒，集群共享，用 `max by` 聚合） |
 | `bullmq_jobs_processed_total{queue,name,status}` / `bullmq_jobs_failed_final_total{queue,name}` | 本实例执行的任务次数 / 重试用尽或 `UnrecoverableError` 的最终失败                 |
 | `bullmq_job_duration_seconds` / `bullmq_job_last_success_timestamp_seconds`                     | 单次执行耗时 / 每个任务名最近一次成功的时间（夜间定时任务据此告警）               |
 | `pg_pool_connections{state}` / `pg_pool_waiting_requests` / `pg_pool_max_connections`           | PostgreSQL 连接池                                                                 |
 | `upload_scans_total{result}`                                                                    | 上传文件的病毒扫描结果（`clean` / `infected` / `error`，仅设置 `CLAMAV_HOST` 时） |
+| `notification_streams_open{realm}`                                                              | 本实例打开的通知 SSE 连接数                                                       |
 | `process_*` / `nodejs_*`                                                                        | Node 运行时（CPU、内存、GC、事件循环延迟）                                        |
 
 ### 链路追踪

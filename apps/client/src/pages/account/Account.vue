@@ -11,6 +11,7 @@ import { useRouter } from 'vue-router'
 import AvatarPicker from '@/components/account/AvatarPicker.vue'
 import DataExportCard from '@/components/account/DataExportCard.vue'
 import DeleteAccountCard from '@/components/account/DeleteAccountCard.vue'
+import NotificationPreferencesCard from '@/components/account/NotificationPreferencesCard.vue'
 import TextField from '@/components/account/TextField.vue'
 import { MainNavigation } from '@/components/sections/navbar'
 import { takeFlash } from '@/composables/useFlash'
@@ -200,6 +201,7 @@ async function logout() {
         </CardContent>
       </Card>
 
+      <NotificationPreferencesCard />
       <DataExportCard />
       <DeleteAccountCard />
     </div>

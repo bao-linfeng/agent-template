@@ -286,6 +286,32 @@ export const ERRORS = {
     message: 'Invalid value for this setting',
   },
 
+  // Notifications and announcements
+  NOTIFICATION_NOT_FOUND: {
+    status: HttpStatus.NOT_FOUND,
+    message: 'Notification not found',
+  },
+  NOTIFICATION_CATEGORY_UNKNOWN: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Unknown notification category',
+  },
+  NOTIFICATION_CATEGORY_MANDATORY: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'This notification category cannot be turned off',
+  },
+  NOTIFICATION_PREFERENCE_INVALID: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'Invalid notification preferences',
+  },
+  ANNOUNCEMENT_NOT_FOUND: {
+    status: HttpStatus.NOT_FOUND,
+    message: 'Announcement not found',
+  },
+  ANNOUNCEMENT_EXPIRY_INVALID: {
+    status: HttpStatus.BAD_REQUEST,
+    message: 'The expiry time must be in the future',
+  },
+
   // Audit log
   AUDIT_LOG_NOT_FOUND: {
     status: HttpStatus.NOT_FOUND,

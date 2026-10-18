@@ -28,6 +28,7 @@ import { SecurityModule } from './modules/auth/security.module.js'
 import { HealthModule } from './modules/health/health.module.js'
 import { MaintenanceModule } from './modules/maintenance/maintenance.module.js'
 import { MfaModule } from './modules/mfa/mfa.module.js'
+import { NotificationsModule } from './modules/notifications/notifications.module.js'
 import { RagModule } from './modules/rag/rag.module.js'
 import { PoliciesGuard } from './modules/rbac/policies.js'
 import { RbacModule } from './modules/rbac/rbac.module.js'
@@ -106,6 +107,7 @@ import { UsersModule } from './modules/users/users.module.js'
     MailModule,
     AuditModule,
     SettingsModule,
+    NotificationsModule,
     SecurityModule,
     RbacModule,
     AccountsModule,

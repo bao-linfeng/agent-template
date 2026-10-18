@@ -6,11 +6,13 @@ import { SettingsService } from '../settings/settings.service.js'
 import { AccountExportsCleanup } from './account-exports.cleanup.js'
 import { AuthRecordsCleanup } from './auth-records.cleanup.js'
 import { DeletedAccountsCleanup } from './deleted-accounts.cleanup.js'
+import { NotificationsCleanup } from './notifications.cleanup.js'
 import { OrphanObjectsCleanup } from './orphan-objects.cleanup.js'
 
 /** Job scheduler ids; each scheduler emits jobs with the same name. */
 export const MAINTENANCE_JOBS = {
   accountExportsPrune: 'account-exports-prune',
+  notificationsPrune: 'notifications-prune',
   authRecordsPrune: 'auth-records-prune',
   accountPurge: 'account-purge',
   storageOrphanSweep: 'storage-orphan-sweep',
@@ -26,6 +28,7 @@ export const ORPHAN_GRACE_MS = DAY_MS
  * when they run and finish without work while it is off, so switching them needs no restart and keeps
  * `ScheduledJobMissed` quiet.
  * - 03:15 `account-exports-prune`: data exports past `expiresAt` (`ACCOUNT_EXPORT_TTL_HOURS`), stuck ones.
+ * - 03:20 `notifications-prune`: personal notifications older than `notifications.retentionDays` (0 = keep).
  * - 03:30 `auth-records-prune`: sessions and reset tokens `maintenance.authRecordRetentionDays` after they
  *   ended (0 = keep).
  * - 03:45 `account-purge`: client accounts whose deletion grace period (`account.deletionGraceDays`) ended.
@@ -43,6 +46,7 @@ export class MaintenanceProcessor
     private readonly orphanObjects: OrphanObjectsCleanup,
     private readonly deletedAccounts: DeletedAccountsCleanup,
     private readonly accountExports: AccountExportsCleanup,
+    private readonly notifications: NotificationsCleanup,
     @InjectQueue(QUEUES.maintenance) private readonly queue: Queue,
     private readonly settings: SettingsService,
   ) {
@@ -52,6 +56,7 @@ export class MaintenanceProcessor
   async onApplicationBootstrap(): Promise<void> {
     for (const [id, pattern] of [
       [MAINTENANCE_JOBS.accountExportsPrune, '15 3 * * *'],
+      [MAINTENANCE_JOBS.notificationsPrune, '20 3 * * *'],
       [MAINTENANCE_JOBS.authRecordsPrune, '30 3 * * *'],
       [MAINTENANCE_JOBS.accountPurge, '45 3 * * *'],
       [MAINTENANCE_JOBS.storageOrphanSweep, '0 4 * * *'],
@@ -70,6 +75,8 @@ export class MaintenanceProcessor
         return this.purgeDeletedAccounts()
       case MAINTENANCE_JOBS.accountExportsPrune:
         return this.pruneAccountExports()
+      case MAINTENANCE_JOBS.notificationsPrune:
+        return this.pruneNotifications()
       default:
         throw new UnrecoverableError(`Unknown maintenance job "${job.name}"`)
     }
@@ -111,6 +118,21 @@ export class MaintenanceProcessor
     const deleted = await this.accountExports.run(new Date())
     if (deleted > 0) {
       this.logger.log(`Deleted ${deleted} expired data exports`)
+    }
+  }
+
+  private async pruneNotifications(): Promise<void> {
+    const days = this.settings.get('notifications.retentionDays')
+    if (days <= 0) {
+      return
+    }
+    const deleted = await this.notifications.run(
+      new Date(Date.now() - days * DAY_MS),
+    )
+    if (deleted > 0) {
+      this.logger.log(
+        `Deleted ${deleted} notifications older than ${days} days`,
+      )
     }
   }
 }

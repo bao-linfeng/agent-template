@@ -31,7 +31,8 @@ export interface ApiClientOptions {
   onUnauthorized?: () => unknown
 }
 
-export type ApiFetchOptions = FetchOptions<'json'> & {
+/** JSON by default; `responseType: 'stream'` resolves to the response body (e.g. for `connectEventStream`). */
+export type ApiFetchOptions = (FetchOptions<'json'> | FetchOptions<'stream'>) & {
   /**
    * Sends `Idempotency-Key` so the server runs the operation at most once. `true` generates a key for
    * this call, shared by its retry after a session refresh. To make user resubmits safe (double
@@ -64,10 +65,11 @@ export function createIdempotencyKey(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
 }
 
-function toFetchOptions(options?: ApiFetchOptions): FetchOptions<'json'> | undefined {
-  if (!options)
-    return options
-  const { idempotencyKey, ...rest } = options
+function toFetchOptions(apiOptions?: ApiFetchOptions): FetchOptions<'json'> | undefined {
+  if (!apiOptions)
+    return apiOptions
+  // The response type only changes what ofetch resolves to; callers type the result themselves.
+  const { idempotencyKey, ...rest } = apiOptions as FetchOptions<'json'> & Pick<ApiFetchOptions, 'idempotencyKey'>
   if (!idempotencyKey)
     return rest
   const headers = new Headers(rest.headers)

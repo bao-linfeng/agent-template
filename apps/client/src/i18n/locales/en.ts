@@ -76,6 +76,11 @@ export default {
     UPLOAD_SCAN_UNAVAILABLE: 'Uploads cannot be scanned right now. Please try again later.',
     UPLOAD_TOO_LARGE: 'The file exceeds the {maxBytes} byte limit.',
     VALIDATION_FAILED: 'Some fields are invalid, please check your input.',
+    ANNOUNCEMENT_NOT_FOUND: 'Announcement not found.',
+    NOTIFICATION_CATEGORY_MANDATORY: 'This kind of notification cannot be turned off.',
+    NOTIFICATION_CATEGORY_UNKNOWN: 'Unknown notification category.',
+    NOTIFICATION_NOT_FOUND: 'Notification not found.',
+    NOTIFICATION_PREFERENCE_INVALID: 'Invalid notification preferences.',
   },
   nav: {
     home: 'Home',
@@ -91,6 +96,8 @@ export default {
     menuDescription: 'Main navigation menu with all available sections and pages',
     toggleSection: 'Toggle {title} section',
     goTo: 'Go to {title}',
+    notifications: 'Notifications',
+    notificationsUnread: 'Notifications ({count} unread)',
   },
   routes: {
     home: { title: 'Home' },
@@ -108,6 +115,7 @@ export default {
     forgotPassword: { title: 'Forgot password' },
     resetPassword: { title: 'Reset password' },
     account: { title: 'My account' },
+    notifications: { title: 'Notifications' },
   },
   collecty: {
     add: 'Add to collection',
@@ -261,6 +269,59 @@ export default {
     },
   },
   // Demo content of the showcase pages
+  notifications: {
+    title: 'Notifications',
+    description: 'Messages about your account and announcements.',
+    markRead: 'Mark as read',
+    markAllRead: 'Mark all as read',
+    delete: 'Delete',
+    viewAll: 'View all',
+    unreadOnly: 'Unread only',
+    empty: 'No notifications yet.',
+    emptyUnread: 'No unread notifications.',
+    emptyAnnouncements: 'No announcements right now.',
+    previous: 'Previous',
+    next: 'Next',
+    expiresAt: 'Until {date}',
+    tabs: { notifications: 'Notifications', announcements: 'Announcements' },
+    categories: { security: 'Account security', account: 'Account', knowledgeBase: 'Knowledge bases' },
+    channels: { inApp: 'On the site', email: 'Email' },
+    levels: { info: 'Info', warning: 'Warning', critical: 'Important' },
+    types: {
+      security: {
+        passwordChanged: {
+          title: 'Your password was changed',
+          body: 'Other devices were signed out. If this was not you, reset your password right away.',
+        },
+      },
+      account: {
+        deletionCancelled: {
+          title: 'Account deletion cancelled',
+          body: 'Your account has been restored and will not be deleted.',
+        },
+        exportReady: {
+          title: 'Your data export is ready',
+          body: 'Download it on your account page before {expiresAt}.',
+        },
+      },
+      knowledgeBase: {
+        documentReady: {
+          title: 'Document ready',
+          body: '"{title}" was indexed into {chunkCount} chunks and can be searched now.',
+        },
+        documentFailed: {
+          title: 'Document processing failed',
+          body: '"{title}" could not be indexed. Check the file and upload it again.',
+        },
+      },
+    },
+    preferences: {
+      title: 'Notifications',
+      description: 'Choose how you hear about events of your account.',
+      mandatoryHint: 'Security notifications cannot be turned off.',
+      saved: 'Notification preferences saved.',
+    },
+  },
   demo: {
     actions: {
       getStarted: 'Get Started',

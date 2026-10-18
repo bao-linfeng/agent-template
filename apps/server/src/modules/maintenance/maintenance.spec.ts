@@ -8,6 +8,7 @@ import {
   MAINTENANCE_JOBS,
   MaintenanceProcessor,
 } from './maintenance.processor.js'
+import type { NotificationsCleanup } from './notifications.cleanup.js'
 import {
   parseObjectKey,
   type OrphanObjectsCleanup,
@@ -64,6 +65,7 @@ describe('MaintenanceProcessor', () => {
     const orphanObjects = { run: vi.fn().mockResolvedValue(0) }
     const deletedAccounts = { run: vi.fn().mockResolvedValue(0) }
     const accountExports = { run: vi.fn().mockResolvedValue(0) }
+    const notifications = { run: vi.fn().mockResolvedValue(0) }
     // Mutable so a test can switch a setting between runs, like an administrator would.
     const settings = {
       values,
@@ -74,6 +76,7 @@ describe('MaintenanceProcessor', () => {
       orphanObjects as unknown as OrphanObjectsCleanup,
       deletedAccounts as unknown as DeletedAccountsCleanup,
       accountExports as unknown as AccountExportsCleanup,
+      notifications as unknown as NotificationsCleanup,
       queue as unknown as Queue,
       settings as unknown as SettingsService,
     )
@@ -85,6 +88,7 @@ describe('MaintenanceProcessor', () => {
       orphanObjects,
       deletedAccounts,
       accountExports,
+      notifications,
     }
   }
 
@@ -92,10 +96,12 @@ describe('MaintenanceProcessor', () => {
     const { processor, queue } = setup({
       'maintenance.authRecordRetentionDays': 0,
       'maintenance.storageOrphanSweepEnabled': false,
+      'notifications.retentionDays': 0,
     })
     await processor.onApplicationBootstrap()
     for (const [id, pattern] of [
       [MAINTENANCE_JOBS.accountExportsPrune, '15 3 * * *'],
+      [MAINTENANCE_JOBS.notificationsPrune, '20 3 * * *'],
       [MAINTENANCE_JOBS.authRecordsPrune, '30 3 * * *'],
       [MAINTENANCE_JOBS.accountPurge, '45 3 * * *'],
       [MAINTENANCE_JOBS.storageOrphanSweep, '0 4 * * *'],
@@ -106,7 +112,7 @@ describe('MaintenanceProcessor', () => {
         { name: id },
       )
     }
-    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(4)
+    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(5)
     expect(queue.removeJobScheduler).not.toHaveBeenCalled()
   })
 
@@ -117,9 +123,11 @@ describe('MaintenanceProcessor', () => {
       orphanObjects,
       deletedAccounts,
       accountExports,
+      notifications,
     } = setup({
       'maintenance.authRecordRetentionDays': 7,
       'maintenance.storageOrphanSweepEnabled': true,
+      'notifications.retentionDays': 90,
     })
     // Frozen clock: cutoffs are exact instead of racing the millisecond tick.
     const now = new Date('2026-10-16T03:30:00.000Z').getTime()
@@ -139,6 +147,13 @@ describe('MaintenanceProcessor', () => {
         new Date(now - 24 * 60 * 60 * 1000),
       )
 
+      await processor.process({
+        name: MAINTENANCE_JOBS.notificationsPrune,
+      } as Job)
+      expect(notifications.run).toHaveBeenCalledWith(
+        new Date(now - 90 * 24 * 60 * 60 * 1000),
+      )
+
       for (const [name, cleanup] of [
         [MAINTENANCE_JOBS.accountPurge, deletedAccounts],
         [MAINTENANCE_JOBS.accountExportsPrune, accountExports],
@@ -156,26 +171,34 @@ describe('MaintenanceProcessor', () => {
   })
 
   it('reads the settings when a job runs, so switching them needs no restart', async () => {
-    const { processor, settings, authRecords, orphanObjects } = setup({
-      'maintenance.authRecordRetentionDays': 0,
-      'maintenance.storageOrphanSweepEnabled': false,
-    })
-    await processor.process({ name: MAINTENANCE_JOBS.authRecordsPrune } as Job)
-    await processor.process({
-      name: MAINTENANCE_JOBS.storageOrphanSweep,
-    } as Job)
+    const { processor, settings, authRecords, orphanObjects, notifications } =
+      setup({
+        'maintenance.authRecordRetentionDays': 0,
+        'maintenance.storageOrphanSweepEnabled': false,
+        'notifications.retentionDays': 0,
+      })
+    const runAll = async () => {
+      for (const name of [
+        MAINTENANCE_JOBS.authRecordsPrune,
+        MAINTENANCE_JOBS.storageOrphanSweep,
+        MAINTENANCE_JOBS.notificationsPrune,
+      ]) {
+        await processor.process({ name } as Job)
+      }
+    }
+    await runAll()
     expect(authRecords.run).not.toHaveBeenCalled()
     expect(orphanObjects.run).not.toHaveBeenCalled()
+    expect(notifications.run).not.toHaveBeenCalled()
 
     settings.values = {
       'maintenance.authRecordRetentionDays': 30,
       'maintenance.storageOrphanSweepEnabled': true,
+      'notifications.retentionDays': 30,
     }
-    await processor.process({ name: MAINTENANCE_JOBS.authRecordsPrune } as Job)
-    await processor.process({
-      name: MAINTENANCE_JOBS.storageOrphanSweep,
-    } as Job)
+    await runAll()
     expect(authRecords.run).toHaveBeenCalledTimes(1)
     expect(orphanObjects.run).toHaveBeenCalledTimes(1)
+    expect(notifications.run).toHaveBeenCalledTimes(1)
   })
 })

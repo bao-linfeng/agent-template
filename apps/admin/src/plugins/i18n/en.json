@@ -193,7 +193,9 @@
     "security": "Security",
     "appearance": "Appearance",
     "notifications": "Notifications",
-    "display": "Display"
+    "display": "Display",
+    "announcements": "Announcements",
+    "notificationCenter": "Notifications"
   },
   "teamSwitcher": {
     "teams": "Teams",
@@ -243,7 +245,9 @@
     "required": "Required.",
     "maxDimensions": "pgvector indexes support at most 2000 dimensions.",
     "avatarType": "Please choose a PNG, JPEG, GIF or WebP image.",
-    "avatarSize": "The image must be smaller than {size} MB."
+    "avatarSize": "The image must be smaller than {size} MB.",
+    "textMax": "Must not be longer than {max} characters.",
+    "futureTime": "Pick a time in the future."
   },
   "avatar": {
     "upload": "Upload avatar",
@@ -384,7 +388,13 @@
     "MFA_ALREADY_ENABLED": "Two-factor authentication is already on.",
     "MFA_NOT_ENABLED": "Two-factor authentication is not on.",
     "MFA_SETUP_EXPIRED": "The setup has expired, please start again.",
-    "ADMIN_CANNOT_RESET_OWN_MFA": "You cannot reset your own two-factor authentication; turn it off in Settings instead."
+    "ADMIN_CANNOT_RESET_OWN_MFA": "You cannot reset your own two-factor authentication; turn it off in Settings instead.",
+    "ANNOUNCEMENT_EXPIRY_INVALID": "The expiry time must be in the future.",
+    "ANNOUNCEMENT_NOT_FOUND": "Announcement not found.",
+    "NOTIFICATION_CATEGORY_MANDATORY": "This kind of notification cannot be turned off.",
+    "NOTIFICATION_CATEGORY_UNKNOWN": "Unknown notification category.",
+    "NOTIFICATION_NOT_FOUND": "Notification not found.",
+    "NOTIFICATION_PREFERENCE_INVALID": "Invalid notification preferences."
   },
   "accounts": {
     "user": "User",
@@ -516,7 +526,8 @@
       "account": "Accounts",
       "maintenance": "Data maintenance",
       "rateLimit": "Rate limits",
-      "session": "Sessions"
+      "session": "Sessions",
+      "notifications": "Notifications"
     },
     "items": {
       "auth": {
@@ -579,6 +590,12 @@
         "storageOrphanSweepEnabled": {
           "title": "Sweep orphaned files",
           "description": "Every day at 04:00, delete avatars, knowledge base sources and exports that no record references anymore."
+        }
+      },
+      "notifications": {
+        "retentionDays": {
+          "title": "Keep notifications (days)",
+          "description": "Personal notifications older than this are deleted every night at 03:20, read or not. 0 keeps them forever. Announcements are not affected."
         }
       }
     },
@@ -719,5 +736,134 @@
       "vercel": "Vercel Style",
       "vercelDescription": "Click to navigate to the next level"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Messages about your account and announcements from administrators.",
+    "bell": "Notifications",
+    "unread": "No unread items | {count} unread | {count} unread",
+    "open": "Open",
+    "markRead": "Mark as read",
+    "markAllRead": "Mark all as read",
+    "allRead": "Everything is marked as read.",
+    "deleted": "Notification deleted.",
+    "viewAll": "View all",
+    "unreadOnly": "Unread only",
+    "allCategories": "All categories",
+    "empty": "No notifications yet.",
+    "emptyUnread": "No unread notifications.",
+    "emptyAnnouncements": "No announcements right now.",
+    "new": "New",
+    "tabs": {
+      "notifications": "Notifications",
+      "announcements": "Announcements"
+    },
+    "categories": {
+      "security": "Account security",
+      "account": "Account",
+      "knowledgeBase": "Knowledge bases"
+    },
+    "channels": {
+      "inApp": "In the console",
+      "email": "Email"
+    },
+    "changes": {
+      "enabled": "turned on",
+      "disabled": "turned off",
+      "reset": "reset by an administrator"
+    },
+    "levels": {
+      "info": "Info",
+      "warning": "Warning",
+      "critical": "Important"
+    },
+    "expiresAt": "Until {date}",
+    "types": {
+      "security": {
+        "passwordChanged": {
+          "title": "Your password was changed",
+          "body": "Other devices were signed out. If this was not you, reset your password right away."
+        },
+        "twoFactorChanged": {
+          "title": "Two-factor authentication changed",
+          "body": "Two-factor authentication of your account was {change}. If this was not you, contact an administrator."
+        }
+      },
+      "account": {
+        "deletionCancelled": {
+          "title": "Account deletion cancelled",
+          "body": "Your account has been restored and will not be deleted."
+        },
+        "exportReady": {
+          "title": "Your data export is ready",
+          "body": "Download it before {expiresAt}."
+        }
+      },
+      "knowledgeBase": {
+        "documentReady": {
+          "title": "Document ready",
+          "body": "\"{title}\" was indexed into {chunkCount} chunks and can be searched now."
+        },
+        "documentFailed": {
+          "title": "Document processing failed",
+          "body": "\"{title}\" could not be indexed. Check the file and upload it again."
+        }
+      }
+    },
+    "preferences": {
+      "title": "Notifications",
+      "description": "Choose how you hear about events of your account.",
+      "mandatory": "Always on",
+      "mandatoryHint": "Security notifications cannot be turned off.",
+      "saved": "Notification preferences saved.",
+      "loadFailed": "Notification preferences could not be loaded."
+    }
+  },
+  "announcements": {
+    "title": "Announcements",
+    "description": "Messages to client users, administrators or everyone. Published announcements appear right away in their notification center.",
+    "readOnly": "You can view announcements. Writing them needs the announcement:manage permission.",
+    "new": "New announcement",
+    "editTitle": "Edit announcement",
+    "createDescription": "Save a draft or publish it right away.",
+    "searchPlaceholder": "Search titles...",
+    "allStatuses": "All statuses",
+    "allAudiences": "All audiences",
+    "total": "{count} announcement | {count} announcements",
+    "fields": {
+      "title": "Title",
+      "body": "Message",
+      "bodyHint": "Plain text; line breaks are kept.",
+      "level": "Level",
+      "audience": "Audience",
+      "status": "Status",
+      "expiresAt": "Expires",
+      "expiresAtHint": "Optional. Hidden from the audience from then on.",
+      "publishedAt": "Published",
+      "readCount": "Read by"
+    },
+    "statuses": {
+      "draft": "Draft",
+      "published": "Published",
+      "expired": "Expired"
+    },
+    "audiences": {
+      "all": "Everyone",
+      "user": "Client users",
+      "admin": "Administrators"
+    },
+    "noExpiry": "Never",
+    "publishNow": "Publish right away",
+    "saveDraft": "Save draft",
+    "createAndPublish": "Publish",
+    "publish": "Publish",
+    "withdraw": "Withdraw",
+    "created": "Announcement saved.",
+    "updated": "Announcement updated.",
+    "published": "Announcement published.",
+    "withdrawn": "Announcement withdrawn to drafts.",
+    "deleted": "Announcement deleted.",
+    "deleteTitle": "Delete \"{title}\"?",
+    "deleteDescription": "It disappears for everyone, including who already read it. This cannot be undone."
   }
 }

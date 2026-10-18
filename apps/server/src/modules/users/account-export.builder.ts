@@ -5,11 +5,15 @@ import { AppException } from '../../common/errors/app.exception.js'
 import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import {
+  announcements,
   auditLogs,
   authSessions,
   documents,
   embeddingModels,
   knowledgeBases,
+  userAnnouncementReads,
+  userNotificationPreferences,
+  userNotifications,
   users,
 } from '../../database/schema/index.js'
 import { StorageService } from '../../infra/storage/storage.service.js'
@@ -33,7 +37,8 @@ function isTextType(mimeType: string): boolean {
 
 /**
  * Builds the personal data export of a client user: one JSON file with the profile, avatar, sign-in
- * sessions, knowledge bases with their source documents and the user's own audit trail. Derived data
+ * sessions, knowledge bases with their source documents, notifications (with preferences and read
+ * announcements) and the user's own audit trail. Derived data
  * (text chunks, embeddings) is left out; it is rebuilt from the documents.
  */
 @Injectable()
@@ -70,6 +75,12 @@ export class AccountExportBuilder {
       await writer.array('sessions', this.sessions(userId))
       await writer.array('knowledgeBases', this.knowledgeBases(userId))
       await writer.array('documents', this.documents(userId))
+      await writer.array('notifications', this.notifications(userId))
+      await writer.array(
+        'notificationPreferences',
+        this.notificationPreferences(userId),
+      )
+      await writer.array('announcementReads', this.announcementReads(userId))
       await writer.array('auditLogs', this.auditLogs(userId))
       await writer.close()
     } catch (error) {
@@ -176,6 +187,52 @@ export class AccountExportBuilder {
       }
       throw error
     }
+  }
+
+  private notifications(userId: string) {
+    return keysetPages(userNotifications.id, PAGE_SIZE, (after) =>
+      this.db
+        .select({
+          id: userNotifications.id,
+          type: userNotifications.type,
+          params: userNotifications.params,
+          link: userNotifications.link,
+          readAt: userNotifications.readAt,
+          createdAt: userNotifications.createdAt,
+        })
+        .from(userNotifications)
+        .where(and(eq(userNotifications.recipientId, userId), after))
+        .orderBy(asc(userNotifications.id))
+        .limit(PAGE_SIZE),
+    )
+  }
+
+  private async *notificationPreferences(userId: string) {
+    yield* await this.db
+      .select({
+        category: userNotificationPreferences.category,
+        channels: userNotificationPreferences.channels,
+        updatedAt: userNotificationPreferences.updatedAt,
+      })
+      .from(userNotificationPreferences)
+      .where(eq(userNotificationPreferences.accountId, userId))
+      .orderBy(asc(userNotificationPreferences.category))
+  }
+
+  private async *announcementReads(userId: string) {
+    yield* await this.db
+      .select({
+        announcementId: userAnnouncementReads.announcementId,
+        title: announcements.title,
+        readAt: userAnnouncementReads.readAt,
+      })
+      .from(userAnnouncementReads)
+      .innerJoin(
+        announcements,
+        eq(userAnnouncementReads.announcementId, announcements.id),
+      )
+      .where(eq(userAnnouncementReads.accountId, userId))
+      .orderBy(asc(userAnnouncementReads.readAt))
   }
 
   private auditLogs(userId: string) {

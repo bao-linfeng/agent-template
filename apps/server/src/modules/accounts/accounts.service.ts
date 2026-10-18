@@ -31,6 +31,7 @@ import { StorageService } from '../../infra/storage/storage.service.js'
 import { PasswordHasher } from '../auth/password-hasher.service.js'
 import { REALM_TABLES, type Realm } from '../auth/realms.js'
 import { SessionsService } from '../auth/sessions.service.js'
+import { NotificationsService } from '../notifications/notifications.service.js'
 import { SettingsService } from '../settings/settings.service.js'
 import { avatarKey, detectImageType } from './avatar.js'
 import type {
@@ -73,6 +74,7 @@ export class AccountsService {
     private readonly sessions: SessionsService,
     private readonly hasher: PasswordHasher,
     private readonly mail: MailService,
+    private readonly notifications: NotificationsService,
     private readonly settings: SettingsService,
     config: ConfigService<Env, true>,
   ) {
@@ -258,10 +260,16 @@ export class AccountsService {
       .set({ passwordHash: await this.hasher.hash(newPassword) })
       .where(eq(accounts.id, account.id))
     await this.sessions.revokeAllForUser(realm, account.id, options)
-    await this.mail.send(
-      account.email,
-      mailTemplates.passwordChanged({ nickname: account.nickname }),
-    )
+    await this.notifications.notify({
+      realm,
+      recipientId: account.id,
+      type: 'security.passwordChanged',
+      params: {},
+      mail: {
+        to: account.email,
+        ...mailTemplates.passwordChanged({ nickname: account.nickname }),
+      },
+    })
   }
 
   // ---- Deletion (soft delete with a grace period) ------------------------------------------
@@ -333,10 +341,21 @@ export class AccountsService {
       }
       return account
     }
-    await this.mail.send(
-      restored.email,
-      mailTemplates.accountDeletionCancelled({ nickname: restored.nickname }),
-    )
+    const mail = mailTemplates.accountDeletionCancelled({
+      nickname: restored.nickname,
+    })
+    // Only client users have a deletion flow; admin accounts are disabled instead.
+    if (realm === 'user') {
+      await this.notifications.notify({
+        realm,
+        recipientId: restored.id,
+        type: 'account.deletionCancelled',
+        params: {},
+        mail: { to: restored.email, ...mail },
+      })
+    } else {
+      await this.mail.send(restored.email, mail)
+    }
     this.logger.log(`Deletion of ${realm} ${id} cancelled`)
     return restored
   }

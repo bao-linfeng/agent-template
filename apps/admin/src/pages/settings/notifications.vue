@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import NotificationsForm from './components/notifications-form.vue'
+import NotificationPreferences from './components/notification-preferences.vue'
 import SettingsLayout from './components/settings-layout.vue'
 </script>
 
 <template>
   <SettingsLayout>
-    <NotificationsForm />
+    <NotificationPreferences />
   </SettingsLayout>
 </template>

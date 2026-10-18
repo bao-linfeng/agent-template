@@ -13,13 +13,13 @@ import {
   adminTotpCredentials,
 } from '../../database/schema/index.js'
 import { mailTemplates } from '../../infra/mail/mail.templates.js'
-import { MailService } from '../../infra/mail/mail.service.js'
 import { InjectRedis } from '../../infra/redis/redis.module.js'
 import {
   AccountsService,
   type AccountRow,
 } from '../accounts/accounts.service.js'
 import { SessionsService } from '../auth/sessions.service.js'
+import { NotificationsService } from '../notifications/notifications.service.js'
 import { generateTotpSecret, TOTP_DIGITS, totpUri, verifyTotp } from './totp.js'
 
 /** `GET /v1/admin/me/mfa`. */
@@ -111,7 +111,7 @@ export class MfaService {
     private readonly box: SecretBox,
     private readonly accounts: AccountsService,
     private readonly sessions: SessionsService,
-    private readonly mail: MailService,
+    private readonly notifications: NotificationsService,
     config: ConfigService<Env, true>,
   ) {
     this.issuer = config.get('MFA_TOTP_ISSUER', { infer: true })
@@ -452,10 +452,19 @@ export class MfaService {
   ): Promise<void> {
     const account = await this.accounts.findById('admin', adminUserId)
     if (account) {
-      await this.mail.send(
-        account.email,
-        mailTemplates.twoFactorChanged({ nickname: account.nickname, change }),
-      )
+      await this.notifications.notify({
+        realm: 'admin',
+        recipientId: account.id,
+        type: 'security.twoFactorChanged',
+        params: { change },
+        mail: {
+          to: account.email,
+          ...mailTemplates.twoFactorChanged({
+            nickname: account.nickname,
+            change,
+          }),
+        },
+      })
     }
   }
 

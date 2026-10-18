@@ -64,6 +64,13 @@
       "when": 1792152756096,
       "tag": "0008_system_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792281854667,
+      "tag": "0009_notifications",
+      "breakpoints": true
     }
   ]
 }

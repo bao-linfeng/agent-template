@@ -77,6 +77,11 @@ const zh: typeof en = {
     UPLOAD_SCAN_UNAVAILABLE: '暂时无法扫描上传的文件，请稍后重试。',
     UPLOAD_TOO_LARGE: '文件超过 {maxBytes} 字节的大小限制。',
     VALIDATION_FAILED: '部分字段不合法，请检查输入。',
+    ANNOUNCEMENT_NOT_FOUND: '公告不存在。',
+    NOTIFICATION_CATEGORY_MANDATORY: '这类通知不能关闭。',
+    NOTIFICATION_CATEGORY_UNKNOWN: '未知的通知分类。',
+    NOTIFICATION_NOT_FOUND: '通知不存在。',
+    NOTIFICATION_PREFERENCE_INVALID: '通知偏好设置无效。',
   },
   nav: {
     home: '首页',
@@ -92,6 +97,8 @@ const zh: typeof en = {
     menuDescription: '包含所有区块与页面的主导航菜单',
     toggleSection: '展开/收起「{title}」',
     goTo: '前往「{title}」',
+    notifications: '通知',
+    notificationsUnread: '通知（{count} 条未读）',
   },
   routes: {
     home: { title: '首页' },
@@ -109,6 +116,7 @@ const zh: typeof en = {
     forgotPassword: { title: '忘记密码' },
     resetPassword: { title: '重置密码' },
     account: { title: '我的账户' },
+    notifications: { title: '通知' },
   },
   collecty: {
     add: '加入收藏',
@@ -259,6 +267,59 @@ const zh: typeof en = {
       cancel: '取消',
       submitting: '注销中...',
       scheduled: '你的账号将于 {date} 被删除，在此之前登录即可撤销注销。',
+    },
+  },
+  notifications: {
+    title: '通知',
+    description: '与你账号相关的消息和公告。',
+    markRead: '标为已读',
+    markAllRead: '全部标为已读',
+    delete: '删除',
+    viewAll: '查看全部',
+    unreadOnly: '只看未读',
+    empty: '暂无通知。',
+    emptyUnread: '没有未读通知。',
+    emptyAnnouncements: '当前没有公告。',
+    previous: '上一页',
+    next: '下一页',
+    expiresAt: '有效期至 {date}',
+    tabs: { notifications: '通知', announcements: '公告' },
+    categories: { security: '账号安全', account: '账号', knowledgeBase: '知识库' },
+    channels: { inApp: '站内', email: '邮件' },
+    levels: { info: '通知', warning: '提醒', critical: '重要' },
+    types: {
+      security: {
+        passwordChanged: {
+          title: '你的密码已修改',
+          body: '其他设备已退出登录。如果不是你本人操作，请立即重置密码。',
+        },
+      },
+      account: {
+        deletionCancelled: {
+          title: '已取消注销账号',
+          body: '你的账号已恢复，不会被删除。',
+        },
+        exportReady: {
+          title: '数据导出已完成',
+          body: '请在 {expiresAt} 前到“我的账号”页面下载。',
+        },
+      },
+      knowledgeBase: {
+        documentReady: {
+          title: '文档已就绪',
+          body: '「{title}」已切分为 {chunkCount} 个片段，现在可以检索。',
+        },
+        documentFailed: {
+          title: '文档处理失败',
+          body: '「{title}」未能完成索引，请检查文件后重新上传。',
+        },
+      },
+    },
+    preferences: {
+      title: '通知',
+      description: '选择通过哪些方式接收账号相关的通知。',
+      mandatoryHint: '安全类通知不能关闭。',
+      saved: '通知偏好已保存。',
     },
   },
   demo: {

@@ -12,9 +12,9 @@ import type { Database } from '../../database/database.js'
 import { InjectDb } from '../../database/database.module.js'
 import { accountExports, users } from '../../database/schema/index.js'
 import { mailTemplates } from '../../infra/mail/mail.templates.js'
-import { MailService } from '../../infra/mail/mail.service.js'
 import { QUEUES } from '../../infra/queue/queue.module.js'
 import { StorageService } from '../../infra/storage/storage.service.js'
+import { NotificationsService } from '../notifications/notifications.service.js'
 import { AccountExportBuilder } from './account-export.builder.js'
 import {
   accountExportKey,
@@ -25,8 +25,9 @@ const HOUR_MS = 60 * 60 * 1000
 
 /**
  * Builds a requested export into a temporary file, uploads it to `exports/<userId>/<exportId>.json`
- * and emails the user. Transient failures are retried by BullMQ; after the last attempt the export is
- * `failed` and the user can request a new one.
+ * and notifies the user (in-app and by email, as the user's preferences allow). Transient failures
+ * are retried by BullMQ; after the last attempt the export is `failed` and the user can request a new
+ * one.
  */
 @Processor(QUEUES.accountExport)
 export class AccountExportProcessor extends WorkerHost {
@@ -37,7 +38,7 @@ export class AccountExportProcessor extends WorkerHost {
     @InjectDb() private readonly db: Database,
     private readonly builder: AccountExportBuilder,
     private readonly storage: StorageService,
-    private readonly mail: MailService,
+    private readonly notifications: NotificationsService,
     config: ConfigService<Env, true>,
   ) {
     super()
@@ -90,10 +91,19 @@ export class AccountExportProcessor extends WorkerHost {
           expiresAt,
         })
         .where(eq(accountExports.id, exportId))
-      await this.mail.send(
-        row.email,
-        mailTemplates.accountExportReady({ nickname: row.nickname, expiresAt }),
-      )
+      await this.notifications.notify({
+        realm: 'user',
+        recipientId: row.userId,
+        type: 'account.exportReady',
+        params: { exportId, expiresAt: expiresAt.toISOString() },
+        mail: {
+          to: row.email,
+          ...mailTemplates.accountExportReady({
+            nickname: row.nickname,
+            expiresAt,
+          }),
+        },
+      })
       this.logger.log(`Export ${exportId} ready (${sizeBytes} bytes)`)
     } catch (error) {
       const finalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1)

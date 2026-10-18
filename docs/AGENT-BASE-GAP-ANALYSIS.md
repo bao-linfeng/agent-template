@@ -371,7 +371,7 @@ run.cancelled
 | 上传内容校验 | 已完成：头像按文件头（magic bytes）识别 PNG/JPEG/GIF/WebP 并拒绝 SVG，文档上传时严格 UTF-8 解码；设置 `CLAMAV_HOST` 后头像与文档在写入存储前经 clamd 扫描（`apps/server/src/infra/antivirus`，fail closed：感染 422、扫描不可用 503），部署通过 `antivirus` profile 启用，指标 `upload_scans_total` 与告警 `UploadScanFailing` | P1，开放用户上传前补齐 |
 | 加密密钥轮换 | 已完成：`SecretBox` 用 `ENCRYPTION_KEY` 加密，同时可用 `ENCRYPTION_KEYS_PREVIOUS` 中的旧密钥解密；密文格式仍为 `v1`，上一版本可以读取；`reencrypt-secrets` 脚本（`apps/server/src/database/reencrypt-secrets.ts`，可 `--dry-run`）把模型 API Key 与管理员 TOTP 密钥改用新密钥加密，操作步骤见 `deploy/README.md`「加密密钥轮换」 | P1 |
 | 系统配置与功能开关 | 后端已完成：`apps/server/src/modules/settings`（`SETTINGS` 清单 + `system_settings` 表只存覆盖值，环境变量作默认值），各实例内存快照经 Redis 通知即时生效、无需重启；`/v1/admin/settings`（`setting:read`/`setting:manage`）与公开的 `/v1/client/settings`；已开放 `auth.registrationEnabled`（注册开关）、注销宽限期、会话与令牌保留天数、孤儿文件清扫，以及限流次数、会话时长、重置链接与邮件验证码参数（以环境变量为硬上限，后台只能收紧）。审计开关、密钥、Cookie/CORS、访问令牌有效期等仍只用环境变量；管理端设置页见 5.2。维护模式、强制管理员两步验证尚未实现 | 按需 |
-| 站内通知 | 只有邮件通知，没有站内消息 | 按需，长任务完成通知时需要 |
+| 站内通知 | 后端已完成：`apps/server/src/modules/notifications`，按 realm 分表的站内通知（类型目录 `notifications.catalog.ts`，存类型码与参数，前端按 `notifications.types.*` 翻译），`NotificationsService.notify` 统一站内与邮件投递并按分类/渠道偏好过滤（安全类强制）；全站公告（`/v1/admin/announcements`，`announcement:read`/`announcement:manage`，按受众匹配，已读单独记录，不写扩散）；SSE 实时推送 `.../notifications/stream`（Redis 跨实例广播，令牌到期或会话撤销后断开）；保留期由运行时设置 `notifications.retentionDays` 控制。已接入改密、管理员两步验证变更、取消注销、数据导出完成、知识库文档处理完成/失败；前端见 5.2。定时发布公告尚未实现 | 按需 |
 
 代码依据：
 
@@ -389,6 +389,7 @@ run.cancelled
 | 前端 E2E | 只有 Vitest 单测，没有 Playwright 等浏览器端到端测试 | P1，首版聊天流程稳定后补 |
 | 管理端真实看板 | Dashboard 仍是假数据，缺少用户数、队列状态、模型调用量等运营数据 | P1，依赖 4.2 的用量记录 |
 | 管理端系统设置页 | 已完成：管理端 `/system-settings`（`setting:read` 可见，`setting:manage` 可改），按接口返回的 JSON Schema 生成开关、数字、文本与下拉控件，前端先校验范围，支持批量保存与单项恢复默认，已知设置项有中英文标题与说明；客户端读取公开设置，注册关闭时登录页隐藏注册链接、注册页显示暂未开放 | 按需 |
+| 通知中心 | 已完成：管理端与客户端顶栏铃铛（未读角标、最近通知与公告）、通知中心页（筛选、已读、删除、分页）、通知偏好（管理端设置页 Notifications、客户端账号页），管理端公告管理页 `/announcements`；两端通过 `@repo/utils` 的 `connectEventStream` 经 API client 读取 SSE（401 自动刷新、断线退避重连），收到事件后刷新查询，管理端对新通知弹出提示 | 按需 |
 | 客户端知识库页面 | 客户端只有账号相关页面，没有知识库与对话入口 | 随首版（见 4.4、3.5） |
 
 ## 6. 按产品定位决定的能力
