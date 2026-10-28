@@ -1,13 +1,13 @@
 # apps/server
 
-NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvector）、Redis、BullMQ、RustFS（S3 兼容对象存储）、CASL 权限、Swagger、pino 日志。开发约定见 [AGENTS.md](./AGENTS.md)。
+NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvector）、Redis、BullMQ、Silo（S3 兼容对象存储）、CASL 权限、Swagger、pino 日志。开发约定见 [AGENTS.md](./AGENTS.md)。
 
 ## 功能
 
 | 模块                                 | 能力                                                                                                                                                                                                                                                                      |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 认证 `auth`                          | 客户端用户与后台管理员是两套独立账号（不同的表、会话、Cookie）。客户端 `/api/v1/client/auth/*`：邮箱验证码注册即登录、登录、刷新令牌轮换（重放检测）、退出、忘记/重置密码；后台 `/api/v1/admin/auth/*` 不开放注册。Web 使用 Cookie，客户端另支持 Bearer；凭证接口独立限流 |
-| 账号 `accounts` / `users` / `admins` | 个人资料、头像上传（RustFS，按文件头校验格式）、修改密码、会话列表与下线（客户端 `/api/v1/client/users/me`，后台 `/api/v1/admin/me`）；后台管理客户端用户 `/api/v1/admin/users`（编辑、禁用）和管理员账号 `/api/v1/admin/admins`（新建、编辑、禁用、分配角色）            |
+| 账号 `accounts` / `users` / `admins` | 个人资料、头像上传（Silo，按文件头校验格式）、修改密码、会话列表与下线（客户端 `/api/v1/client/users/me`，后台 `/api/v1/admin/me`）；后台管理客户端用户 `/api/v1/admin/users`（编辑、禁用）和管理员账号 `/api/v1/admin/admins`（新建、编辑、禁用、分配角色）            |
 | 权限 `rbac`                          | 只作用于后台管理员：角色 + 权限码（`user:read`、`admin:create` 等，CASL）；系统角色 `super_admin` / `admin`。客户端用户没有角色，只能操作自己的数据                                                                                                                       |
 | AI `ai`                              | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                                                                                                                                                                                    |
 | RAG `rag`                            | 客户端用户自己的知识库（`/api/v1/client/rag/knowledge-bases`）、文档上传（txt/md/csv/json/html）、BullMQ 后台切分与向量化、pgvector HNSW 相似度检索；后台 `/api/v1/admin/rag/knowledge-bases` 查看/删除所有知识库                                                         |
@@ -21,7 +21,7 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 
 ```bash
 cp .env.example .env     # 本地默认值即可直接使用
-pnpm infra:up            # 启动 postgres(pgvector) / redis / rustfs / mailpit，以及 COMPOSE_PROFILES 中的监控栈
+pnpm infra:up            # 启动 postgres(pgvector) / redis / silo / mailpit，以及 COMPOSE_PROFILES 中的监控栈
 pnpm db:migrate          # 应用 drizzle/ 下的迁移
 pnpm db:seed             # 系统角色、首个超级管理员（SEED_ADMIN_*）、默认 bge-m3 模型
 pnpm dev                 # 先 docker compose up（已运行则跳过），再监听启动 http://localhost:3100/api
@@ -31,9 +31,17 @@ pnpm dev                 # 先 docker compose up（已运行则跳过），再�
 - 就绪检查：<http://localhost:3100/api/health>（Postgres/Redis），存活检查：<http://localhost:3100/api/health/live>
 - Prometheus 指标：<http://localhost:9464/metrics>（独立监听，不走 API 端口；见下文“指标”）；Grafana 仪表盘和链路查询见下文“本地监控”
 - Mailpit 收件箱（注册验证码和找回密码邮件）：<http://localhost:8025>
-- RustFS 控制台：<http://localhost:9001>（账号见 `.env` 中的 `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`）
+- Silo 控制台：<http://localhost:9001>（账号见 `.env` 中的 `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`）
 
-Docker Compose 启动 PostgreSQL 18 + pgvector、Redis 8、RustFS 和 Mailpit；NestJS 应用在宿主机运行。首个管理员由 `SEED_ADMIN_*` 初始化，在 <http://localhost:5175/auth/sign-in> 登录；客户端用户在 <http://localhost:5174/register> 注册。
+Docker Compose 启动 PostgreSQL 18 + pgvector、Redis 8、Silo 和 Mailpit；NestJS 应用在宿主机运行。首个管理员由 `SEED_ADMIN_*` 初始化，在 <http://localhost:5175/auth/sign-in> 登录；客户端用户在 <http://localhost:5174/register> 注册。
+
+### 对象存储
+
+- 本地、生产和 E2E 统一使用 `pgsty/silo:RELEASE.2026-09-16T00-00-00Z`，通过 AWS SDK v3 的 `StorageService` 访问；业务模块不依赖 Silo 专有接口。
+- `STORAGE_ENDPOINT` 是服务端读写地址，`STORAGE_PUBLIC_ENDPOINT` 是浏览器访问预签名下载链接的地址；未配置后者时使用前者。容器内部地址不能作为浏览器下载地址。
+- 默认 Bucket 为 `app`，数据卷为 `silo-data`，Bucket 保持私有。调用 `getPresignedUrl` 前必须先完成业务鉴权。头像仍通过 API 的 `/avatars` 读取，不改变既有接口。
+- 开发默认凭据为 `siloadmin`，生产禁止使用。生产通过 `STORAGE_DOMAIN` 配置存储域名（Caddy 提供 HTTPS），详见 [部署文档](../../deploy/README.md)。
+- 本次切换不迁移旧对象。已有环境先停止并移除本项目旧 RustFS 容器以释放 9000/9001 端口；不要重用旧存储卷，也不要删除数据库或 Redis。
 
 本地向量化（可选）：
 
@@ -59,7 +67,7 @@ docker compose exec ollama ollama pull bge-m3
 | `lint` / `check-types` / `format`             | oxlint / tsc / Prettier                                                         |
 | `test`                                        | 单元测试（离线）                                                                |
 | `test:watch` / `test:coverage` / `test:debug` | Vitest 监听、覆盖率、调试                                                       |
-| `test:e2e`                                    | 端到端测试，用 testcontainers 启动临时 Postgres / Redis / RustFS（需要 Docker） |
+| `test:e2e`                                    | 端到端测试，用 testcontainers 启动临时 Postgres / Redis / Silo（需要 Docker） |
 
 ## 前端对接要点
 
@@ -175,7 +183,7 @@ pnpm -C apps/server test
 pnpm -C apps/server test:e2e
 ```
 
-单元测试为 `src/**/*.spec.ts`，必须可离线运行。E2E 位于 `test/**/*.e2e-spec.ts`，通过 testcontainers 启动 Postgres/Redis/RustFS，以真实 `AppModule` 和生产同款 Fastify 配置运行，邮件与 Embedding 服务使用测试替身。运行 E2E 前需启动 Docker。
+单元测试为 `src/**/*.spec.ts`，必须可离线运行。E2E 位于 `test/**/*.e2e-spec.ts`，通过 testcontainers 启动 Postgres/Redis/Silo，以真实 `AppModule` 和生产同款 Fastify 配置运行，邮件与 Embedding 服务使用测试替身。运行 E2E 前需启动 Docker。
 
 ```sh
 pnpm -C apps/server exec vitest run src/modules/rbac/ability.spec.ts

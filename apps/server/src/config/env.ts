@@ -3,8 +3,8 @@ import { z } from 'zod'
 const DEV_JWT_SECRET = 'local-development-only-jwt-secret-change-me'
 // 32 zero bytes, base64. Only usable outside production.
 const DEV_ENCRYPTION_KEY = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
-// Credentials of the local RustFS container (docker-compose.yml). Rejected in production.
-const DEV_STORAGE_KEY = 'rustfsadmin'
+// Credentials of the local Silo container (docker-compose.yml). Rejected in production.
+const DEV_STORAGE_KEY = 'siloadmin'
 
 /**
  * Local defaults of addresses that must be set explicitly in production: a forgotten one would send
@@ -129,8 +129,9 @@ export const envSchema = z
     AUTH_THROTTLE_LIMIT: z.coerce.number().int().positive().default(10),
 
     STORAGE_ENDPOINT: z.url().default('http://localhost:9000'),
+    STORAGE_PUBLIC_ENDPOINT: z.url().optional(),
     STORAGE_REGION: z.string().default('us-east-1'),
-    /** The local RustFS credentials by default; production needs real ones. */
+    /** The local Silo credentials by default; production needs real ones. */
     STORAGE_ACCESS_KEY: z.string().default(DEV_STORAGE_KEY),
     STORAGE_SECRET_KEY: z.string().default(DEV_STORAGE_KEY),
     STORAGE_BUCKET: z.string().default('app'),
@@ -260,6 +261,8 @@ export const envSchema = z
       CORS_ORIGINS: env.CORS_ORIGINS ?? DEV_ADDRESSES.CORS_ORIGINS,
       DATABASE_URL: env.DATABASE_URL ?? DEV_ADDRESSES.DATABASE_URL,
       REDIS_URL: env.REDIS_URL ?? DEV_ADDRESSES.REDIS_URL,
+      STORAGE_PUBLIC_ENDPOINT:
+        env.STORAGE_PUBLIC_ENDPOINT ?? env.STORAGE_ENDPOINT,
       JWT_SECRET: env.JWT_SECRET ?? DEV_JWT_SECRET,
       ENCRYPTION_KEY: env.ENCRYPTION_KEY ?? DEV_ENCRYPTION_KEY,
       COOKIE_SECURE: env.COOKIE_SECURE ?? isProduction,

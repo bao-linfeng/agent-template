@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config'
 
-// E2E tests boot the real Fastify app against throwaway Postgres/Redis/RustFS containers (Docker required).
+// E2E tests boot the real Fastify app against throwaway Postgres/Redis/Silo containers (Docker required).
 export default defineConfig({
   test: {
     globals: true,

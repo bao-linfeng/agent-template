@@ -1,7 +1,7 @@
 # Local infrastructure for apps/server. The Nest app itself runs on the host (`pnpm -C apps/server dev`).
 # Compose reads variables from apps/server/.env, so ports and credentials stay in sync with the app config.
 #
-#   docker compose up -d                 # postgres + redis + rustfs + mailpit
+#   docker compose up -d                 # postgres + redis + silo + mailpit
 #   docker compose --profile ai up -d    # also start Ollama for local bge-m3 embeddings
 #   docker compose --profile observability up -d   # also Prometheus, Alertmanager, Tempo and Grafana
 #   docker compose --profile antivirus up -d       # also clamd for the upload malware scan (CLAMAV_HOST=localhost)
@@ -49,18 +49,23 @@ services:
       timeout: 3s
       retries: 10
 
-  rustfs:
-    image: rustfs/rustfs:1.0.1
+  silo:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    command: [server, /data, --console-address, ':9001']
     restart: unless-stopped
     environment:
-      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-rustfsadmin}
-      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_KEY:-rustfsadmin}
-      RUSTFS_CONSOLE_ENABLE: 'true'
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-siloadmin}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:-siloadmin}
     ports:
-      - '${RUSTFS_PORT:-9000}:9000' # S3 API
-      - '${RUSTFS_CONSOLE_PORT:-9001}:9001' # Web console
+      - '${SILO_PORT:-9000}:9000' # S3 API
+      - '${SILO_CONSOLE_PORT:-9001}:9001' # Web console
     volumes:
-      - rustfs-data:/data
+      - silo-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   mailpit:
     # Catches all outgoing mail in development; inbox UI at http://localhost:8025.
@@ -187,7 +192,7 @@ services:
 volumes:
   postgres-data:
   redis-data:
-  rustfs-data:
+  silo-data:
   ollama-data:
   clamav-data:
   prometheus-data:

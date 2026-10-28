@@ -46,7 +46,7 @@ admin 与 client 使用同一套技术栈：Vue 3.5、Vue Router 5、Vite 8、Ta
 | 模块                                 | 能力                                                                                                                                     |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | 认证 `auth`                          | 客户端邮箱验证码注册即登录；两套账号独立登录、刷新令牌轮换（重放检测）、退出、忘记/重置密码；Web 用 HttpOnly Cookie，客户端另支持 Bearer |
-| 账号 `accounts` / `users` / `admins` | 个人资料、头像上传（RustFS）、修改密码、会话列表与下线；后台编辑/禁用客户端用户，创建/编辑/禁用管理员并分配角色                          |
+| 账号 `accounts` / `users` / `admins` | 个人资料、头像上传（Silo）、修改密码、会话列表与下线；后台编辑/禁用客户端用户，创建/编辑/禁用管理员并分配角色                          |
 | 权限 `rbac`                          | 仅用于管理员：角色 + 权限码（`user:read` 等）、CASL 规则，系统角色 `super_admin` / `admin`；客户端用户无角色                             |
 | AI `ai`                              | 后台可配置的 Embedding 模型（OpenAI 兼容接口，API Key 加密存储，连通性测试，默认模型）                                                   |
 | RAG `rag`                            | 客户端用户自己的知识库、文档上传（txt/md/csv/json/html）或直接提交文本、BullMQ 切分与向量化、pgvector HNSW 检索；后台查看/删除知识库     |
@@ -87,12 +87,12 @@ pnpm -C apps/docs dev
 
 ### 后端基础设施
 
-后端依赖本地 Docker（PostgreSQL + pgvector、Redis、RustFS、Mailpit）：
+后端依赖本地 Docker（PostgreSQL + pgvector、Redis、Silo、Mailpit）：
 
 ```sh
 cd apps/server
 cp .env.example .env        # 本地默认值即可直接使用
-pnpm infra:up               # 启动 postgres(pgvector) / redis / rustfs / mailpit 和本地监控栈
+pnpm infra:up               # 启动 postgres(pgvector) / redis / silo / mailpit 和本地监控栈
 pnpm db:migrate             # 应用数据库迁移
 pnpm db:seed                # 初始化角色、超级管理员、默认 bge-m3 模型
 pnpm dev                    # 自动启动上述 Docker 服务，http://localhost:3100/api
@@ -111,7 +111,9 @@ docker compose exec ollama ollama pull bge-m3
 
 - Swagger 文档：<http://localhost:3100/api/docs>
 - Mailpit 收件箱：<http://localhost:8025>
-- RustFS 控制台：<http://localhost:9001>
+- Silo 控制台：<http://localhost:9001>
+
+对象存储使用 Silo（S3 兼容），Bucket 为 `app`，持久化到本项目的 `silo-data` 卷，不与 booth-ai 共用。`STORAGE_ENDPOINT` 用于后端读写，`STORAGE_PUBLIC_ENDPOINT` 用于生成浏览器可达的预签名 URL，本地默认均为 `http://localhost:9000`。旧存储数据不迁移；升级前仅停止并移除本项目旧 RustFS 容器以释放 9000/9001 端口，不要清理 PostgreSQL/Redis。
 
 ### 环境变量与前后端联调
 
@@ -155,7 +157,7 @@ pnpm -C apps/client build
 
 测试统一使用 Vitest，`vitest`、`@vitest/coverage-v8`、`happy-dom`、`@vue/test-utils` 的版本由根 `pnpm-workspace.yaml` 的 `catalog:` 统一管理，工作区内以 `catalog:` 引用。
 
-后端 E2E 使用与生产相同的 Fastify 配置，并通过 testcontainers 启动临时 Postgres/Redis/RustFS，运行前需要启动 Docker。
+后端 E2E 使用与生产相同的 Fastify 配置，并通过 testcontainers 启动临时 Postgres/Redis/Silo，运行前需要启动 Docker。
 
 ### 格式化
 

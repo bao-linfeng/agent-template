@@ -39,19 +39,19 @@ export interface StoredObject {
 }
 
 /**
- * S3-compatible object storage (RustFS locally, any S3 provider in production).
+ * S3-compatible object storage (Silo locally, any S3 provider in production).
  * Keys are opaque paths such as `avatars/<userId>/<uuid>.png`; never build them from raw user input.
  */
 @Injectable()
 export class StorageService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(StorageService.name)
   private readonly client: S3Client
+  private readonly publicClient: S3Client
   readonly bucket: string
 
   constructor(private readonly config: ConfigService<Env, true>) {
     this.bucket = config.get('STORAGE_BUCKET', { infer: true })
-    this.client = new S3Client({
-      endpoint: config.get('STORAGE_ENDPOINT', { infer: true }),
+    const options = {
       region: config.get('STORAGE_REGION', { infer: true }),
       forcePathStyle: config.get('STORAGE_FORCE_PATH_STYLE', { infer: true }),
       credentials: {
@@ -59,8 +59,16 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
         secretAccessKey: config.get('STORAGE_SECRET_KEY', { infer: true }),
       },
       // S3-compatible servers do not all support the SDK's default flexible checksums.
-      requestChecksumCalculation: 'WHEN_REQUIRED',
-      responseChecksumValidation: 'WHEN_REQUIRED',
+      requestChecksumCalculation: 'WHEN_REQUIRED' as const,
+      responseChecksumValidation: 'WHEN_REQUIRED' as const,
+    }
+    this.client = new S3Client({
+      ...options,
+      endpoint: config.get('STORAGE_ENDPOINT', { infer: true }),
+    })
+    this.publicClient = new S3Client({
+      ...options,
+      endpoint: config.get('STORAGE_PUBLIC_ENDPOINT', { infer: true }),
     })
   }
 
@@ -80,6 +88,7 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
 
   onModuleDestroy(): void {
     this.client.destroy()
+    this.publicClient.destroy()
   }
 
   async ensureBucket(): Promise<void> {
@@ -212,10 +221,10 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
     return deleted
   }
 
-  /** Time-limited direct download URL (the storage endpoint must be reachable by the client). */
+  /** Time-limited direct download URL using the browser-facing storage endpoint. */
   getPresignedUrl(key: string, expiresInSeconds = 300): Promise<string> {
     return getSignedUrl(
-      this.client,
+      this.publicClient,
       new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       {
         expiresIn: expiresInSeconds,
