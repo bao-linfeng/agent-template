@@ -6,10 +6,10 @@
 
 | 目录                         | 用途                                                       | 开发地址                |
 | ---------------------------- | ---------------------------------------------------------- | ----------------------- |
-| `apps/admin`                 | Vue 3 管理端，文件路由，shadcn-vue 组件库                  | `http://localhost:5175` |
-| `apps/client`                | Vue 3 展示端（落地页区块），手写路由，BuildY 页面构建器    | `http://localhost:5174` |
-| `apps/server`                | NestJS 12 / Fastify API，Drizzle + PostgreSQL + pgvector   | `http://localhost:3100` |
-| `apps/docs`                  | VitePress 文档站点                                         | `http://localhost:3001` |
+| `apps/admin`                 | Vue 3 管理端，文件路由，shadcn-vue 组件库                  | `http://localhost:5021` |
+| `apps/client`                | Vue 3 展示端（落地页区块），手写路由，BuildY 页面构建器    | `http://localhost:5020` |
+| `apps/server`                | NestJS 12 / Fastify API，Drizzle + PostgreSQL + pgvector   | `http://localhost:3020` |
+| `apps/docs`                  | VitePress 文档站点                                         | `http://localhost:5022` |
 | `packages/ui`                | `@repo/ui`：shadcn-vue 组件 + 共享 Tailwind 4 主题映射     | —                       |
 | `packages/utils`             | `@repo/utils`：Cookie 会话 HTTP 客户端、错误处理与样式工具 | —                       |
 | `packages/eslint-config`     | 基于 Antfu 的共享 ESLint 配置                              | —                       |
@@ -83,19 +83,19 @@ pnpm -C apps/server dev
 pnpm -C apps/docs dev
 ```
 
-管理端、客户端和文档站固定使用 5175、5174、3001 端口，端口被占用时会报错，不会自动换端口。后端可通过进程环境变量 `PORT` 修改端口。
+管理端、客户端和文档站固定使用 5021、5020、5022 端口，端口被占用时会报错，不会自动换端口。后端可通过进程环境变量 `PORT` 修改端口。
 
 ### 后端基础设施
 
-后端依赖本地 Docker（PostgreSQL + pgvector、Redis、Silo、Mailpit）：
+后端依赖本地 Docker。PostgreSQL + pgvector 与 Redis 来自多个项目共用的基础设施 `D:/baolf/infra`（先在那里 `docker compose up -d --wait`；本项目使用 `app` 库与同名非超级用户账号、Redis 逻辑库 0）；Silo、Mailpit 与监控栈由本项目的 Compose 启动：
 
 ```sh
 cd apps/server
-cp .env.example .env        # 本地默认值即可直接使用
-pnpm infra:up               # 启动 postgres(pgvector) / redis / silo / mailpit 和本地监控栈
+cp .env.example .env        # 把 REDIS_URL 中的密码换成 infra 的 Redis 密码
+pnpm infra:up               # 启动 silo / mailpit 和本地监控栈
 pnpm db:migrate             # 应用数据库迁移
 pnpm db:seed                # 初始化角色、超级管理员、默认 bge-m3 模型
-pnpm dev                    # 自动启动上述 Docker 服务，http://localhost:3100/api
+pnpm dev                    # 自动启动上述 Docker 服务，http://localhost:3020/api
 ```
 
 本地监控（Grafana <http://localhost:3300>、Prometheus、Tempo、告警邮件进 Mailpit）由 `.env` 的 `COMPOSE_PROFILES=observability` 启用，见 [apps/server/README.md](apps/server/README.md) 的「本地监控」。
@@ -109,15 +109,36 @@ docker compose --profile ai up -d
 docker compose exec ollama ollama pull bge-m3
 ```
 
-- Swagger 文档：<http://localhost:3100/api/docs>
+- Swagger 文档：<http://localhost:3020/api/docs>
 - Mailpit 收件箱：<http://localhost:8025>
 - Silo 控制台：<http://localhost:9001>
 
-对象存储使用 Silo（S3 兼容），Bucket 为 `app`，持久化到本项目的 `silo-data` 卷，不与 booth-ai 共用。`STORAGE_ENDPOINT` 用于后端读写，`STORAGE_PUBLIC_ENDPOINT` 用于生成浏览器可达的预签名 URL，本地默认均为 `http://localhost:9000`。旧存储数据不迁移；升级前仅停止并移除本项目旧 RustFS 容器以释放 9000/9001 端口，不要清理 PostgreSQL/Redis。
+对象存储使用 Silo（S3 兼容），Bucket 为 `app`，持久化到本项目的 `silo-data` 卷，不与 booth-ai 共用。`STORAGE_ENDPOINT` 用于后端读写，`STORAGE_PUBLIC_ENDPOINT` 用于生成浏览器可达的预签名 URL，本地默认均为 `http://localhost:9000`。旧存储数据不迁移；升级前仅停止并移除本项目旧 RustFS 容器以释放 9000/9001 端口，不要清理共享 PostgreSQL/Redis。
+
+### 容器方式
+
+不在本机跑 Node 进程，在仓库根目录一条命令构建并启动全部应用（共用基础设施 `D:/baolf/infra` 须已启动）：
+
+```sh
+docker compose up -d --build --wait   # migrate → api + admin + client，以及 apps/server 中的 Silo / Mailpit
+docker compose down                   # 停止（保留数据卷）
+```
+
+| 服务 | 地址 |
+| --- | --- |
+| API / Swagger | <http://localhost:3020/api> / <http://localhost:3020/api/docs> |
+| 管理端 | <http://localhost:5021> |
+| 客户端 | <http://localhost:5020> |
+
+- 配置沿用 `apps/server/.env`；容器内把其中指向 localhost 的数据库、Redis、Silo、SMTP 地址改写为 `host.docker.internal`（`apps/server/docker/loopback-hosts.mjs`），面向浏览器的 `STORAGE_PUBLIC_ENDPOINT` 保持不变。服务端镜像用 Dockerfile 的 `local` 阶段（开发依赖、`NODE_ENV=development`），只用于本地，生产镜像不受影响。
+- 管理端与客户端镜像内的 nginx 改用 `docker/nginx-local.conf`，把同源 `/api/` 转给 api 容器，浏览器不跨域。端口与 `pnpm dev` 相同（管理端 5021、客户端 5020）。
+- 每次启动先执行迁移（`migrate` 服务）；种子数据仍按上节执行一次 `pnpm -C apps/server db:seed`。
+- Compose 项目名与 `apps/server/docker-compose.yml` 相同（`agent-template-server`），两种方式共用同一套 Silo / Mailpit 容器与数据卷；监控栈不随容器方式启动，需要时用 `pnpm infra:up`。
+- 不要与 `pnpm dev` 同时运行（同用 3020 端口与同一队列）。
 
 ### 环境变量与前后端联调
 
-管理端：复制 `apps/admin/.env.example` 为同目录 `.env`（默认 `VITE_SERVER_API_URL` 为空、`VITE_SERVER_API_PREFIX=/api`），校验规则位于 `src/validators/env.validator.ts`。客户端：可选 `apps/client/.env` 中的 `VITE_API_BASE_URL`。两端开发时默认请求同源的 `/api`，由 Vite dev server 代理到 `API_PROXY_TARGET`（默认 `http://localhost:3100`），用 localhost、127.0.0.1 或局域网 IP 打开都能保持 Cookie 同站；填写绝对地址则直连 API，此时服务端 `CORS_ORIGINS` 需包含前端源（生产镜像必须填写绝对地址）。
+管理端：复制 `apps/admin/.env.example` 为同目录 `.env`（默认 `VITE_SERVER_API_URL` 为空、`VITE_SERVER_API_PREFIX=/api`），校验规则位于 `src/validators/env.validator.ts`。客户端：可选 `apps/client/.env` 中的 `VITE_API_BASE_URL`。两端开发时默认请求同源的 `/api`，由 Vite dev server 代理到 `API_PROXY_TARGET`（默认 `http://localhost:3020`），用 localhost、127.0.0.1 或局域网 IP 打开都能保持 Cookie 同站；填写绝对地址则直连 API，此时服务端 `CORS_ORIGINS` 需包含前端源（生产镜像必须填写绝对地址）。
 
 管理端和客户端已对接后端的账号相关接口：
 

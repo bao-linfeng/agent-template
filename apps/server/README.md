@@ -20,28 +20,28 @@ NestJS 12 + Fastify 的 API 服务端底座：PostgreSQL（Drizzle ORM + pgvecto
 需要 Node.js ≥ 24.22、根目录固定的 pnpm **11.25.0** 和 Docker。先在仓库根目录运行 `pnpm install --frozen-lockfile`，再在 `apps/server` 执行以下命令；在仓库根目录调用脚本时使用 `pnpm -C apps/server <脚本>`。
 
 ```bash
-cp .env.example .env     # 本地默认值即可直接使用
-pnpm infra:up            # 启动 postgres(pgvector) / redis / silo / mailpit，以及 COMPOSE_PROFILES 中的监控栈
+cp .env.example .env     # 把 REDIS_URL 中的密码换成共用基础设施（D:/baolf/infra）的 Redis 密码
+pnpm infra:up            # 启动 silo / mailpit，以及 COMPOSE_PROFILES 中的监控栈（PostgreSQL 与 Redis 由共用基础设施提供）
 pnpm db:migrate          # 应用 drizzle/ 下的迁移
 pnpm db:seed             # 系统角色、首个超级管理员（SEED_ADMIN_*）、默认 bge-m3 模型
-pnpm dev                 # 先 docker compose up（已运行则跳过），再监听启动 http://localhost:3100/api
+pnpm dev                 # 先 docker compose up（已运行则跳过），再监听启动 http://localhost:3020/api
 ```
 
-- Swagger：<http://localhost:3100/api/docs>，JSON：<http://localhost:3100/api/docs-json>
-- 就绪检查：<http://localhost:3100/api/health>（Postgres/Redis），存活检查：<http://localhost:3100/api/health/live>
+- Swagger：<http://localhost:3020/api/docs>，JSON：<http://localhost:3020/api/docs-json>
+- 就绪检查：<http://localhost:3020/api/health>（Postgres/Redis），存活检查：<http://localhost:3020/api/health/live>
 - Prometheus 指标：<http://localhost:9464/metrics>（独立监听，不走 API 端口；见下文“指标”）；Grafana 仪表盘和链路查询见下文“本地监控”
 - Mailpit 收件箱（注册验证码和找回密码邮件）：<http://localhost:8025>
 - Silo 控制台：<http://localhost:9001>（账号见 `.env` 中的 `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY`）
 
-Docker Compose 启动 PostgreSQL 18 + pgvector、Redis 8、Silo 和 Mailpit；NestJS 应用在宿主机运行。首个管理员由 `SEED_ADMIN_*` 初始化，在 <http://localhost:5175/auth/sign-in> 登录；客户端用户在 <http://localhost:5174/register> 注册。
+本项目的 Docker Compose 启动 Silo 和 Mailpit，PostgreSQL 18 + pgvector、Redis 8 由共用基础设施提供；NestJS 应用在宿主机运行。首个管理员由 `SEED_ADMIN_*` 初始化，在 <http://localhost:5021/auth/sign-in> 登录；客户端用户在 <http://localhost:5020/register> 注册。
 
 ### 对象存储
 
 - 本地、生产和 E2E 统一使用 `pgsty/silo:RELEASE.2026-09-16T00-00-00Z`，通过 AWS SDK v3 的 `StorageService` 访问；业务模块不依赖 Silo 专有接口。
-- `STORAGE_ENDPOINT` 是服务端读写地址，`STORAGE_PUBLIC_ENDPOINT` 是浏览器访问预签名下载链接的地址；未配置后者时使用前者。容器内部地址不能作为浏览器下载地址。
+- `STORAGE_ENDPOINT` 是服务端读写地址，`STORAGE_PUBLIC_ENDPOINT` 是浏览器访问预签名下载链接的地址；未配置后者时使用前者。容器内部地址不能作为浏览器下载地址，根目录容器模式的预加载脚本不会改写公开地址。
 - 默认 Bucket 为 `app`，数据卷为 `silo-data`，Bucket 保持私有。调用 `getPresignedUrl` 前必须先完成业务鉴权。头像仍通过 API 的 `/avatars` 读取，不改变既有接口。
 - 开发默认凭据为 `siloadmin`，生产禁止使用。生产通过 `STORAGE_DOMAIN` 配置存储域名（Caddy 提供 HTTPS），详见 [部署文档](../../deploy/README.md)。
-- 本次切换不迁移旧对象。已有环境先停止并移除本项目旧 RustFS 容器以释放 9000/9001 端口；不要重用旧存储卷，也不要删除数据库或 Redis。
+- 本次切换不迁移旧对象。已有环境先停止并移除本项目旧 RustFS 容器以释放 9000/9001 端口；不要重用旧存储卷，也不要删除共享数据库或 Redis。
 
 本地向量化（可选）：
 
@@ -72,13 +72,13 @@ docker compose exec ollama ollama pull bge-m3
 ## 前端对接要点
 
 - 默认前缀为 `/api`，可通过 `API_PREFIX` 修改。接口返回原始 JSON，分页列表返回 `{ items, total, page, pageSize }`；全局校验会拒绝未声明的 DTO 字段（400）。`/health`、`/health/live` 和 `/avatars` 是不带版本的公共路由，其余业务接口按 realm 分组。
-- 跨域请求需要带上 Cookie（`credentials: 'include'`），允许的来源由 `CORS_ORIGINS` 配置（默认 5175 / 5174）。
+- 跨域请求需要带上 Cookie（`credentials: 'include'`），允许的来源由 `CORS_ORIGINS` 配置（默认 5021 / 5020）。
 - 客户端用户和后台管理员是两套账号：客户端调用 `/api/v1/client/auth/*`、`/api/v1/client/users/me` 等，Cookie 为 `access_token`/`refresh_token`；管理端调用 `/api/v1/admin/auth/*` 和其他 `/api/v1/admin/*`，Cookie 为 `admin_access_token`/`admin_refresh_token`。同一浏览器可同时登录两边，互不影响；同一邮箱在两边是两个无关的账号。
 - 接口返回 401 时先调用对应的 `POST /api/v1/client/auth/refresh`（管理端为 `/api/v1/admin/auth/refresh`），刷新成功后重试原请求；刷新仍返回 401 时跳转登录页。
 - 小程序、原生 App 等无法使用 HttpOnly Cookie 的客户端走客户端账号体系的 Bearer 模式：请求 `/api/v1/client/auth/{login,register,refresh,logout}` 时带上 `X-Auth-Transport: bearer`，登录/注册返回 `{ account, tokens }`（`tokens` 含 `accessToken`、`expiresIn`、`refreshToken`、`refreshExpiresIn`），不写 Cookie；之后的请求带 `Authorization: Bearer <accessToken>`；401 时用 `POST /api/v1/client/auth/refresh` + body `{ refreshToken }` 换取新的 `tokens`（refresh token 每次都会轮换，需覆盖保存）；退出时带上 `Authorization` 和/或 body `refreshToken`。管理端只支持 Cookie。
 - `GET /api/v1/admin/me` 会返回管理员的 `roles` 和 `permissions`，可用于渲染菜单和按钮权限；客户端的 `GET /api/v1/client/users/me` 不含角色和权限。
 - 第一个后台超级管理员由 `pnpm db:seed`（`SEED_ADMIN_*`）创建，之后的管理员在后台“Admins”页面新建。
-- 找回密码时可传 `resetUrl`（例如管理端的 `http://localhost:5175/auth/reset-password`），来源必须是 `APP_WEB_URL` 或 `CORS_ORIGINS` 之一，否则返回 400；不传时链接为 `APP_WEB_URL/reset-password?token=...`。管理端前端使用 `/auth/reset-password`，客户端前端使用 `/reset-password`；页面拿到 token 后调用对应的 `POST /api/v1/client/auth/reset-password` 或 `POST /api/v1/admin/auth/reset-password`。
+- 找回密码时可传 `resetUrl`（例如管理端的 `http://localhost:5021/auth/reset-password`），来源必须是 `APP_WEB_URL` 或 `CORS_ORIGINS` 之一，否则返回 400；不传时链接为 `APP_WEB_URL/reset-password?token=...`。管理端前端使用 `/auth/reset-password`，客户端前端使用 `/reset-password`；页面拿到 token 后调用对应的 `POST /api/v1/client/auth/reset-password` 或 `POST /api/v1/admin/auth/reset-password`。
 - 修改密码时当前密码错误返回 400（不是 401），以免前端误判为登录过期。
 - 站内通知：`GET /api/v1/{client,admin}/notifications`（分页、`unread`、`category`）、`/unread-count`、已读与删除、`/preferences`、`/announcements`；`GET .../notifications/stream` 是 SSE 长连接，事件只表示“有变化”，收到 `ready` 和其他事件后重新拉取列表和未读数。浏览器原生 `EventSource` 无法在 401 时刷新令牌，也不能带 `Authorization`，请用 `fetch` 读取流；访问令牌到期或会话被撤销后服务端会断开连接，客户端重连即可。文案按 `notifications.types.<type>` 本地化，接口同时返回英文 `title`/`body` 兜底。
 - CORS 允许 `GET/HEAD/POST/PUT/PATCH/DELETE`；`@fastify/cors` 默认只放行前三种，新增方法时同步修改 `setup-app.ts`。

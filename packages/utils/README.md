@@ -47,7 +47,7 @@ applyThemeClass('green', document.body) // 在 body 上切换到 theme-green
 
 ```ts
 export const { fetch: api } = createApiClient({
-  baseURL: 'http://localhost:3100/api/v1/client',
+  baseURL: 'http://localhost:3020/api/v1/client',
   onUnauthorized: () => { window.location.assign('/login') },
 })
 await api('/users/me', { method: 'PATCH', body: { nickname: 'Ada' } })

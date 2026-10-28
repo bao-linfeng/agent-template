@@ -8,7 +8,7 @@
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm -C apps/docs dev          # http://localhost:3001
+pnpm -C apps/docs dev          # http://localhost:5022
 pnpm -C apps/docs lint
 pnpm -C apps/docs lint:fix
 pnpm -C apps/docs check-types
@@ -16,7 +16,7 @@ pnpm -C apps/docs build        # 输出到 apps/docs/dist
 pnpm -C apps/docs preview
 ```
 
-开发端口固定为 3001，被占用时直接报错；预览也默认使用 3001。本站无独立测试脚本，`check-types` 检查 TypeScript 配置，`build` 验证站点生成与内部链接。
+开发端口固定为 5022，被占用时直接报错；预览也默认使用 5022。本站无独立测试脚本，`check-types` 检查 TypeScript 配置，`build` 验证站点生成与内部链接。
 
 ## 内容与配置
 

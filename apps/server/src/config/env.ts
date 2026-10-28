@@ -11,9 +11,9 @@ const DEV_STORAGE_KEY = 'siloadmin'
  * reset links, avatar URLs or connections to localhost.
  */
 const DEV_ADDRESSES = {
-  PUBLIC_URL: 'http://localhost:3100',
-  APP_WEB_URL: 'http://localhost:5175',
-  CORS_ORIGINS: ['http://localhost:5175', 'http://localhost:5174'],
+  PUBLIC_URL: 'http://localhost:3020',
+  APP_WEB_URL: 'http://localhost:5021',
+  CORS_ORIGINS: ['http://localhost:5021', 'http://localhost:5020'],
   DATABASE_URL: 'postgres://app:app@localhost:5432/app',
   REDIS_URL: 'redis://localhost:6379',
 }
@@ -41,7 +41,7 @@ export const envSchema = z
       .enum(['development', 'test', 'production'])
       .default('development'),
     HOST: z.string().default('0.0.0.0'),
-    PORT: z.coerce.number().int().positive().default(3100),
+    PORT: z.coerce.number().int().positive().default(3020),
     API_PREFIX: z.string().default('api'),
     /** Public base URL of this API, used to build absolute links such as avatar URLs. Required in production. */
     PUBLIC_URL: z.url().optional(),

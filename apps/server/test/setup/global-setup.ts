@@ -49,7 +49,7 @@ export default async function setup(project: TestProject) {
     PASSWORD_HASH_ROUNDS: '4',
     AUTH_THROTTLE_LIMIT: '150',
     THROTTLE_LIMIT: '10000',
-    PUBLIC_URL: 'http://localhost:3100',
+    PUBLIC_URL: 'http://localhost:3020',
     // A rotated-out key that still decrypts (see test/secret-rotation.e2e-spec.ts).
     ENCRYPTION_KEYS_PREVIOUS: E2E_PREVIOUS_ENCRYPTION_KEY,
     // Every test app binds its own metrics listener on a free port.

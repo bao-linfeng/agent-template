@@ -554,14 +554,14 @@ describe('notifications and announcements (e2e)', () => {
 
       const stream = await openStream(
         `${baseUrl}${CLIENT_API}/notifications/stream`,
-        { ...auth, Origin: 'http://localhost:5174' },
+        { ...auth, Origin: 'http://localhost:5020' },
       )
       expect(stream.response.status).toBe(200)
       expect(stream.response.headers.get('content-type')).toBe(
         'text/event-stream; charset=utf-8',
       )
       expect(stream.response.headers.get('access-control-allow-origin')).toBe(
-        'http://localhost:5174',
+        'http://localhost:5020',
       )
       expect(stream.response.headers.get('x-request-id')).toBeTruthy()
       await stream.next('ready')

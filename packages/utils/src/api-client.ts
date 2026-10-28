@@ -31,7 +31,7 @@ const SUPERSEDED_RETRY_DELAYS_MS = [250, 500, 1000]
 const CREDENTIAL_ENDPOINTS = ['login', 'register', 'refresh', 'logout', 'forgot-password', 'reset-password']
 
 export interface ApiClientOptions {
-  /** Realm root including the API prefix and version, e.g. `http://localhost:3100/api/v1/client`. */
+  /** Realm root including the API prefix and version, e.g. `http://localhost:3020/api/v1/client`. */
   baseURL: string
   /** Auth routes of the account realm, relative to `baseURL` (default `/auth`). */
   authPath?: string

@@ -14,9 +14,9 @@ cp apps/admin/.env.example apps/admin/.env
 pnpm -C apps/admin dev
 ```
 
-Prepare the [server infrastructure, migrations and seed data](../server/README.md) before signing in. Open <http://localhost:5175/auth/sign-in> and use the account configured by the server's `SEED_ADMIN_*` variables. Additional administrators are created on `/admins`; there is no admin registration endpoint.
+Prepare the [server infrastructure, migrations and seed data](../server/README.md) before signing in. Open <http://localhost:5021/auth/sign-in> and use the account configured by the server's `SEED_ADMIN_*` variables. Additional administrators are created on `/admins`; there is no admin registration endpoint.
 
-The development port is fixed at **5175** and fails if occupied.
+The development port is fixed at **5021** and fails if occupied.
 
 ## Implemented features
 
@@ -49,7 +49,7 @@ AI Talk is a demo UI; there is no connected chat service. The server exposes RAG
 
 ## API and authentication
 
-Copy `.env.example` to `.env`. By default `VITE_SERVER_API_URL` is empty and the prefix is `VITE_SERVER_API_PREFIX=/api`: the app calls `/api` on its own origin and the Vite dev server proxies it to `API_PROXY_TARGET` (default `http://localhost:3100`), so cookies stay same-site on localhost, 127.0.0.1 or a LAN IP. Set an absolute `VITE_SERVER_API_URL` to call the API directly (production images require one). Validation lives in `src/validators/env.validator.ts`.
+Copy `.env.example` to `.env`. By default `VITE_SERVER_API_URL` is empty and the prefix is `VITE_SERVER_API_PREFIX=/api`: the app calls `/api` on its own origin and the Vite dev server proxies it to `API_PROXY_TARGET` (default `http://localhost:3020`), so cookies stay same-site on localhost, 127.0.0.1 or a LAN IP. Set an absolute `VITE_SERVER_API_URL` to call the API directly (production images require one). Validation lives in `src/validators/env.validator.ts`.
 
 `src/lib/api-client.ts` creates `apiFetch` with a base URL of `<origin><prefix>/v1/admin`. API modules use relative paths such as `/users` and `/me`.
 

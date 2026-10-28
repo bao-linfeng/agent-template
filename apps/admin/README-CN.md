@@ -14,9 +14,9 @@ cp apps/admin/.env.example apps/admin/.env
 pnpm -C apps/admin dev
 ```
 
-登录前按[服务端说明](../server/README.md)启动基础设施、执行迁移和种子初始化。访问 <http://localhost:5175/auth/sign-in>，使用服务端 `SEED_ADMIN_*` 配置的管理员账号。其他管理员通过 `/admins` 创建，管理端不开放注册。
+登录前按[服务端说明](../server/README.md)启动基础设施、执行迁移和种子初始化。访问 <http://localhost:5021/auth/sign-in>，使用服务端 `SEED_ADMIN_*` 配置的管理员账号。其他管理员通过 `/admins` 创建，管理端不开放注册。
 
-开发端口固定为 **5175**，占用时直接报错。
+开发端口固定为 **5021**，占用时直接报错。
 
 ## 已实现功能
 
@@ -49,7 +49,7 @@ AI Talk 尚未接入聊天服务；服务端已提供 RAG API，但本应用尚�
 
 ## 后端对接
 
-将 `.env.example` 复制为 `.env`。默认 `VITE_SERVER_API_URL` 为空、`VITE_SERVER_API_PREFIX=/api`：页面请求同源的 `/api`，由 Vite dev server 代理到 `API_PROXY_TARGET`（默认 `http://localhost:3100`），用 localhost、127.0.0.1 或局域网 IP 打开都能保持 Cookie 同站；填写绝对地址则直连 API（生产镜像必须填写）。环境校验位于 `src/validators/env.validator.ts`。
+将 `.env.example` 复制为 `.env`。默认 `VITE_SERVER_API_URL` 为空、`VITE_SERVER_API_PREFIX=/api`：页面请求同源的 `/api`，由 Vite dev server 代理到 `API_PROXY_TARGET`（默认 `http://localhost:3020`），用 localhost、127.0.0.1 或局域网 IP 打开都能保持 Cookie 同站；填写绝对地址则直连 API（生产镜像必须填写）。环境校验位于 `src/validators/env.validator.ts`。
 
 `src/lib/api-client.ts` 创建的 `apiFetch` 基地址为 `<origin><prefix>/v1/admin`，业务模块使用 `/users`、`/me` 等相对路径。
 

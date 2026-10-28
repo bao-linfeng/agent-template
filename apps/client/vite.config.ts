@@ -52,14 +52,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      port: 5174,
+      port: 5020,
       strictPort: true,
       hmr: {
         overlay: false,
       },
       proxy: {
         [apiPath]: {
-          target: env.API_PROXY_TARGET || 'http://localhost:3100',
+          target: env.API_PROXY_TARGET || 'http://localhost:3020',
           changeOrigin: true,
         },
       },

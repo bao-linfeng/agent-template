@@ -23,13 +23,13 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       host: '0.0.0.0',
-      port: 5175,
+      port: 5021,
       strictPort: true,
       // With an empty VITE_SERVER_API_URL the app calls its own origin, so the API and its cookies stay
       // same-site whichever host (localhost, 127.0.0.1, a LAN IP) the page is opened on.
       proxy: {
         [env.VITE_SERVER_API_PREFIX || '/api']: {
-          target: env.API_PROXY_TARGET || 'http://localhost:3100',
+          target: env.API_PROXY_TARGET || 'http://localhost:3020',
           changeOrigin: true,
         },
       },

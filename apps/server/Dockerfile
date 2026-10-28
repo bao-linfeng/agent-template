@@ -22,6 +22,20 @@ FROM base AS build
 RUN pnpm install --frozen-lockfile --offline --store-dir /pnpm/store --filter server...
 RUN pnpm -C apps/server build
 
+# Local container mode only (root docker-compose.yml, `--target local`); never deploy it. Runs the build with
+# its dev dependencies and NODE_ENV=development, so the local defaults apply (development secrets that the
+# local database's encrypted values depend on, Silo credentials, pino-pretty logs, non-Secure cookies).
+# docker/loopback-hosts.mjs points localhost dependency URLs from apps/server/.env at the Docker host.
+# Declared before the production stages so a build without --target still produces `runtime`.
+FROM build AS local
+ENV NODE_ENV=development \
+    HOST=0.0.0.0 \
+    PORT=3020
+WORKDIR /repo/apps/server
+USER node
+EXPOSE 3020 9464
+CMD ["node", "--import", "./docker/loopback-hosts.mjs", "--import", "./dist/tracing.js", "dist/main.js"]
+
 # Production dependencies only, in pnpm's regular layout (root node_modules/.pnpm + package symlinks).
 # `pnpm deploy` is not used: without injected workspace packages it re-resolves optional
 # dependencies from registry metadata, which breaks offline builds.
