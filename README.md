@@ -87,7 +87,7 @@ pnpm -C apps/docs dev
 
 ### 后端基础设施
 
-后端依赖本地 Docker。PostgreSQL + pgvector 与 Redis 来自多个项目共用的基础设施 `D:/baolf/infra`（先在那里 `docker compose up -d --wait`；本项目使用 `app` 库与同名非超级用户账号、Redis 逻辑库 0）；Silo、Mailpit 与监控栈由本项目的 Compose 启动：
+后端依赖本地 Docker。PostgreSQL + pgvector 与 Redis 来自多个项目共用的基础设施 `D:/baolf/infra`（先在那里 `docker compose up -d --wait`；本项目使用 `app` 库与同名非超级用户账号、Redis 逻辑库 2）；Silo、Mailpit 与监控栈由本项目的 Compose 启动：
 
 ```sh
 cd apps/server

@@ -4,7 +4,7 @@
 #   docker compose down                     # stop (volumes are kept)
 #
 # PostgreSQL (pgvector) and Redis come from the shared infrastructure D:/baolf/infra (start it first; this app
-# owns the `app` database and Redis db 0). Configuration is apps/server/.env, shared with `pnpm dev`; localhost
+# owns the `app` database and Redis db 2). Configuration is apps/server/.env, shared with `pnpm dev`; localhost
 # dependency URLs in it are pointed at the Docker host inside the api container (apps/server/docker/loopback-hosts.mjs).
 # Do not run this and `pnpm dev` at the same time: both use port 3020 and the same queues.
 #

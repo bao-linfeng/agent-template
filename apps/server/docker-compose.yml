@@ -1,7 +1,7 @@
 # Local infrastructure for apps/server. The Nest app itself runs on the host (`pnpm -C apps/server dev`).
 # Compose reads variables from apps/server/.env, so ports and credentials stay in sync with the app config.
 # PostgreSQL (pgvector) and Redis are not here: they come from the shared infrastructure project D:/baolf/infra
-# (`docker compose up -d --wait` there), used by several projects; this app owns the `app` database and Redis db 0.
+# (`docker compose up -d --wait` there), used by several projects; this app owns the `app` database and Redis db 2.
 #
 #   docker compose up -d                 # silo + mailpit
 #   docker compose --profile ai up -d    # also start Ollama for local bge-m3 embeddings
