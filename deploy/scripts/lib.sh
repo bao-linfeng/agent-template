@@ -28,7 +28,7 @@ pg() {
   docker compose exec -T postgres sh -c "$1"
 }
 
-# Runs the AWS CLI (`aws <args>`) against the bundled RustFS on the compose network, with <host-dir> mounted at /backup.
+# Runs the AWS CLI (`aws <args>`) against the bundled Silo on the compose network, with <host-dir> mounted at /backup.
 aws_cli() {
   local host_dir="$1"
   shift
@@ -44,5 +44,5 @@ aws_cli() {
     -e AWS_DEFAULT_REGION="$(env_value STORAGE_REGION us-east-1)" \
     -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required \
     -e AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
-    amazon/aws-cli:latest --endpoint-url http://rustfs:9000 "$@"
+    amazon/aws-cli:latest --endpoint-url http://silo:9000 "$@"
 }

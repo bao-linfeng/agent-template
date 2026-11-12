@@ -20,7 +20,7 @@ else
 fi
 
 log "Starting PostgreSQL, Redis and object storage"
-docker compose up -d --wait postgres redis rustfs
+docker compose up -d --wait postgres redis silo
 
 if [[ "${SKIP_BACKUP:-}" != "1" ]]; then
   bash scripts/backup.sh pre-deploy

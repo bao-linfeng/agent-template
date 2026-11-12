@@ -1,4 +1,4 @@
-# Single-host production stack: Caddy (HTTPS) → api / admin / client, plus PostgreSQL (pgvector), Redis and RustFS.
+# Single-host production stack: Caddy (HTTPS) → api / admin / client / Silo, plus PostgreSQL (pgvector) and Redis.
 # Run every command from this directory with deploy/.env in place (cp .env.example .env). See README.md.
 #
 #   scripts/deploy.sh [tag]            # pull images, back up, migrate, then roll out
@@ -36,7 +36,8 @@ x-server: &server
     # Use URL-safe passwords (e.g. openssl rand -hex 32): they are embedded in connection URLs.
     DATABASE_URL: postgres://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-app}
     REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD}@redis:6379
-    STORAGE_ENDPOINT: http://rustfs:9000
+    STORAGE_ENDPOINT: http://silo:9000
+    STORAGE_PUBLIC_ENDPOINT: https://${STORAGE_DOMAIN:?set STORAGE_DOMAIN}
     STORAGE_FORCE_PATH_STYLE: "true"
 
 services:
@@ -53,6 +54,7 @@ services:
       API_DOMAIN: ${API_DOMAIN}
       ADMIN_DOMAIN: ${ADMIN_DOMAIN}
       CLIENT_DOMAIN: ${CLIENT_DOMAIN}
+      STORAGE_DOMAIN: ${STORAGE_DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -71,7 +73,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      rustfs:
+      silo:
         condition: service_healthy
 
   # One-off tasks (profile `ops` keeps them out of `docker compose up`).
@@ -157,26 +159,19 @@ services:
       timeout: 3s
       retries: 10
 
-  rustfs:
-    image: rustfs/rustfs:1.0.1
+  silo:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    command: [server, /data, --console-address, ':9001']
     restart: unless-stopped
     logging: *logging
     environment:
-      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY:?set STORAGE_ACCESS_KEY}
-      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_KEY:?set STORAGE_SECRET_KEY}
-      RUSTFS_CONSOLE_ENABLE: "false"
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:?set STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:?set STORAGE_SECRET_KEY}
+      MINIO_BROWSER: "off"
     volumes:
-      - rustfs-data:/data
+      - silo-data:/data
     healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-fsS",
-          "-o",
-          "/dev/null",
-          "http://127.0.0.1:9000/health",
-        ]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -324,7 +319,7 @@ services:
 volumes:
   postgres-data:
   redis-data:
-  rustfs-data:
+  silo-data:
   clamav-data:
   caddy-data:
   caddy-config:

@@ -6,8 +6,9 @@
 Internet ──443──▶ gateway (Caddy, 自动 HTTPS)
                     ├─ API_DOMAIN    → api    (apps/server 镜像, :3100)
                     ├─ ADMIN_DOMAIN  → admin  (nginx 静态站, :8080)
-                    └─ CLIENT_DOMAIN → client (nginx 静态站, :8080)
-api ──▶ postgres (pgvector) / redis / rustfs   —— 仅内网，不发布端口
+                    ├─ CLIENT_DOMAIN → client (nginx 静态站, :8080)
+                    └─ STORAGE_DOMAIN → silo (S3 API, :9000；私有桶 + 预签名下载)
+api ──▶ postgres (pgvector) / redis / silo   —— 容器仅内网，不直接发布端口
 
 可选监控（profile observability）：
 prometheus ──抓取──▶ api:9464   ──告警──▶ alertmanager ──▶ 邮件 / alert-relay ──▶ 企业微信、飞书、钉钉
@@ -21,7 +22,7 @@ api ──INSTREAM──▶ clamav:3310 (clamd + freshclam)
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docker-compose.yml` | 生产编排；`migrate`、`seed` 属于 `ops` profile，只能通过 `docker compose run` 执行；监控组件属于 `observability` profile，clamd 属于 `antivirus` profile |
 | `.env.example`       | 域名、镜像、密钥、SMTP、监控告警、备份配置模板，复制为 `.env`（已被 git 忽略）                                                                           |
-| `Caddyfile`          | 三个域名的反向代理与证书                                                                                                                                 |
+| `Caddyfile`          | API、管理端、客户端、对象存储四个域名的反向代理与证书                                                                                                     |
 | `nginx/`             | admin/client 镜像使用的 SPA 配置（history 回退、静态资源长缓存、安全响应头）                                                                             |
 | `observability/`     | Prometheus 抓取配置与告警规则（含 `promtool` 测试）、Alertmanager、IM 告警转发、Tempo、Grafana 数据源与仪表盘                                            |
 | `scripts/deploy.sh`  | 发布：拉取或构建镜像 → 启动基础设施 → 发布前备份 → 迁移 → 滚动更新 → 就绪检查                                                                            |
@@ -49,7 +50,7 @@ api ──INSTREAM──▶ clamav:3310 (clamd + freshclam)
 
 ## 首次部署
 
-前提：Docker Engine 与 Compose v2；三个域名的 DNS 已指向本机；80/443 端口可从公网访问（Caddy 申请证书需要）。
+前提：Docker Engine 与 Compose v2；API、管理端、客户端、存储四个域名的 DNS 已指向本机；80/443 端口可从公网访问（Caddy 申请证书需要）。
 
 ```sh
 cd deploy
@@ -63,6 +64,14 @@ docker compose run --rm seed       # 只需一次：系统角色、首个超级�
 
 使用托管 PostgreSQL / Redis / S3 时：在 `docker-compose.yml` 中删除对应服务及 `depends_on`，把 `x-server.environment` 里的 `DATABASE_URL`、`REDIS_URL`、`STORAGE_ENDPOINT` 改为托管地址（托管 S3 通常还需 `STORAGE_FORCE_PATH_STYLE=false`）。PostgreSQL 必须提供 pgvector 扩展；Redis 必须使用 `noeviction` 策略（BullMQ 要求）。此时 `backup.sh`/`restore.sh` 不再适用，改用云厂商的快照与时间点恢复。
 
+### 对象存储
+
+统一使用 Silo（镜像 `pgsty/silo:RELEASE.2026-09-16T00-00-00Z`），数据保存在独立的 `silo-data` 卷。API 使用内部地址 `http://silo:9000` 读写，下载签名使用 `https://<STORAGE_DOMAIN>`；在 `.env` 设置 `STORAGE_DOMAIN=files.example.com` 并配置 DNS。Caddy 原样转发路径、查询参数和 Host，不能在签名后替换域名或添加路径前缀，否则签名会失效。生产不开放存储控制台。
+
+Bucket 默认私有，只有业务鉴权通过后生成的临时预签名链接可以下载对象。使用托管 S3 时还需把 `STORAGE_PUBLIC_ENDPOINT` 改为浏览器可达的 S3 地址，并移除 Caddyfile 的存储域名站点。备份脚本仍通过内部 S3 API 访问 Silo。
+
+从旧对象存储切换时，本次不迁移旧文件，也不重用旧卷；停止并移除本项目旧 RustFS 容器后再启动 Silo，数据库与 Redis 不变。已有头像、文档源文件和导出记录引用的旧对象不会自动恢复，需要重新上传或生成。
+
 ## 发布流程
 
 ```sh
@@ -72,7 +81,7 @@ scripts/deploy.sh 1.1.0
 依次执行：
 
 1. 拉取（或构建）三个应用镜像；此时运行中的版本不受影响。
-2. 启动并等待 postgres、redis、rustfs 健康。
+2. 启动并等待 postgres、redis、silo 健康。
 3. `backup.sh pre-deploy` 生成发布前备份（`SKIP_BACKUP=1` 可跳过）。
 4. `docker compose run --rm migrate` 执行迁移。**迁移失败时脚本立即退出，旧版本容器继续运行。**
 5. `docker compose up -d --wait` 用新镜像替换 api/admin/client，等待健康检查通过。

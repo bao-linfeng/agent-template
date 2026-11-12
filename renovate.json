@@ -80,10 +80,10 @@
     },
     {
       "description": [
-        "Major upgrades of PostgreSQL, Redis and RustFS change on-disk formats: upgrade them by hand with a backup."
+        "Major upgrades of PostgreSQL, Redis and Silo change on-disk formats: upgrade them by hand with a backup."
       ],
       "matchManagers": ["docker-compose"],
-      "matchPackageNames": ["pgvector/pgvector", "redis", "rustfs/rustfs"],
+      "matchPackageNames": ["pgvector/pgvector", "redis", "pgsty/silo"],
       "matchUpdateTypes": ["major"],
       "enabled": false
     }

@@ -26,3 +26,8 @@
 	import common
 	reverse_proxy client:8080
 }
+
+{$STORAGE_DOMAIN} {
+	import common
+	reverse_proxy silo:9000
+}

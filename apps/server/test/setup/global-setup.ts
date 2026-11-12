@@ -11,9 +11,9 @@ import { E2E_ADMIN, E2E_PREVIOUS_ENCRYPTION_KEY } from '../support/constants.js'
 import { startFakeClamd } from '../support/fake-clamd.js'
 import { startFakeEmbeddings } from '../support/fake-embeddings.js'
 
-/** Starts throwaway Postgres (pgvector), Redis and RustFS containers plus fake embeddings and clamd servers. */
+/** Starts throwaway Postgres (pgvector), Redis and Silo containers plus fake embeddings and clamd servers. */
 export default async function setup(project: TestProject) {
-  const [postgres, redis, rustfs, embeddings, clamd] = await Promise.all([
+  const [postgres, redis, silo, embeddings, clamd] = await Promise.all([
     new PostgreSqlContainer('pgvector/pgvector:pg18')
       .withDatabase('app')
       .withUsername('app')
@@ -23,13 +23,14 @@ export default async function setup(project: TestProject) {
       .withExposedPorts(6379)
       .withWaitStrategy(Wait.forLogMessage('Ready to accept connections'))
       .start(),
-    new GenericContainer('rustfs/rustfs:1.0.1')
+    new GenericContainer('pgsty/silo:RELEASE.2026-09-16T00-00-00Z')
+      .withCommand(['server', '/data', '--console-address', ':9001'])
       .withEnvironment({
-        RUSTFS_ACCESS_KEY: 'e2e-access',
-        RUSTFS_SECRET_KEY: 'e2e-secret-key',
+        MINIO_ROOT_USER: 'e2e-access',
+        MINIO_ROOT_PASSWORD: 'e2e-secret-key',
       })
       .withExposedPorts(9000)
-      .withWaitStrategy(Wait.forListeningPorts())
+      .withWaitStrategy(Wait.forHttp('/minio/health/ready', 9000))
       .start(),
     startFakeEmbeddings(),
     startFakeClamd(),
@@ -40,14 +41,15 @@ export default async function setup(project: TestProject) {
     LOG_LEVEL: 'silent',
     DATABASE_URL: postgres.getConnectionUri(),
     REDIS_URL: `redis://${redis.getHost()}:${redis.getMappedPort(6379)}`,
-    STORAGE_ENDPOINT: `http://${rustfs.getHost()}:${rustfs.getMappedPort(9000)}`,
+    STORAGE_ENDPOINT: `http://${silo.getHost()}:${silo.getMappedPort(9000)}`,
+    STORAGE_PUBLIC_ENDPOINT: `http://${silo.getHost()}:${silo.getMappedPort(9000)}`,
     STORAGE_ACCESS_KEY: 'e2e-access',
     STORAGE_SECRET_KEY: 'e2e-secret-key',
     STORAGE_BUCKET: 'e2e',
     PASSWORD_HASH_ROUNDS: '4',
     AUTH_THROTTLE_LIMIT: '150',
     THROTTLE_LIMIT: '10000',
-    PUBLIC_URL: 'http://localhost:3100',
+    PUBLIC_URL: 'http://localhost:3020',
     // A rotated-out key that still decrypts (see test/secret-rotation.e2e-spec.ts).
     ENCRYPTION_KEYS_PREVIOUS: E2E_PREVIOUS_ENCRYPTION_KEY,
     // Every test app binds its own metrics listener on a free port.
@@ -78,7 +80,7 @@ export default async function setup(project: TestProject) {
   return async () => {
     embeddings.server.close()
     await clamd.close()
-    await Promise.all([postgres.stop(), redis.stop(), rustfs.stop()])
+    await Promise.all([postgres.stop(), redis.stop(), silo.stop()])
   }
 }
 

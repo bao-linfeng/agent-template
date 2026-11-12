@@ -11,8 +11,8 @@ pnpm install --frozen-lockfile
 pnpm -C apps/client dev
 ```
 
-1. 在 <http://localhost:5174/hero/base> 等展示页收藏需要的区块。
-2. 通过导航栏的 BuildY 入口，或直接打开 <http://localhost:5174/buildy/index.html>。
+1. 在 <http://localhost:5020/hero/base> 等展示页收藏需要的区块。
+2. 通过导航栏的 BuildY 入口，或直接打开 <http://localhost:5020/buildy/index.html>。
 3. 有尚未导入的收藏时，点击 `Get UI Blocks`，加载区块后页面会刷新。
 4. 将区块加入布局，拖动排序、编辑内容并调整页面配置。
 5. 使用 JSON 导入/导出保存项目，或导出 HTML。

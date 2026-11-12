@@ -72,7 +72,7 @@ describe('session store', () => {
   })
 
   it('registers and uploads the chosen avatar with the new session', async () => {
-    const withAvatar = { ...profile, avatarUrl: 'http://localhost:3100/api/avatars/u1/a.png' }
+    const withAvatar = { ...profile, avatarUrl: 'http://localhost:3020/api/avatars/u1/a.png' }
     accountApi.register.mockResolvedValue(profile)
     accountApi.uploadAvatar.mockResolvedValue(withAvatar)
     const session = useSessionStore()

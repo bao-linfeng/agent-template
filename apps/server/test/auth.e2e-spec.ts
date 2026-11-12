@@ -459,7 +459,7 @@ describe('auth & account (e2e)', () => {
       .post(`${CLIENT_API}/auth/forgot-password`)
       .send({
         email: credentials.email,
-        resetUrl: 'http://localhost:5174/account/reset?from=mail#top',
+        resetUrl: 'http://localhost:5020/account/reset?from=mail#top',
       })
       .expect(202)
 
@@ -469,7 +469,7 @@ describe('auth & account (e2e)', () => {
         .find((m) => m.text.includes('/account/reset')),
     )
     const link = new URL(mail.text.match(/https?:\/\/\S+/)![0])
-    expect(link.origin).toBe('http://localhost:5174')
+    expect(link.origin).toBe('http://localhost:5020')
     expect(link.searchParams.get('from')).toBe('mail')
     expect(link.searchParams.get('token')).toMatch(/.{20,}/)
     expect(link.hash).toBe('')
@@ -659,7 +659,7 @@ describe('auth & account (e2e)', () => {
       .post(`${ADMIN_API}/auth/forgot-password`)
       .send({
         email: credentials.email,
-        resetUrl: 'http://localhost:5175/auth/reset-password',
+        resetUrl: 'http://localhost:5021/auth/reset-password',
       })
       .expect(202)
     const mails = await waitFor(() => {
@@ -716,12 +716,12 @@ describe('auth & account (e2e)', () => {
       const preflight = await t
         .http()
         .options(`${CLIENT_API}/users/me`)
-        .set('Origin', 'http://localhost:5174')
+        .set('Origin', 'http://localhost:5020')
         .set('Access-Control-Request-Method', method)
         .set('Access-Control-Request-Headers', 'content-type')
         .expect(204)
       expect(preflight.headers['access-control-allow-origin']).toBe(
-        'http://localhost:5174',
+        'http://localhost:5020',
       )
       expect(preflight.headers['access-control-allow-credentials']).toBe('true')
       expect(preflight.headers['access-control-allow-methods']).toContain(

@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "vitepress dev --port 3001 --strictPort",
+    "dev": "vitepress dev --port 5022 --strictPort",
     "build": "vitepress build",
-    "preview": "vitepress preview --port 3001",
+    "preview": "vitepress preview --port 5022",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check-types": "tsc --noEmit"

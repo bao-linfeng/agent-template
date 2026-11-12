@@ -3,11 +3,11 @@ import { validateEnv } from './env.js'
 describe('validateEnv', () => {
   it('applies local defaults outside production', () => {
     const env = validateEnv({})
-    expect(env.PORT).toBe(3100)
+    expect(env.PORT).toBe(3020)
     expect(env.API_PREFIX).toBe('api')
     expect(env.CORS_ORIGINS).toEqual([
-      'http://localhost:5175',
-      'http://localhost:5174',
+      'http://localhost:5021',
+      'http://localhost:5020',
     ])
     expect(env.COOKIE_SECURE).toBe(false)
     expect(env.SWAGGER_ENABLED).toBe(true)
@@ -114,13 +114,30 @@ describe('validateEnv', () => {
   })
 
   it('rejects missing or local storage credentials in production', () => {
-    for (const value of [undefined, '', 'rustfsadmin']) {
+    for (const value of [undefined, '', 'siloadmin']) {
       expect(() =>
         validateEnv({ ...production, STORAGE_SECRET_KEY: value }),
       ).toThrow(/STORAGE_SECRET_KEY must be set to real credentials/)
     }
-    // Local development keeps working with the RustFS container defaults.
-    expect(validateEnv({}).STORAGE_ACCESS_KEY).toBe('rustfsadmin')
+    expect(validateEnv({}).STORAGE_ACCESS_KEY).toBe('siloadmin')
+  })
+
+  it('defaults public storage URLs to the read/write endpoint unless overridden', () => {
+    expect(validateEnv({}).STORAGE_PUBLIC_ENDPOINT).toBe(
+      'http://localhost:9000',
+    )
+    const endpoints = {
+      STORAGE_ENDPOINT: 'http://silo:9000',
+      STORAGE_PUBLIC_ENDPOINT: 'https://files.example.com',
+    }
+    expect(validateEnv(endpoints)).toMatchObject(endpoints)
+    expect(
+      validateEnv({ STORAGE_ENDPOINT: endpoints.STORAGE_ENDPOINT })
+        .STORAGE_PUBLIC_ENDPOINT,
+    ).toBe(endpoints.STORAGE_ENDPOINT)
+    expect(() => validateEnv({ STORAGE_PUBLIC_ENDPOINT: 'invalid' })).toThrow(
+      /STORAGE_PUBLIC_ENDPOINT/,
+    )
   })
 
   it('accepts previous encryption keys for rotation', () => {
